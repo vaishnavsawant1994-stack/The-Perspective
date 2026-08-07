@@ -13,7 +13,7 @@ src/
     search/             Global search trigger, overlay, and local suggestions
     home/               Homepage sections composed from domain components
     latest/             Latest-news lead, filters, feed, insertion, and sidebar
-    article/            Reusable hero, card, row, opinion, and ranked-story patterns
+    article/            Reusable listing patterns and the long-form story reader
     magazine/           Issue, cover, and personal-publication presentation
     person/             Reusable interview and profile-led presentation
     article/            Future article presentation components
@@ -41,7 +41,7 @@ Directories for future component families are introduced only when the first rea
 
 ## Server and Client Components
 
-Components are Server Components by default. Add `"use client"` only at the narrowest interactive boundary requiring state, event handlers, browser APIs, or client-only hooks. Global navigation/search, newsletter validation, and the Latest feed controls are focused client islands; data selection and page composition remain server-side.
+Components are Server Components by default. Add `"use client"` only at the narrowest interactive boundary requiring state, event handlers, browser APIs, or client-only hooks. Global navigation/search, newsletter validation, Latest feed controls, and article copy-link feedback are focused client islands; data selection and page composition remain server-side.
 
 ## Design system
 
@@ -63,6 +63,8 @@ The footer is permanently structured around publication context, configured link
 
 `homepage.ts` is a composition layer: it selects article and person records by stable IDs without duplicating their content. Route files receive complete typed objects and remain responsible only for arranging page sections. Generated placeholder photography is stored locally under `public/images/articles` and consumed through `next/image` with explicit dimensions and responsive `sizes`.
 
+`article-details.ts` adds long-form content to representative summaries without bloating the listing dataset. Article bodies use a discriminated block union for paragraphs, semantic headings, pull quotes, images, lists, callouts, and dividers. Remaining summaries receive a deterministic structured fallback, so every centralized article slug has a valid reader destination.
+
 ## Homepage composition
 
 The `/` route is a Server Component with page-specific metadata and lightweight Website JSON-LD. It assembles sixteen editorial moments from reusable article, person, magazine, home-section, market, premium, and newsletter components. Interactive behavior remains confined to the existing global-shell islands and the shared newsletter form, keeping the content-heavy page statically renderable with minimal client JavaScript.
@@ -70,6 +72,10 @@ The `/` route is a Server Component with page-specific metadata and lightweight 
 ## Latest News composition
 
 The `/latest` route is a Server Component with route-specific metadata. It passes a deterministic August 5–7, 2026 article edition into one focused client feed island for category filtering and batched reveal. Lead stories, chronological date groups, the In Depth insertion, ranked Most Read stories, magazine promotion, newsletter, and responsive desktop/sidebar composition all reuse centralized typed data and shared editorial primitives; no API or persistence layer is involved.
+
+## Article reader composition
+
+The `/article/[slug]` route resolves typed article details by slug, returns the global not-found experience for invalid values, and statically generates every mock article during the production build. Dynamic metadata and sanitized Article/NewsArticle JSON-LD derive from the resolved record. The reusable reader composes a content-driven header, responsive hero, share/TOC rail, constrained body renderer, tags, author bio, deterministic related stories, ranked Most Read list, magazine promotion, and newsletter. Only the copy-link control hydrates; long-form text and essential metadata render directly in HTML.
 
 ## Future database architecture
 
