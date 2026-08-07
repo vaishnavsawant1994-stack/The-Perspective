@@ -1,0 +1,11 @@
+export type ContentStatus = "draft" | "scheduled" | "published" | "archived";
+export type ImageAsset = { src: string; alt: string; width: number; height: number; credit?: string };
+export type SeoMetadata = { title?: string; description?: string; canonicalUrl?: string; image?: ImageAsset };
+export type Tag = { id: string; name: string; slug: string };
+export type ArticleCategory = { id: string; name: string; slug: string; description?: string };
+export type Author = { id: string; name: string; slug: string; role?: string; biography: string; avatar?: ImageAsset; socials?: { platform: string; url: string }[] };
+export type Article = { id: string; slug: string; title: string; dek?: string; excerpt: string; body?: string; status: ContentStatus; category: ArticleCategory; authors: Author[]; tags: Tag[]; heroImage?: ImageAsset; publishedAt?: string; updatedAt: string; readingMinutes: number; featured?: boolean; seo?: SeoMetadata };
+export type MagazineCategory = { id: string; name: string; slug: string };
+export type Magazine = { id: string; title: string; slug: string; description: string; category: MagazineCategory; premium: boolean; coverImage?: ImageAsset };
+export type MagazineIssue = { id: string; magazineId: string; title: string; slug: string; issueNumber: number; publicationDate: string; coverImage?: ImageAsset; pageCount: number; status: ContentStatus };
+export type PersonProfile = { id: string; name: string; slug: string; headline: string; biography: string; portrait?: ImageAsset; expertise: string[] };
