@@ -9,10 +9,28 @@ const images = {
   portrait: { src: "/images/articles/elena-rossi.png", alt: "Elena Rossi seated for an editorial portrait", width: 1024, height: 1536 },
 } satisfies Record<string, ImageAsset>;
 
-type ArticleSeed = { id: string; title: string; excerpt: string; category: keyof typeof categories; author?: string; image?: keyof typeof images; minutes?: number; time?: string; premium?: boolean; featured?: boolean; dek?: string };
-const makeArticle = (seed: ArticleSeed): Article => ({ id: seed.id, slug: seed.id.replace("article-", ""), title: seed.title, dek: seed.dek, excerpt: seed.excerpt, status: "published", category: categories[seed.category], authors: [getAuthorById(seed.author ?? "author-ava-morgan")], tags: [], heroImage: images[seed.image ?? "growth"], publishedAt: "2026-08-07T09:00:00.000Z", updatedAt: "2026-08-07T09:00:00.000Z", readingMinutes: seed.minutes ?? 7, displayTime: seed.time ?? "August 7, 2026", premium: seed.premium, featured: seed.featured });
+type ArticleSeed = { id: string; title: string; excerpt: string; category: keyof typeof categories; author?: string; image?: keyof typeof images; minutes?: number; time?: string; premium?: boolean; breaking?: boolean; featured?: boolean; dek?: string };
+const latestTimestamps: Record<string, string> = {
+  "article-global-companies-reassess": "2026-08-07T12:42:00+05:30", "article-enterprise-ai-phase": "2026-08-07T12:18:00+05:30",
+  "article-asian-markets-advance": "2026-08-07T11:54:00+05:30", "article-boards-succession": "2026-08-07T11:31:00+05:30",
+  "article-ai-infrastructure": "2026-08-07T10:48:00+05:30", "article-manufacturers-invest": "2026-08-07T10:16:00+05:30",
+  "article-private-markets-record": "2026-08-07T09:42:00+05:30", "article-markets-optimism": "2026-08-07T09:08:00+05:30",
+  "article-professional-founder": "2026-08-07T08:36:00+05:30", "article-cyber-spending": "2026-08-07T08:04:00+05:30",
+  "article-private-credit": "2026-08-07T07:32:00+05:30", "article-collecting-personal": "2026-08-07T07:05:00+05:30",
+  "article-new-architecture-global-leadership": "2026-08-06T18:30:00+05:30", "article-companies-rewriting-global-growth": "2026-08-06T17:45:00+05:30",
+  "article-ai-infrastructure-race": "2026-08-06T16:20:00+05:30", "article-emerging-markets": "2026-08-06T15:10:00+05:30",
+  "article-family-businesses": "2026-08-06T13:40:00+05:30", "article-decisions-pressure": "2026-08-06T12:25:00+05:30",
+  "article-quiet-luxury": "2026-08-06T11:00:00+05:30", "article-human-machine": "2026-08-06T09:35:00+05:30",
+  "article-purpose-capital": "2026-08-05T17:20:00+05:30", "article-listening-leader": "2026-08-05T15:45:00+05:30",
+  "article-cities-executives": "2026-08-05T13:15:00+05:30", "article-modern-success": "2026-08-05T10:30:00+05:30",
+  "article-opinion-productivity": "2026-08-07T08:52:00+05:30", "article-opinion-private-markets": "2026-08-06T14:25:00+05:30",
+  "article-opinion-ai-regulation": "2026-08-06T10:15:00+05:30", "article-opinion-board-innovation": "2026-08-05T12:10:00+05:30",
+};
+const makeArticle = (seed: ArticleSeed): Article => { const publishedAt = latestTimestamps[seed.id] ?? "2026-08-04T12:00:00+05:30"; return { id: seed.id, slug: seed.id.replace("article-", ""), title: seed.title, dek: seed.dek, excerpt: seed.excerpt, status: "published", category: categories[seed.category], authors: [getAuthorById(seed.author ?? "author-ava-morgan")], tags: [], heroImage: images[seed.image ?? "growth"], publishedAt, updatedAt: publishedAt, readingMinutes: seed.minutes ?? 7, displayTime: seed.time ?? "August 7, 2026", premium: seed.premium, breaking: seed.breaking, featured: seed.featured }; };
 
 const seeds: ArticleSeed[] = [
+  { id:"article-global-companies-reassess", title:"Global Companies Reassess Growth Plans as Investment Accelerates", excerpt:"A new cycle of capital investment is reshaping corporate strategy across technology, manufacturing and infrastructure.", dek:"Executives are redirecting capital toward resilience, automation, and the next generation of industrial capacity.", category:"business", author:"author-julian-cross", image:"growth", minutes:8, breaking:true, featured:true },
+  { id:"article-forces-global-economy", title:"The Forces Reshaping the Global Economy", excerpt:"Capital, technology, demographics, and industrial policy are converging into a new economic order.", category:"finance", author:"author-david-owusu", image:"leadership", minutes:14, premium:true, featured:true },
   { id:"article-new-architecture-global-leadership", title:"The New Architecture of Global Leadership", excerpt:"How founders, executives and investors are redefining influence in an increasingly fragmented world.", dek:"A generation of leaders is exchanging certainty for clarity—and building institutions designed to endure.", category:"leadership", image:"leadership", minutes:8, featured:true },
   { id:"article-companies-rewriting-global-growth", title:"Inside the Companies Rewriting the Rules of Global Growth", excerpt:"Ambitious companies are redrawing the map of scale, talent, and capital.", category:"business", author:"author-julian-cross", image:"growth", minutes:10 },
   { id:"article-ai-infrastructure-race", title:"The AI Infrastructure Race Is Just Beginning", excerpt:"The contest to power intelligence is becoming the defining industrial story of the decade.", category:"technology", author:"author-noor-rahman", image:"technology", premium:true, minutes:9 },
@@ -51,6 +69,10 @@ const seeds: ArticleSeed[] = [
   { id:"article-collecting-personal", title:"Why Collecting Is Becoming Personal Again", excerpt:"Objects are returning to the center of how we tell our own stories.", category:"culture", author:"author-lena-park" },
   { id:"article-modern-success", title:"The New Definition of Modern Success", excerpt:"Achievement is being measured in time, attention, and autonomy.", category:"lifestyle", author:"author-lena-park" },
   { id:"article-five-books", title:"Five Books Leaders Are Reading This Month", excerpt:"New thinking on institutions, courage, technology, and the long view.", category:"books", author:"author-lena-park" },
+  { id:"article-opinion-productivity", title:"Why Productivity May Be Entering a New Golden Age", excerpt:"Technology matters most when institutions learn how to use it.", category:"opinion", author:"author-ava-morgan", image:"leadership", minutes:5 },
+  { id:"article-opinion-private-markets", title:"Private Markets Need Greater Transparency", excerpt:"Trust will determine whether a larger market becomes a better one.", category:"opinion", author:"author-david-owusu", image:"growth", minutes:6 },
+  { id:"article-opinion-ai-regulation", title:"AI Regulation Must Focus on Outcomes, Not Fear", excerpt:"Good rules begin with the harms we can define and the incentives we can change.", category:"opinion", author:"author-noor-rahman", image:"technology", minutes:7 },
+  { id:"article-opinion-board-innovation", title:"Boards Are Asking the Wrong Questions About Innovation", excerpt:"The central question is not speed. It is organizational permission.", category:"opinion", author:"author-ava-morgan", image:"portrait", minutes:5 },
 ];
 export const articles: Article[] = seeds.map(makeArticle);
 export const getArticleById = (id: string) => articles.find((article) => article.id === id);

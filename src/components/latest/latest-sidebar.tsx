@@ -1,0 +1,6 @@
+import type { Article, MagazineIssue } from "@/types";
+import { RankedStory } from "@/components/article/ranked-story";
+import { NewsletterForm } from "@/components/layout/newsletter-form";
+import { LatestMagazinePromo } from "./latest-magazine-promo";
+
+export function LatestSidebar({ mostRead, issue }: { mostRead:readonly Article[]; issue:MagazineIssue }) { return <aside aria-label="Latest page extras" className="space-y-14 lg:self-start"><section aria-labelledby="latest-most-read-heading"><h2 className="border-t-2 border-foreground pt-4 text-sm font-extrabold uppercase tracking-[.12em]" id="latest-most-read-heading">Most Read</h2><div className="mt-4">{mostRead.map((article,index) => <RankedStory article={article} key={article.id} rank={index+1} />)}</div></section><LatestMagazinePromo issue={issue} /><section aria-labelledby="latest-briefing-heading" className="border-t-2 border-foreground bg-surface-subtle p-6"><h2 className="font-serif text-2xl" id="latest-briefing-heading">The Perspective Briefing</h2><p className="mt-3 text-sm leading-6 text-muted">The most important stories in business, leadership and technology, curated for your inbox.</p><div className="mt-6"><NewsletterForm buttonLabel="Join the Briefing" label="Email address" theme="light" /></div></section></aside>; }

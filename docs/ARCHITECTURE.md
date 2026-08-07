@@ -12,6 +12,7 @@ src/
     navigation/         Configuration-driven desktop menu presentation
     search/             Global search trigger, overlay, and local suggestions
     home/               Homepage sections composed from domain components
+    latest/             Latest-news lead, filters, feed, insertion, and sidebar
     article/            Reusable hero, card, row, opinion, and ranked-story patterns
     magazine/           Issue, cover, and personal-publication presentation
     person/             Reusable interview and profile-led presentation
@@ -40,7 +41,7 @@ Directories for future component families are introduced only when the first rea
 
 ## Server and Client Components
 
-Components are Server Components by default. Add `"use client"` only at the narrowest interactive boundary requiring state, event handlers, browser APIs, or client-only hooks. Currently, only mobile navigation and the route error boundary need that directive. Data fetching should remain server-side wherever possible.
+Components are Server Components by default. Add `"use client"` only at the narrowest interactive boundary requiring state, event handlers, browser APIs, or client-only hooks. Global navigation/search, newsletter validation, and the Latest feed controls are focused client islands; data selection and page composition remain server-side.
 
 ## Design system
 
@@ -65,6 +66,10 @@ The footer is permanently structured around publication context, configured link
 ## Homepage composition
 
 The `/` route is a Server Component with page-specific metadata and lightweight Website JSON-LD. It assembles sixteen editorial moments from reusable article, person, magazine, home-section, market, premium, and newsletter components. Interactive behavior remains confined to the existing global-shell islands and the shared newsletter form, keeping the content-heavy page statically renderable with minimal client JavaScript.
+
+## Latest News composition
+
+The `/latest` route is a Server Component with route-specific metadata. It passes a deterministic August 5–7, 2026 article edition into one focused client feed island for category filtering and batched reveal. Lead stories, chronological date groups, the In Depth insertion, ranked Most Read stories, magazine promotion, newsletter, and responsive desktop/sidebar composition all reuse centralized typed data and shared editorial primitives; no API or persistence layer is involved.
 
 ## Future database architecture
 
