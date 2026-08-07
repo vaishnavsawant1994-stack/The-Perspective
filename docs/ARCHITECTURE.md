@@ -9,6 +9,8 @@ src/
     layout/             Site shell, containers, navigation, footer
     ui/                 Accessible low-level primitives
     common/             Reusable editorial composition helpers
+    navigation/         Configuration-driven desktop menu presentation
+    search/             Global search trigger, overlay, and local suggestions
     article/            Future article presentation components
     magazine/           Future magazine presentation components
     person/             Future profile presentation components
@@ -38,9 +40,17 @@ Components are Server Components by default. Add `"use client"` only at the narr
 
 ## Design system
 
-Global tokens in `src/app/globals.css` define editorial colors, typography families, responsive display scales, focus behavior, shadows, and wide-display breakpoints. Tailwind utilities consume those tokens. The system favors square editorial surfaces, strong serif display typography, restrained accent color, thin rules, and deliberate whitespace over dashboard-like cards or decorative effects.
+Global tokens in `src/app/globals.css` define editorial colors, typography families, a complete responsive type hierarchy, section rhythm, interaction timing, focus behavior, divider hierarchy, shadows, and wide-display breakpoints. Tailwind utilities consume those tokens. The system favors square editorial surfaces, strong serif display typography, restrained accent color, thin rules, and deliberate whitespace over dashboard-like cards or decorative effects.
 
-Containers remain fluid from 320px through large displays, with maximum widths at 1600px, 1920px, and 2560px breakpoints. Sections should reorganize their grid and reading order rather than uniformly shrinking.
+`PageContainer` exposes named `reading`, `article`, `standard`, `wide`, and `media` widths. Containers remain fluid from 320px through large displays while preventing uncontrolled line length. Sections should reorganize their grid and reading order rather than uniformly shrinking.
+
+## Global shell
+
+The header keeps static utility and masthead content server-rendered. Desktop navigation, reusable mega menus, the compact scroll header, global search, and mobile navigation own only their narrow interactive state. All labels, routes, submenu links, article references, promotional content, footer groups, social links, and popular topics originate in `src/config/site.ts` or typed centralized mock data.
+
+The desktop header has utility, masthead, and primary-navigation rows. At tablet and mobile widths it becomes a dedicated three-part mobile header. After desktop users scroll beyond the full masthead, a compact fixed navigation appears. Search and mobile panels lock body scrolling, dismiss with Escape, restore trigger focus, and expose dialog semantics.
+
+The footer is permanently structured around publication context, configured link groups, social access, edition architecture, and a local-only newsletter form. Its Zod validation and success response are UI demonstrations; no address is transmitted or stored.
 
 ## Mock data
 

@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { siteConfig } from "@/config/site";
+import { PageContainer } from "./page-container";
+export function UtilityBar() { const date = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date()); return <div className="hidden border-b border-border md:block"><PageContainer className="flex h-9 items-center justify-between text-[.68rem] text-muted"><div className="flex items-center gap-3"><time>{date}</time><span aria-hidden="true">·</span><span>{siteConfig.edition}</span></div><div className="hidden items-center gap-5 lg:flex">{siteConfig.utilityLinks.map((link) => <Link href={link.href} key={link.href}>{link.label}</Link>)}</div><div className="flex items-center gap-5"><Link href="/subscribe" className="font-bold text-accent">Subscribe</Link><Link href="/sign-in">Sign In</Link></div></PageContainer></div>; }

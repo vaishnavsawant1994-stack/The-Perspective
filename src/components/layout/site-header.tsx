@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { siteConfig } from "@/config/site";
+import { CompactHeader } from "./compact-header";
 import { DesktopNavigation } from "./desktop-navigation";
-import { MobileNavigation } from "./mobile-navigation";
+import { Masthead } from "./masthead";
+import { MobileHeader } from "./mobile-header";
 import { PageContainer } from "./page-container";
+import { UtilityBar } from "./utility-bar";
 
-export function SiteHeader() {
-  return <header className="relative z-40 border-b border-border bg-background"><PageContainer className="flex h-16 items-center justify-between lg:h-20"><Link aria-label="The Perspective home" className="font-serif text-xl font-semibold tracking-[-0.04em] sm:text-2xl" href="/">THE PERSPECTIVE</Link><DesktopNavigation items={siteConfig.navigation} /><MobileNavigation items={siteConfig.navigation} /></PageContainer></header>;
-}
+export function SiteHeader() { return <><header className="relative z-40 bg-background"><UtilityBar /><Masthead /><MobileHeader /><div className="hidden border-b border-foreground lg:block"><PageContainer><DesktopNavigation items={siteConfig.navigation} /></PageContainer></div></header><CompactHeader /></>; }

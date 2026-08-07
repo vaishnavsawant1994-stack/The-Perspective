@@ -1,2 +1,2 @@
 import { cn } from "@/lib/utils";
-export function Divider({ className }: { className?: string }) { return <hr className={cn("border-0 border-t border-border", className)} />; }
+export function Divider({ className, tone = "hairline" }: { className?: string; tone?: "hairline" | "standard" | "dark" | "accent" }) { return <hr className={cn("border-0 border-t", tone === "hairline" && "border-border", tone === "standard" && "border-t-2 border-border", tone === "dark" && "border-border-dark", tone === "accent" && "border-t-2 border-accent", className)} />; }
