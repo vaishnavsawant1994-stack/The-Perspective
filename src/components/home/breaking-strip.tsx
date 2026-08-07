@@ -1,0 +1,4 @@
+import Link from "next/link";
+import type { Article } from "@/types";
+import { PageContainer } from "@/components/layout/page-container";
+export function BreakingStrip({ articles }: { articles:readonly Article[] }) { return <aside aria-label="Breaking news" className="border-b border-border bg-surface"><PageContainer className="flex items-stretch overflow-hidden"><p className="flex shrink-0 items-center bg-accent px-4 text-[.65rem] font-extrabold uppercase tracking-[.13em] text-white sm:px-5">Breaking</p><div className="flex min-w-0 snap-x overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{articles.map((article) => <Link className="flex min-w-[85vw] snap-start items-center border-r border-border px-5 py-3 text-sm font-semibold hover:text-accent sm:min-w-[28rem] lg:min-w-0 lg:flex-1" href={`/article/${article.slug}`} key={article.id}>{article.title}</Link>)}</div></PageContainer></aside>; }

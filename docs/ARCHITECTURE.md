@@ -11,6 +11,10 @@ src/
     common/             Reusable editorial composition helpers
     navigation/         Configuration-driven desktop menu presentation
     search/             Global search trigger, overlay, and local suggestions
+    home/               Homepage sections composed from domain components
+    article/            Reusable hero, card, row, opinion, and ranked-story patterns
+    magazine/           Issue, cover, and personal-publication presentation
+    person/             Reusable interview and profile-led presentation
     article/            Future article presentation components
     magazine/           Future magazine presentation components
     person/             Future profile presentation components
@@ -55,6 +59,12 @@ The footer is permanently structured around publication context, configured link
 ## Mock data
 
 `src/data/mock` exports small realistic arrays matching the domain types. These fixtures validate components during frontend work and are never accessed through fake API calls. A future repository/data-access layer can replace imports without changing presentation contracts.
+
+`homepage.ts` is a composition layer: it selects article and person records by stable IDs without duplicating their content. Route files receive complete typed objects and remain responsible only for arranging page sections. Generated placeholder photography is stored locally under `public/images/articles` and consumed through `next/image` with explicit dimensions and responsive `sizes`.
+
+## Homepage composition
+
+The `/` route is a Server Component with page-specific metadata and lightweight Website JSON-LD. It assembles sixteen editorial moments from reusable article, person, magazine, home-section, market, premium, and newsletter components. Interactive behavior remains confined to the existing global-shell islands and the shared newsletter form, keeping the content-heavy page statically renderable with minimal client JavaScript.
 
 ## Future database architecture
 

@@ -1,0 +1,3 @@
+import Link from "next/link";
+import type { Article } from "@/types";
+export function RankedStory({ article, rank }: { article:Article; rank:number }) { return <article className="grid grid-cols-[4rem_1fr] gap-4 border-t border-border py-5 sm:grid-cols-[6rem_1fr]"><span className="font-serif text-4xl leading-none text-accent/50 sm:text-5xl">{String(rank).padStart(2,"0")}</span><div><p className="type-meta text-muted">{article.category.name}</p><h3 className="mt-2 font-serif text-xl leading-tight sm:text-2xl"><Link className="hover:text-accent" href={`/article/${article.slug}`}>{article.title}</Link></h3></div></article>; }

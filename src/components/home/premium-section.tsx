@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { Check } from "lucide-react";
+import { PageContainer } from "@/components/layout/page-container";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+const benefits = ["Exclusive stories","Premium magazine editions","Members-only interviews","Unlimited archive access","Early access to special reports"];
+export function PremiumSection() { return <div className="bg-[#121311] text-white"><PageContainer className="section-space-lg"><section aria-labelledby="premium-heading" className="grid gap-12 lg:grid-cols-[1.15fr_.85fr] lg:items-end"><div><p className="eyebrow text-premium">Membership</p><h2 className="type-display-lg mt-5" id="premium-heading">The Perspective Premium</h2><p className="type-deck mt-7 max-w-xl whitespace-pre-line text-white/60">Deeper reporting.{"\n"}Exclusive interviews.{"\n"}Complete magazine access.{"\n"}Member-only intelligence.</p><div className="mt-9 flex flex-wrap gap-3"><Link className={buttonVariants({variant:"premium",size:"large"})} href="/premium">Explore Premium</Link><Link className={cn(buttonVariants({variant:"outline",size:"large"}),"border-white text-white hover:bg-white hover:text-foreground")} href="/subscribe">View Membership Plans</Link></div></div><ul className="border-t border-white/25">{benefits.map((benefit) => <li className="flex items-center gap-4 border-b border-white/15 py-4 text-sm text-white/75" key={benefit}><Check className="size-4 text-premium" />{benefit}</li>)}</ul></section></PageContainer></div>; }

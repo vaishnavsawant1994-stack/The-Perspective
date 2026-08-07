@@ -1,0 +1,5 @@
+import type { Article } from "@/types";
+import { ArticleCard } from "@/components/article/article-card";
+import { EditorialSectionHeader } from "@/components/common/editorial-section-header";
+import { PageContainer } from "@/components/layout/page-container";
+export function CultureSection({ articles }: { articles:readonly Article[] }) { const [lead,...rest] = articles; return <div className="bg-surface-subtle"><PageContainer className="section-space"><section aria-labelledby="culture-heading"><EditorialSectionHeader href="/culture" id="culture-heading" links={[{label:"Design",href:"/culture/design"},{label:"Travel",href:"/lifestyle/travel"},{label:"Books",href:"/culture/books"}]} title="Culture & Lifestyle" /><div className="grid gap-10 lg:grid-cols-[1.3fr_1fr]"><ArticleCard article={lead} variant="feature" /><div className="grid gap-8 sm:grid-cols-2">{rest.map((article,index) => <ArticleCard article={article} key={article.id} variant={index < 2 ? "standard" : "compact"} />)}</div></div></section></PageContainer></div>; }

@@ -1,0 +1,7 @@
+import Link from "next/link";
+import type { MagazineIssue } from "@/types";
+import { issueStoryTitles } from "@/data/mock/magazines";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { MagazineCover } from "./magazine-cover";
+export function MagazineIssueFeature({ issue }: { issue:MagazineIssue }) { return <div className="grid gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-center"><div className="mx-auto w-full max-w-sm"><MagazineCover issue={issue} /></div><div><p className="type-meta text-premium">Issue 08 · August 2026</p><h3 className="type-display-lg mt-5 max-w-3xl">The Architects of Tomorrow</h3><p className="type-deck mt-6 max-w-2xl text-white/65">Inside the minds building the next generation of companies, institutions and ideas.</p><div className="mt-8 flex flex-wrap gap-3"><Link className={buttonVariants({variant:"premium"})} href={`/magazine/${issue.slug}`}>Read Issue</Link><Link className={cn(buttonVariants({variant:"outline"}),"border-white text-white hover:bg-white hover:text-foreground")} href="/magazine">View Magazine</Link><Link className={cn(buttonVariants({variant:"ghost"}),"text-white hover:bg-white/10")} href="/magazine/archive">Browse Archive</Link></div><div className="mt-10 grid grid-cols-2 gap-x-8 border-t border-white/20 pt-5">{issueStoryTitles.map((title,index) => <Link className="border-b border-white/15 py-4 font-serif text-lg hover:text-premium" href={`/magazine/${issue.slug}#story-${index+1}`} key={title}>{title}</Link>)}</div></div></div>; }

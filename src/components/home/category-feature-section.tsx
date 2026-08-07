@@ -1,0 +1,5 @@
+import type { Article } from "@/types";
+import { ArticleCard } from "@/components/article/article-card";
+import { EditorialSectionHeader } from "@/components/common/editorial-section-header";
+import { PageContainer } from "@/components/layout/page-container";
+export function CategoryFeatureSection({ title, href, links, feature, supporting, tone = "light" }: { title:string; href:string; links:readonly {label:string;href:string}[]; feature:Article; supporting:readonly Article[]; tone?:"light"|"muted" }) { return <div className={tone === "muted" ? "bg-surface-subtle" : undefined}><PageContainer className="section-space"><section aria-labelledby={`${title.toLowerCase()}-heading`}><EditorialSectionHeader href={href} id={`${title.toLowerCase()}-heading`} links={links} title={title} /><div className="grid gap-10 lg:grid-cols-[1.35fr_1fr] lg:gap-12"><ArticleCard article={feature} variant="feature" /><div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">{supporting.map((article) => <ArticleCard article={article} key={article.id} variant="compact" />)}</div></div></section></PageContainer></div>; }
