@@ -13,6 +13,7 @@ src/
     search/             Global search trigger, overlay, and local suggestions
     home/               Homepage sections composed from domain components
     latest/             Latest-news lead, filters, feed, insertion, and sidebar
+    category/           Reusable category headers, subnav, leads, modules, rankings, and CTAs
     article/            Reusable listing patterns and the long-form story reader
     magazine/           Issue, cover, and personal-publication presentation
     person/             Reusable interview and profile-led presentation
@@ -65,6 +66,8 @@ The footer is permanently structured around publication context, configured link
 
 `article-details.ts` adds long-form content to representative summaries without bloating the listing dataset. Article bodies use a discriminated block union for paragraphs, semantic headings, pull quotes, images, lists, callouts, and dividers. Remaining summaries receive a deterministic structured fallback, so every centralized article slug has a valid reader destination.
 
+`business.ts` is the first category composition layer. It stores stable article IDs, subcategory links, editorial section configuration, rankings, and category newsletter copy, then resolves those references against the shared article, person, and magazine records. Business articles add optional `subcategory` metadata without changing broad-category filtering or article-reader behavior.
+
 ## Homepage composition
 
 The `/` route is a Server Component with page-specific metadata and lightweight Website JSON-LD. It assembles sixteen editorial moments from reusable article, person, magazine, home-section, market, premium, and newsletter components. Interactive behavior remains confined to the existing global-shell islands and the shared newsletter form, keeping the content-heavy page statically renderable with minimal client JavaScript.
@@ -72,6 +75,12 @@ The `/` route is a Server Component with page-specific metadata and lightweight 
 ## Latest News composition
 
 The `/latest` route is a Server Component with route-specific metadata. It passes a deterministic August 5–7, 2026 article edition into one focused client feed island for category filtering and batched reveal. Lead stories, chronological date groups, the In Depth insertion, ranked Most Read stories, magazine promotion, newsletter, and responsive desktop/sidebar composition all reuse centralized typed data and shared editorial primitives; no API or persistence layer is involved.
+
+## Category landing composition
+
+The `/business` route is the first implementation of the reusable `CategoryLandingPage` architecture. The route remains a static Server Component responsible for metadata, CollectionPage/ItemList structured data, and passing one resolved configuration object into the category composer. Category components provide a restrained masthead, accessible scrollable subnavigation, asymmetric lead, story grid, configurable editorial-section treatments, In Depth feature, interview, category rankings, compact latest list, magazine promotion, and shared newsletter form.
+
+Category pages are curated discovery experiences; `/latest` remains the chronological filterable newsroom feed. Future Leadership, Technology, Finance, Markets, Culture, and Lifestyle routes should supply new configuration and content selections to the category primitives, adding a new layout variant only when their editorial requirements cannot be expressed by the existing treatments.
 
 ## Article reader composition
 

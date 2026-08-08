@@ -1,1 +1,2 @@
 export type { Article, ArticleCategory, ArticleContentBlock, ArticleDetail, ArticleType, Author, BulletListBlock, CalloutBlock, ContentStatus, DividerBlock, HeadingBlock, ImageAsset, ImageBlock, Magazine, MagazineCategory, MagazineIssue, NumberedListBlock, ParagraphBlock, PersonProfile, PullQuoteBlock, SeoMetadata, Tag } from "./content";
+export type { CategoryEditorialSection, CategoryLandingContent, CategorySectionLayout, CategorySubnavItem } from "./category";

@@ -1,0 +1,41 @@
+import type { Article, MagazineIssue, PersonProfile } from "./content";
+
+export type CategorySubnavItem = {
+  label: string;
+  href: string;
+  active?: boolean;
+};
+
+export type CategorySectionLayout = "feature-list" | "analysis" | "people" | "regional";
+
+export type CategoryEditorialSection = {
+  id: string;
+  title: string;
+  description?: string;
+  eyebrow?: string;
+  href?: string;
+  actionLabel?: string;
+  links?: readonly CategorySubnavItem[];
+  layout: CategorySectionLayout;
+  feature: Article;
+  supporting: readonly Article[];
+};
+
+export type CategoryLandingContent = {
+  slug: string;
+  label: string;
+  title: string;
+  description: string;
+  supportingLine?: string;
+  subcategories: readonly CategorySubnavItem[];
+  lead: { primary: Article; supporting: readonly Article[] };
+  topStories: readonly Article[];
+  editorialSections: readonly CategoryEditorialSection[];
+  inDepth: Article;
+  interview: PersonProfile;
+  interviewHref: string;
+  mostRead: readonly Article[];
+  latest: readonly Article[];
+  newsletter: { eyebrow: string; title: string; description: string };
+  magazineIssue: MagazineIssue;
+};
