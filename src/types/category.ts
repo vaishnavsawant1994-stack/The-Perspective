@@ -21,6 +21,24 @@ export type CategoryEditorialSection = {
   supporting: readonly Article[];
 };
 
+export type CategoryPersonStory = {
+  person: PersonProfile;
+  href: string;
+  label?: string;
+};
+
+export type CategoryPeopleFeatureContent = {
+  id: string;
+  title: string;
+  description?: string;
+  featured: CategoryPersonStory;
+  supporting: readonly CategoryPersonStory[];
+};
+
+export type CategoryPromotion =
+  | { kind: "magazine"; issue: MagazineIssue }
+  | { kind: "personal-magazines"; people: readonly PersonProfile[] };
+
 export type CategoryLandingContent = {
   slug: string;
   label: string;
@@ -29,7 +47,9 @@ export type CategoryLandingContent = {
   supportingLine?: string;
   subcategories: readonly CategorySubnavItem[];
   lead: { primary: Article; supporting: readonly Article[] };
+  topStoriesTitle?: string;
   topStories: readonly Article[];
+  peopleFeature?: CategoryPeopleFeatureContent;
   editorialSections: readonly CategoryEditorialSection[];
   inDepth: Article;
   interview: PersonProfile;
@@ -37,5 +57,5 @@ export type CategoryLandingContent = {
   mostRead: readonly Article[];
   latest: readonly Article[];
   newsletter: { eyebrow: string; title: string; description: string };
-  magazineIssue: MagazineIssue;
+  promotion: CategoryPromotion;
 };

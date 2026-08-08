@@ -160,5 +160,5 @@ export const businessContent: CategoryLandingContent = {
     title: "The Business Briefing",
     description: "The most important developments in companies, markets, entrepreneurship and the global economy, selected by The Perspective business desk.",
   },
-  magazineIssue,
+  promotion: { kind: "magazine", issue: magazineIssue },
 };
