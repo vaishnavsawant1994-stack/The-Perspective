@@ -40,7 +40,7 @@ export type PersonSearchResult = SearchResultBase & {
   role?: string;
   company?: string;
   expertise: readonly string[];
-  actionLabel?: "Read Interview";
+  actionLabel?: "Read Interview" | "View Profile";
 };
 
 export type MagazineSearchResult = SearchResultBase & {

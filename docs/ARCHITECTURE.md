@@ -20,6 +20,7 @@ src/
     author/             Contributor mastheads, curation, expertise, and archives
     article/            Reusable listing patterns and the long-form story reader
     magazine/           Publication front door, issue covers, and focused visual/text Reader components
+    personal-magazine/  Reusable person-led editorial profile and publication components
     person/             Reusable interview and profile-led presentation
   config/               Site identity, navigation, contact and footer data
   data/mock/            Small, typed fixtures for UI development
@@ -78,6 +79,8 @@ The footer is permanently structured around publication context, configured link
 
 `author-profiles.ts` keeps page curation separate from contributor identity. The shared `Author` record remains the single source for names, roles, biographies, expertise, avatars, and slugs, while profile configuration references only stable author/article IDs and topic treatments. `getArticlesByAuthor` derives the complete archive from article relationships; authors with published work receive public profiles, and newsroom contributors use the same route without duplicated page definitions. `Author` remains distinct from the executive/interview-subject `Person` model.
 
+`personal-magazines.ts` is a presentation configuration layer over canonical people and articles. `PersonProfile` remains the sole identity record for an executive, founder, or investor; `Author` remains the contributor/byline identity; `PersonalMagazine` stores only edition-specific editorial framing and stable references. Resolvers validate and combine those records without copying identity or article data.
+
 ## Homepage composition
 
 The `/` route is a Server Component with page-specific metadata and lightweight Website JSON-LD. It assembles sixteen editorial moments from reusable article, person, magazine, home-section, market, premium, and newsletter components. Interactive behavior remains confined to the existing global-shell islands and the shared newsletter form, keeping the content-heavy page statically renderable with minimal client JavaScript.
@@ -134,6 +137,12 @@ The single `/magazine/read/[slug]` route resolves only configured readable issue
 
 The primary Reader is structured HTML rather than PDF, canvas, screenshots, or a third-party flipbook. It mounts one full page at a time, represents thumbnails with lightweight semantic previews, preloads only the current page image, and adapts the same data into a full-width mobile layout with readable body type. The text view renders the complete issue as a linear document with one H1, section/story headings, figures, contents anchors, and canonical article links. Reader-specific shell CSS suppresses the normal site chrome while preserving a visible route back to Magazine.
 
+## Personal Magazine profile composition
+
+The single `/personal-magazines/[slug]` route statically generates the configured Arjun Mehta, Sophia Reynolds, and Daniel Kim editions and returns the shared not-found experience for unsupported slugs. Each Server Component route resolves canonical `PersonProfile` and `Article` records through one reusable profile composer, emits individual metadata plus sanitized ProfilePage/Person JSON-LD, and keeps the publication content in the initial HTML.
+
+Profiles combine a magazine cover, identity and role context, editorial statement, themes, contents, optional canonical interview, milestones, chapters, principles, a real person quote or clearly labelled editorial takeaway, canonical image references, featured and related reporting, edition preview, identity summary, product positioning, related people, Magazine discovery, and the shared briefing form. Homepage, Magazine landing, Leadership promotion, and Search link configured people directly to their profiles. A Personal Magazine listing, separate Reader route, form, CRM, authentication, payment, database, and generated PDF are intentionally deferred.
+
 ## Category landing composition
 
 The `/business`, `/leadership`, and `/technology` routes use the reusable `CategoryLandingPage` architecture. Each route remains a static Server Component responsible for metadata, shared CollectionPage/ItemList structured data, and passing one resolved configuration object into the category composer. Category components provide a restrained masthead, accessible scrollable subnavigation, asymmetric lead, story grid, configurable editorial-section treatments, optional people feature, In Depth feature, interview, category rankings, compact latest list, category-selected magazine, personal-magazine, or premium promotion, and shared newsletter form.
@@ -154,7 +163,7 @@ Perspective cards, homepage Opinion bylines, article headers, and author biograp
 
 The `/search` route is a request-time Server Component because it reads asynchronous `searchParams`. Its canonical URL remains `/search`, while `q`, `type`, and `sort` make query, filtering, and ordering shareable through ordinary GET navigation. Search pages are intentionally `noindex, follow` and omit structured data because they are utility result views rather than durable editorial documents.
 
-`src/lib/search.ts` derives one compact in-memory index from centralized article summaries, public contributors, people, and magazine issues. The same normalized, weighted, deterministic search function powers the global overlay and full results route without importing full article bodies into client code. Article and contributor results use canonical routes; people link only when a published interview destination exists; standard Magazine results use `/magazine`, and Premium issue results use `/magazine/premium`. The only search-results client island manages batched Load More disclosure.
+`src/lib/search.ts` derives one compact in-memory index from centralized article summaries, public contributors, people, and magazine issues. The same normalized, weighted, deterministic search function powers the global overlay and full results route without importing full article bodies into client code. Article and contributor results use canonical routes; configured Personal Magazine people use their profile route while other people retain a canonical interview destination when one exists; standard Magazine results use `/magazine`, and Premium issue results use `/magazine/premium`. The only search-results client island manages batched Load More disclosure.
 
 ## Implemented route inventory
 
@@ -176,7 +185,9 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/magazine/category/[slug]` — statically generated Magazine theme shelf across canonical issues, articles, Reader availability, and Premium state
 - `/magazine/read/[slug]` — reusable structured digital issue reader; August 2026 currently available
 
-Subcategory and Perspective topic destinations shown in navigation are reserved future routes. A contributor index remains intentionally deferred; canonical profile links resolve directly through `/author/[slug]`.
+- `/personal-magazines/[slug]` — statically generated person-led editions for Arjun Mehta, Sophia Reynolds, and Daniel Kim
+
+Subcategory and Perspective topic destinations shown in navigation are reserved future routes. Contributor and Personal Magazine indexes remain intentionally deferred; canonical profile links resolve directly through their dynamic detail routes.
 
 ## Article reader composition
 

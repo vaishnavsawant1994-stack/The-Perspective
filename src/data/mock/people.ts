@@ -8,3 +8,4 @@ export const people: PersonProfile[] = [
   { id:"person-daniel-kim", name:"Daniel Kim", slug:"daniel-kim", headline:"Engineering What Comes Next Requires Patience", biography:"Daniel Kim founded Northstar Labs to build durable computing systems at the intersection of infrastructure and intelligence.", portrait:{src:"/images/articles/daniel-kim.png",alt:"Daniel Kim photographed in a contemporary engineering workspace",width:1024,height:1536}, expertise:["Technology","AI Infrastructure","Enterprise Systems"], title:"Technology Founder", company:"Northstar Labs", quote:"The deepest technology shifts arrive slowly, then become part of everything." },
 ];
 export const getPersonById = (id: string) => people.find((person) => person.id === id);
+export const getPersonBySlug = (slug: string) => people.find((person) => person.slug === slug);

@@ -2,6 +2,7 @@ import type { SearchCounts, SearchFilter, SearchResult, SearchResultType, Search
 import { getPublicAuthors } from "@/data/mock/author-profiles";
 import { articles, getArticleById } from "@/data/mock/articles";
 import { getMagazineIssueArticles, magazineIssues, magazines } from "@/data/mock/magazines";
+import { getPersonalMagazineHrefByPersonId } from "@/data/mock/personal-magazines";
 import { people } from "@/data/mock/people";
 import { getSearchDisplayQuery, normalizeSearchQuery, readSearchParameter } from "@/lib/search-query";
 
@@ -131,6 +132,7 @@ function createSearchIndex(): readonly SearchIndexEntry[] {
   for (const person of people) {
     const destinationId = PERSON_ARTICLE_IDS[person.id];
     const destination = destinationId ? getArticleById(destinationId) : undefined;
+    const profileHref = getPersonalMagazineHrefByPersonId(person.id);
     const titleText = normalizeSearchQuery(person.name);
     const primaryText = normalized([person.title, person.company, ...person.expertise]);
     const secondaryText = normalizeSearchQuery(person.headline);
@@ -141,13 +143,13 @@ function createSearchIndex(): readonly SearchIndexEntry[] {
         type: "person",
         title: person.name,
         description: person.biography,
-        href: destination ? `/article/${destination.slug}` : undefined,
+        href: profileHref ?? (destination ? `/article/${destination.slug}` : undefined),
         image: person.portrait,
         personId: person.id,
         role: person.title,
         company: person.company,
         expertise: person.expertise,
-        actionLabel: destination ? "Read Interview" : undefined,
+        actionLabel: profileHref ? "View Profile" : destination ? "Read Interview" : undefined,
       },
       titleText,
       primaryText,

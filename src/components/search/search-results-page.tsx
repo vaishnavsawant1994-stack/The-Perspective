@@ -59,7 +59,8 @@ function NoResults({ query, type, hasOtherResults, sort }: { query: string; type
 
 function TopMatchCard({ result }: { result: SearchResult }) {
   const label = searchResultLabels[result.type];
-  return <article className="border-t border-foreground py-5"><p className="type-meta text-accent">{label}</p><h3 className="mt-3 font-serif text-2xl leading-tight">{result.href ? <Link className="hover:text-accent" href={result.href}>{result.title}</Link> : result.title}</h3><p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">{result.description}</p>{result.href && <Link aria-label={`Open ${result.title}`} className="mt-4 inline-flex min-h-11 items-center border-b border-foreground text-sm font-bold hover:text-accent" href={result.href}>Open {label} →</Link>}</article>;
+  const actionLabel = result.type === "person" && result.actionLabel ? result.actionLabel : `Open ${label}`;
+  return <article className="border-t border-foreground py-5"><p className="type-meta text-accent">{label}</p><h3 className="mt-3 font-serif text-2xl leading-tight">{result.href ? <Link className="hover:text-accent" href={result.href}>{result.title}</Link> : result.title}</h3><p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">{result.description}</p>{result.href && <Link aria-label={`${actionLabel}: ${result.title}`} className="mt-4 inline-flex min-h-11 items-center border-b border-foreground text-sm font-bold hover:text-accent" href={result.href}>{actionLabel} →</Link>}</article>;
 }
 
 function SearchGroup({ query, results, sort, type }: { query: string; results: readonly SearchResult[]; sort: SearchSort; type: SearchResultType }) {

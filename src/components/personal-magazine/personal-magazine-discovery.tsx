@@ -1,0 +1,62 @@
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, Check } from "lucide-react";
+import type { ResolvedPersonalMagazineProfile } from "@/types";
+import { ArticleCard } from "@/components/article/article-card";
+import { CategoryNewsletter } from "@/components/category/category-newsletter";
+import { PageContainer } from "@/components/layout/page-container";
+import { PersonalMagazineCover } from "@/components/magazine/personal-magazine-cover";
+
+function FeaturedStories({ profile }: { profile: ResolvedPersonalMagazineProfile }) {
+  return <div className="bg-surface-subtle"><PageContainer className="section-space-lg" width="standard"><section aria-labelledby="personal-magazine-featured-heading"><header className="grid gap-6 border-t-2 border-foreground pt-5 lg:grid-cols-[.62fr_1.38fr]"><div><p className="eyebrow text-accent">Featured Stories</p><h2 className="type-display-lg mt-5" id="personal-magazine-featured-heading">A wider editorial lens.</h2></div><p className="type-deck max-w-3xl text-muted">Canonical Perspective stories extend the edition into the fields, institutions and decisions surrounding {profile.person.name}’s work.</p></header><div className="mt-12 grid gap-10 md:grid-cols-2">{profile.featuredArticles.map((article) => <ArticleCard article={article} key={article.id} />)}</div></section></PageContainer></div>;
+}
+
+function DigitalEditionPreview({ profile }: { profile: ResolvedPersonalMagazineProfile }) {
+  const { magazine, person, coverImage } = profile;
+  return <div className="bg-[#d7cfc1]" id="digital-edition"><PageContainer className="section-space-lg" width="standard"><section aria-labelledby="personal-magazine-digital-heading" className="grid gap-14 lg:grid-cols-[.72fr_1.28fr] lg:items-center lg:gap-20">
+    <div className="mx-auto w-[72%] max-w-sm lg:w-full"><PersonalMagazineCover className="sm:mt-0" coverHeadline={magazine.coverHeadline} coverImage={coverImage} editionLabel={magazine.editionLabel} index={0} person={person} /></div>
+    <div><p className="eyebrow text-accent">The Digital Edition</p><h2 className="type-display-lg mt-5" id="personal-magazine-digital-heading">A complete publication in one continuous experience.</h2><p className="type-deck mt-7 max-w-3xl text-[#575146]">This Personal Magazine format is designed as a focused digital publication—bringing the cover, story, interview, chapters, images and related Perspective reporting into one editorial sequence.</p><div className="mt-9 grid min-h-72 grid-cols-[5rem_minmax(0,1fr)] gap-4 border border-[#938b7d] bg-[#24231f] p-4 text-white sm:grid-cols-[9rem_minmax(0,1fr)] sm:p-5"><div className="border-r border-white/20 pr-3"><p className="type-meta text-[#e7c785]">Edition</p><ol className="mt-5 space-y-4 text-xs text-white/70"><li>Cover</li><li>Story</li><li>Journey</li><li>Ideas</li></ol></div><div className="bg-surface p-5 text-foreground sm:p-8"><p className="type-meta text-accent">Personal Magazine</p><p className="mt-5 max-w-xl font-serif text-3xl leading-[.95] sm:text-5xl">{magazine.coverHeadline}</p><p className="mt-5 max-w-lg text-sm leading-6 text-muted">This sample spread previews the edition’s editorial sequence directly on the profile.</p><div className="mt-8 space-y-3"><span className="block h-px w-full bg-border" /><span className="block h-px w-4/5 bg-border" /><span className="block h-px w-11/12 bg-border" /></div></div></div><Link className="mt-8 inline-flex min-h-12 items-center gap-2 bg-foreground px-5 text-sm font-bold text-white hover:bg-accent" href="#contents">Explore this Edition <ArrowRight aria-hidden="true" className="size-4" /></Link></div>
+  </section></PageContainer></div>;
+}
+
+function RelatedCoverage({ profile }: { profile: ResolvedPersonalMagazineProfile }) {
+  return <PageContainer className="section-space" width="standard"><section aria-labelledby="personal-magazine-coverage-heading"><header className="flex flex-wrap items-end justify-between gap-6 border-t-2 border-foreground pt-5"><div><p className="eyebrow text-accent">From The Perspective</p><h2 className="type-display-lg mt-5" id="personal-magazine-coverage-heading">Related coverage.</h2></div><Link className="inline-flex min-h-11 items-center gap-2 border-b border-foreground text-sm font-bold hover:text-accent" href={`/search?q=${encodeURIComponent(profile.person.name)}`}>Search {profile.person.name} <ArrowRight aria-hidden="true" className="size-4" /></Link></header><div className="mt-10 grid gap-8 sm:grid-cols-2 xl:grid-cols-4">{profile.relatedArticles.map((article) => <ArticleCard article={article} key={article.id} variant="compact" />)}</div></section></PageContainer>;
+}
+
+function PersonProfile({ profile }: { profile: ResolvedPersonalMagazineProfile }) {
+  const { person, coverImage } = profile;
+  return <div className="bg-[#eee8dd]"><PageContainer className="section-space" width="standard"><section aria-labelledby="personal-magazine-person-heading" className="grid gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-center lg:gap-20">
+    {person.portrait ? <div className="relative aspect-[4/5] max-w-lg overflow-hidden bg-surface-subtle"><Image alt={person.portrait.alt} className="object-cover" fill sizes="(max-width:1024px) 100vw, 40vw" src={person.portrait.src} /></div> : <div aria-label={`Editorial cover artwork for ${person.name}`} className="relative flex aspect-[4/5] max-w-lg items-end overflow-hidden bg-[#23231f] p-8 text-white" role="img">{coverImage && <Image alt="" className="object-cover opacity-55" fill sizes="(max-width:1024px) 100vw, 40vw" src={coverImage.src} />}<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" /><p className="relative font-serif text-6xl">{person.name.split(" ").map((part) => part[0]).join("")}</p></div>}
+    <div><p className="eyebrow text-accent">Profile</p><h2 className="type-display-lg mt-5" id="personal-magazine-person-heading">{person.name}</h2><p className="mt-6 text-sm font-bold uppercase tracking-[.12em] text-[#575146]">{[person.title, person.company].filter(Boolean).join(" · ")}</p><p className="type-deck mt-7 max-w-3xl text-[#575146]">{person.biography}</p><div className="mt-9 border-t border-[#aaa292] pt-5"><p className="type-meta text-accent">Areas of focus</p><p className="mt-3 font-serif text-2xl">{person.expertise.join(" · ")}</p></div></div>
+  </section></PageContainer></div>;
+}
+
+const personalMagazineElements = ["Editorial interview", "Personal cover story", "Career journey", "Leadership philosophy", "Company story", "Photography", "Digital edition", "Feature articles", "Selected milestones", "Legacy archive"];
+
+function ProductPositioning({ profile }: { profile: ResolvedPersonalMagazineProfile }) {
+  return <>
+    <PageContainer className="section-space-lg" width="standard"><section aria-labelledby="personal-magazine-product-heading" className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-20"><div><p className="eyebrow text-accent">The Personal Magazine format</p><h2 className="type-display-lg mt-5" id="personal-magazine-product-heading">A magazine built around a life’s work.</h2><p className="type-deck mt-7 max-w-2xl text-muted">The Perspective Personal Magazine transforms an executive, founder or investor’s journey into a curated publication—bringing together interviews, milestones, ideas, photography and long-form editorial storytelling.</p><Link className="mt-8 inline-flex min-h-12 items-center gap-2 bg-foreground px-5 text-sm font-bold text-white hover:bg-accent" href="#personal-magazine-inquiry">Create Your Magazine <ArrowRight aria-hidden="true" className="size-4" /></Link></div><ul className="grid sm:grid-cols-2">{personalMagazineElements.map((item) => <li className="flex min-h-14 items-center gap-3 border-t border-border py-3 text-sm" key={item}><Check aria-hidden="true" className="size-4 shrink-0 text-accent" />{item}</li>)}</ul></section></PageContainer>
+    <div className="bg-accent text-white" id="personal-magazine-inquiry"><PageContainer className="section-space" width="standard"><section aria-labelledby="personal-magazine-inquiry-heading" className="grid gap-10 lg:grid-cols-[1.15fr_.85fr] lg:items-end"><div><p className="eyebrow text-white/75">Create Your Personal Magazine</p><h2 className="type-display-lg mt-5" id="personal-magazine-inquiry-heading">Turn a story into a publication designed to last.</h2><p className="type-deck mt-7 max-w-3xl text-white/80">Use {profile.person.name}’s edition as an editorial example. Inquiry and production services will be introduced as a dedicated experience, separate from this publication showcase.</p></div><div className="flex flex-wrap gap-3 lg:justify-end"><Link className="inline-flex min-h-12 items-center gap-2 bg-white px-5 text-sm font-bold text-foreground hover:bg-[#f3e6d0]" href="/magazine#personal-magazines">View Personal Magazine examples <ArrowRight aria-hidden="true" className="size-4" /></Link><Link className="inline-flex min-h-12 items-center border border-white px-5 text-sm font-bold hover:bg-white hover:text-foreground" href="/magazine">Explore Magazine</Link></div></section></PageContainer></div>
+  </>;
+}
+
+function RelatedProfiles({ profile }: { profile: ResolvedPersonalMagazineProfile }) {
+  return <div className="bg-[#e3ddd1]"><PageContainer className="section-space-lg" width="standard"><section aria-labelledby="related-personal-magazines-heading"><header className="grid gap-6 border-t-2 border-foreground pt-5 lg:grid-cols-[.62fr_1.38fr]"><div><p className="eyebrow text-accent">More Personal Editions</p><h2 className="type-display-lg mt-5" id="related-personal-magazines-heading">Continue through the collection.</h2></div><p className="type-deck max-w-3xl text-[#575146]">Each edition uses the same publication architecture while preserving a distinct person, field and editorial point of view.</p></header><div className="mt-12 grid gap-8 sm:grid-cols-2">{profile.relatedProfiles.map((related, index) => <article key={related.magazine.id}><PersonalMagazineCover className="mx-auto w-[78%] max-w-sm sm:mt-0" coverHeadline={related.magazine.coverHeadline} coverImage={related.coverImage} editionLabel={related.magazine.editionLabel} href={`/personal-magazines/${related.magazine.slug}`} index={index} person={related.person} /><div className="mx-auto mt-6 w-[78%] max-w-sm"><p className="type-meta text-accent">{related.magazine.editionLabel}</p><h3 className="mt-3 font-serif text-3xl"><Link className="hover:text-accent" href={`/personal-magazines/${related.magazine.slug}`}>{related.person.name}</Link></h3><p className="mt-2 text-sm text-[#575146]">{[related.person.title, related.person.company].filter(Boolean).join(" · ")}</p></div></article>)}</div></section></PageContainer></div>;
+}
+
+function MagazineDiscovery() {
+  return <PageContainer className="section-space" width="standard"><section aria-labelledby="personal-magazine-discovery-heading" className="grid gap-10 border-y border-border py-10 lg:grid-cols-[1fr_auto] lg:items-center"><div><p className="eyebrow text-accent">The Perspective Magazine</p><h2 className="mt-5 font-serif text-4xl sm:text-5xl" id="personal-magazine-discovery-heading">Discover the wider publication.</h2></div><nav aria-label="Magazine discovery" className="flex flex-wrap gap-x-7 gap-y-3 text-sm font-bold"><Link className="inline-flex min-h-11 items-center border-b border-foreground hover:text-accent" href="/magazine">Explore Magazine</Link><Link className="inline-flex min-h-11 items-center border-b border-foreground hover:text-accent" href="/magazine/archive">Archive</Link><Link className="inline-flex min-h-11 items-center border-b border-foreground hover:text-accent" href="/magazine/premium">Premium</Link></nav></section></PageContainer>;
+}
+
+export function PersonalMagazineDiscovery({ profile }: { profile: ResolvedPersonalMagazineProfile }) {
+  return <>
+    <FeaturedStories profile={profile} />
+    <DigitalEditionPreview profile={profile} />
+    <RelatedCoverage profile={profile} />
+    <PersonProfile profile={profile} />
+    <ProductPositioning profile={profile} />
+    <RelatedProfiles profile={profile} />
+    <MagazineDiscovery />
+    <div className="bg-surface"><PageContainer className="section-space" width="standard"><CategoryNewsletter description="Personal Magazine stories, founder interviews and the ideas shaping enduring institutions—from The Perspective." eyebrow="For readers who follow the long arc" title="Personal Magazine Stories" /></PageContainer></div>
+  </>;
+}
