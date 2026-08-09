@@ -1,4 +1,4 @@
-export type { Article, ArticleCategory, ArticleContentBlock, ArticleDetail, ArticleType, Author, BulletListBlock, CalloutBlock, ContentStatus, DividerBlock, HeadingBlock, ImageAsset, ImageBlock, Magazine, MagazineCategory, MagazineIssue, MagazineIssueSection, NumberedListBlock, ParagraphBlock, PersonProfile, PullQuoteBlock, SeoMetadata, Tag } from "./content";
+export type { Article, ArticleCategory, ArticleContentBlock, ArticleDetail, ArticleType, Author, BulletListBlock, CalloutBlock, ContentStatus, DividerBlock, HeadingBlock, ImageAsset, ImageBlock, Magazine, MagazineIssue, MagazineIssueSection, MagazinePublicationCategory, NumberedListBlock, ParagraphBlock, PersonProfile, PullQuoteBlock, SeoMetadata, Tag } from "./content";
 export type { CategoryEditorialSection, CategoryLandingContent, CategoryPeopleFeatureContent, CategoryPersonStory, CategoryPromotion, CategorySectionLayout, CategorySubnavItem } from "./category";
 export type { PerspectiveArgument, PerspectiveColumnist, PerspectiveContent, PerspectiveSection } from "./perspective";
 export type { AuthorProfileConfig, AuthorProfileData, AuthorTopic } from "./author-profile";
@@ -8,3 +8,4 @@ export type { Topic, TopicContributor, TopicCoverageDestination, TopicLandingCon
 export type { MagazineLandingContent, ResolvedMagazineIssueSection } from "./magazine";
 export type { MagazineArticlePage, MagazineContentsPage, MagazineCoverPage, MagazineEditorialPage, MagazineEndPage, MagazineFeaturePage, MagazineImagePage, MagazinePage, MagazinePageBase, MagazineQuotePage, MagazineReaderArticle, MagazineReaderContentEntry, MagazineReaderIssue, MagazineSectionPage, ResolvedMagazinePage, ResolvedMagazineReaderIssue } from "./magazine-reader";
 export type { MagazineArchiveCounts, MagazineArchiveFilter, MagazineArchiveIssue, MagazineArchiveState } from "./magazine-archive";
+export type { MagazineCategory, MagazineCategoryContent, MagazineCategoryCoverage, MagazineCategoryStory } from "./magazine-category";

@@ -1,6 +1,7 @@
 import type { Article, Magazine, MagazineIssue, MagazineIssueSection, MagazineLandingContent } from "@/types";
 import { getArticleById } from "./articles";
-import { magazineCategories } from "./categories";
+import { magazineCategories as publicationCategories } from "./categories";
+import { magazineCategories as magazineThemeCategories } from "./magazine-categories";
 import { getPersonById } from "./people";
 
 export const magazines: readonly Magazine[] = [
@@ -9,13 +10,16 @@ export const magazines: readonly Magazine[] = [
     title: "The Perspective",
     slug: "the-perspective",
     description: "A curated collection of ideas, leaders and stories designed to be read, kept and returned to.",
-    category: magazineCategories[0],
+    category: publicationCategories[0],
     premium: false,
   },
 ];
 
 const magazineId = magazines[0].id;
-const section = (id: string, label: string, href: string, articleIds: readonly string[]): MagazineIssueSection => ({ id, label, href, articleIds });
+const section = (id: string, label: string, href: string, articleIds: readonly string[]): MagazineIssueSection => {
+  const magazineCategory = magazineThemeCategories.find((category) => category.slug === id);
+  return { id, label, href: magazineCategory ? `/magazine/category/${magazineCategory.slug}` : href, articleIds };
+};
 
 export const magazineIssues: readonly MagazineIssue[] = [
   {
@@ -55,8 +59,8 @@ export const magazineIssues: readonly MagazineIssue[] = [
     coverHeadline: "The Global Leaders Issue",
     coverKicker: "Premium edition",
     coverStoryArticleId: "article-50-leaders",
-    featuredArticleIds: ["article-new-architecture-global-leadership", "article-interview-elena-rossi", "article-leaders-certainty-disappears"],
-    sectionGroups: [section("leadership", "Leadership", "/leadership", ["article-50-leaders", "article-new-architecture-global-leadership", "article-interview-elena-rossi"])],
+    featuredArticleIds: ["article-new-architecture-global-leadership", "article-interview-elena-rossi", "article-leaders-certainty-disappears", "article-organizational-trust", "article-boards-accountability", "article-new-executive-mandate"],
+    sectionGroups: [section("leadership", "Leadership", "/leadership", ["article-50-leaders", "article-new-architecture-global-leadership", "article-interview-elena-rossi", "article-organizational-trust", "article-boards-accountability", "article-new-executive-mandate"])],
     theme: "Special Edition",
     coverImage: { src: "/images/articles/elena-rossi.png", alt: "Editorial portrait of Elena Rossi", width: 1024, height: 1536 },
     pageCount: 184,
@@ -210,8 +214,8 @@ export const magazineIssues: readonly MagazineIssue[] = [
     coverHeadline: "The Leaders Issue",
     coverKicker: "Premium annual edition",
     coverStoryArticleId: "article-50-leaders",
-    featuredArticleIds: ["article-new-architecture-global-leadership", "article-interview-elena-rossi", "article-leaders-certainty-disappears"],
-    sectionGroups: [section("leadership", "Leadership", "/leadership", ["article-50-leaders", "article-new-architecture-global-leadership", "article-interview-elena-rossi", "article-leaders-certainty-disappears"])],
+    featuredArticleIds: ["article-new-architecture-global-leadership", "article-interview-elena-rossi", "article-leaders-certainty-disappears", "article-decisions-pressure", "article-opinion-institutions-outlast-founders", "article-boards-succession"],
+    sectionGroups: [section("leadership", "Leadership", "/leadership", ["article-50-leaders", "article-new-architecture-global-leadership", "article-interview-elena-rossi", "article-leaders-certainty-disappears", "article-decisions-pressure", "article-opinion-institutions-outlast-founders", "article-boards-succession"])],
     theme: "Leadership & Influence",
     coverImage: { src: "/images/articles/elena-rossi.png", alt: "A composed global executive photographed for the annual Leaders Issue", width: 1024, height: 1536 },
     pageCount: 188,
