@@ -19,7 +19,7 @@ src/
     perspective/        Author-led opinion leads, story lists, and editorial sections
     author/             Contributor mastheads, curation, expertise, and archives
     article/            Reusable listing patterns and the long-form story reader
-    magazine/           Issue, cover, and personal-publication presentation
+    magazine/           Publication masthead, issue covers, contents, archive previews, and future-product context
     person/             Reusable interview and profile-led presentation
   config/               Site identity, navigation, contact and footer data
   data/mock/            Small, typed fixtures for UI development
@@ -68,6 +68,8 @@ The footer is permanently structured around publication context, configured link
 
 `topics.ts` stores concise Topic identity and explicit editorial curation by stable article and author IDs. `src/lib/topics.ts` combines those selections with deterministic tag, category, subcategory, title, and summary matching to derive current coverage. The resolver applies one ordered deduplication pass across the lead, supporting package, essential reading, analysis, opinion, latest coverage, and rankings; it never copies article records into Topic configuration.
 
+`magazines.ts` keeps the publication brand (`Magazine`) distinct from its dated editions (`MagazineIssue`). Issues own stable slugs, deterministic publication dates, cover metadata, a canonical cover-story ID, featured article IDs, and simple labelled section groups. Resolvers filter those IDs through the shared article catalogue, so magazine stories and contributors continue to use `ArticleReader` and the existing Author system without duplicate content models. Personal Magazines remain presentations of centralized `PersonProfile` identities rather than being folded into the publication or issue types.
+
 `business.ts`, `leadership.ts`, and `technology.ts` are category composition layers. They store stable article IDs, subcategory links, editorial section configuration, rankings, and category newsletter copy, then resolve those references against the shared article, person, and magazine records. Articles add optional `subcategory` metadata without changing broad-category filtering or article-reader behavior. Leadership and Technology reuse existing person identities for category-level people features rather than introducing route-specific profile markup.
 
 `perspective.ts` is a separate author-led composition layer. It resolves stable article and author IDs for columnists, text-led arguments, the Big Essay, contributor spotlight, rankings, and the reusable Point/Counterpoint pattern. Opinion contributors live in the shared author model, and every essay continues to use the shared article reader.
@@ -93,6 +95,12 @@ News is the primary Topic-discovery hub. Configured cross-category subjects use 
 The single `/topic/[slug]` route statically generates every centralized Topic and returns the shared not-found experience for unsupported slugs. A Topic is a curated cross-category subject, not a `CategoryLandingPage` configuration and not a rendered Search result set. The route resolves one typed `TopicLandingContent` object and stays responsible only for metadata, CollectionPage/ItemList structured data, invalid-slug handling, and page composition.
 
 Topic pages combine a permanent subject masthead, lead package, date-sorted non-opinion coverage, essential reading, static editorial context, analysis, Perspectives, explicitly selected contributors, adjacent desk links, deterministic rankings, related Topics, premium context, and the shared newsletter form. Article tags and contributor expertise use a small destination helper: configured Topics route canonically, permanent categories keep their first-class routes, and all other labels fall back to Search rather than producing speculative paths.
+
+## Magazine landing composition
+
+The static `/magazine` route is the permanent front door for The Perspective Magazine. It resolves a single typed composition from centralized publication, issue, article, and people data, then presents the latest issue, canonical cover story, highlights, print-like section contents, previous issues, future digital-reader context, Premium edition, Personal Magazines, archive preview, subscription context, and the shared Magazine Briefing form. The cover component supports controlled size variants and renders all critical masthead/headline text as HTML over existing optimized local imagery.
+
+Future product routes are intentionally reserved as `/magazine/read/[slug]`, `/magazine/archive`, `/magazine/category/[slug]`, and dedicated Premium/Subscribe destinations. Until those pages exist, Magazine navigation and promotional CTAs use working `/magazine` section anchors or clearly disabled future controls—never fake links or accidental 404s. Search results now route issue discovery to `/magazine`, while their referenced cover stories remain canonical `/article/[slug]` destinations.
 
 ## Category landing composition
 
@@ -129,6 +137,7 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/author/[slug]` — statically generated contributor profile and editorial archive
 - `/search` — URL-driven editorial search across articles, contributors, people, and magazine issues
 - `/topic/[slug]` — statically generated cross-category editorial Topic hub
+- `/magazine` — static issue-led Magazine landing and future product-system front door
 
 Subcategory and Perspective topic destinations shown in navigation are reserved future routes. A contributor index remains intentionally deferred; canonical profile links resolve directly through `/author/[slug]`.
 

@@ -18,5 +18,6 @@ export type Article = { id: string; slug: string; title: string; dek?: string; e
 export type ArticleDetail = Article & { content: ArticleContentBlock[] };
 export type MagazineCategory = { id: string; name: string; slug: string };
 export type Magazine = { id: string; title: string; slug: string; description: string; category: MagazineCategory; premium: boolean; coverImage?: ImageAsset };
-export type MagazineIssue = { id: string; magazineId: string; title: string; slug: string; issueNumber: number; publicationDate: string; coverImage?: ImageAsset; pageCount: number; status: ContentStatus };
+export type MagazineIssueSection = { id: string; label: string; href: string; articleIds: readonly string[] };
+export type MagazineIssue = { id: string; magazineId: string; title: string; slug: string; issueNumber: number; publicationDate: string; description: string; coverHeadline: string; coverKicker: string; coverStoryArticleId: string; featuredArticleIds: readonly string[]; sectionGroups: readonly MagazineIssueSection[]; theme: string; coverImage?: ImageAsset; pageCount: number; status: ContentStatus; premium?: boolean; featured?: boolean };
 export type PersonProfile = { id: string; name: string; slug: string; headline: string; biography: string; portrait?: ImageAsset; expertise: string[]; title?: string; company?: string; quote?: string };

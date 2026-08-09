@@ -45,6 +45,7 @@ export type PersonSearchResult = SearchResultBase & {
 
 export type MagazineSearchResult = SearchResultBase & {
   type: "magazine";
+  href: string;
   magazineId: string;
   issueId: string;
   issueLabel: string;

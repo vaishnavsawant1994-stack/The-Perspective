@@ -1,7 +1,7 @@
 import type { SearchCounts, SearchFilter, SearchResult, SearchResultType, SearchSort } from "@/types";
 import { getPublicAuthors } from "@/data/mock/author-profiles";
 import { articles, getArticleById } from "@/data/mock/articles";
-import { issueStoryTitles, magazineIssues, magazines } from "@/data/mock/magazines";
+import { getMagazineIssueArticles, magazineIssues, magazines } from "@/data/mock/magazines";
 import { people } from "@/data/mock/people";
 
 type WithoutScore<T> = T extends unknown ? Omit<T, "score"> : never;
@@ -178,21 +178,23 @@ function createSearchIndex(): readonly SearchIndexEntry[] {
     if (!magazine) continue;
     const label = issueLabel(issue.publicationDate, issue.issueNumber);
     const titleText = normalizeSearchQuery(issue.title);
-    const primaryText = normalized([magazine.title, magazine.category.name, label, "magazine issue"]);
-    const secondaryText = normalized(issueStoryTitles);
-    const bodyText = normalizeSearchQuery(magazine.description);
+    const issueArticles = getMagazineIssueArticles(issue);
+    const primaryText = normalized([magazine.title, magazine.category.name, issue.theme, label, "magazine issue"]);
+    const secondaryText = normalized(issueArticles.map((article) => article.title));
+    const bodyText = normalized([magazine.description, issue.description]);
     entries.push({
       result: {
         id: issue.id,
         type: "magazine",
         title: issue.title,
-        description: magazine.description,
+        description: issue.description,
+        href: "/magazine",
         image: issue.coverImage,
         magazineId: magazine.id,
         issueId: issue.id,
         issueLabel: label,
         publicationDate: issue.publicationDate,
-        featuredStory: issueStoryTitles[0] ?? issue.title,
+        featuredStory: issueArticles[0]?.title ?? issue.title,
       },
       titleText,
       primaryText,
