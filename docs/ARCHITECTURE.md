@@ -141,7 +141,15 @@ The primary Reader is structured HTML rather than PDF, canvas, screenshots, or a
 
 The single `/personal-magazines/[slug]` route statically generates the configured Arjun Mehta, Sophia Reynolds, and Daniel Kim editions and returns the shared not-found experience for unsupported slugs. Each Server Component route resolves canonical `PersonProfile` and `Article` records through one reusable profile composer, emits individual metadata plus sanitized ProfilePage/Person JSON-LD, and keeps the publication content in the initial HTML.
 
-Profiles combine a magazine cover, identity and role context, editorial statement, themes, contents, optional canonical interview, milestones, chapters, principles, a real person quote or clearly labelled editorial takeaway, canonical image references, featured and related reporting, edition preview, identity summary, product positioning, related people, Magazine discovery, and the shared briefing form. Homepage, Magazine landing, Leadership promotion, and Search link configured people directly to their profiles. A Personal Magazine listing, separate Reader route, form, CRM, authentication, payment, database, and generated PDF are intentionally deferred.
+Profiles combine a magazine cover, identity and role context, editorial statement, themes, contents, optional canonical interview, milestones, chapters, principles, a real person quote or clearly labelled editorial takeaway, canonical image references, featured and related reporting, edition preview, identity summary, product positioning, related people, Magazine discovery, and the shared briefing form. Homepage, Magazine landing, Leadership promotion, Search, and the central collection link configured people directly to their profiles. A separate Reader route, form, CRM, authentication, payment, database, and generated PDF are intentionally deferred.
+
+## Personal Magazine collection composition
+
+The request-rendered `/personal-magazines` route is the permanent collection and product-understanding destination. It awaits the Next.js 16 `searchParams` promise, normalizes optional `q` state through the shared search-query primitives, and filters resolved edition summaries on the server. Base order follows the canonical `PersonalMagazine` records; explicit featured ordering, process steps, audiences, themes, principles, selected canonical article IDs, and FAQs live in one page-level configuration that contains no duplicated Person identity.
+
+Collection cards resolve every name, role, company, biography, expertise value, cover asset, headline, theme, and profile URL from canonical `PersonalMagazine`, `PersonProfile`, and `Article` records. The base page emits CollectionPage/ItemList structured data and remains `index, follow`; query variants canonicalize to the base collection and use `noindex, follow`. The only client island is the already shared newsletter form. Personal Magazines remain separate from `MagazineIssue`, the page-by-page Magazine Reader, and subscription entitlements. There is no lead form, inquiry backend, CRM, payment, database, or Personal Magazine Reader.
+
+Stage 21 completes the planned public frontend V1. The next phase is a complete frontend system audit, not another public page.
 
 ## Category landing composition
 
@@ -186,8 +194,9 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/magazine/read/[slug]` — reusable structured digital issue reader; August 2026 currently available
 
 - `/personal-magazines/[slug]` — statically generated person-led editions for Arjun Mehta, Sophia Reynolds, and Daniel Kim
+- `/personal-magazines` — URL-driven Personal Magazine collection and editorial product guide
 
-Subcategory and Perspective topic destinations shown in navigation are reserved future routes. Contributor and Personal Magazine indexes remain intentionally deferred; canonical profile links resolve directly through their dynamic detail routes.
+Subcategory and Perspective topic destinations shown in navigation are reserved future routes. A contributor index remains intentionally deferred; Personal Magazine discovery resolves canonical profile links through the collection and dynamic detail routes.
 
 ## Article reader composition
 

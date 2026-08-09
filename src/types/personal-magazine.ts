@@ -78,3 +78,32 @@ export type ResolvedPersonalMagazineProfile = ResolvedPersonalMagazineSummary & 
   gallery: readonly ResolvedPersonalMagazineGalleryItem[];
   relatedProfiles: readonly ResolvedPersonalMagazineSummary[];
 };
+
+export type PersonalMagazineListingItem = {
+  id: string;
+  title: string;
+  description: string;
+};
+
+export type PersonalMagazineListingLink = PersonalMagazineListingItem & {
+  href: string;
+  query: string;
+};
+
+export type PersonalMagazineFaq = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
+export type PersonalMagazineListingConfig = {
+  featuredSlugs: readonly string[];
+  benefits: readonly PersonalMagazineListingItem[];
+  contents: readonly PersonalMagazineListingItem[];
+  process: readonly PersonalMagazineListingItem[];
+  themes: readonly PersonalMagazineListingLink[];
+  audiences: readonly PersonalMagazineListingItem[];
+  principles: readonly PersonalMagazineListingItem[];
+  selectedArticleIds: readonly string[];
+  faqs: readonly PersonalMagazineFaq[];
+};

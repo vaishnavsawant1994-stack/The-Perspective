@@ -1,0 +1,66 @@
+import type { PersonalMagazineListingConfig } from "@/types";
+
+export const personalMagazineListing = {
+  featuredSlugs: ["arjun-mehta", "sophia-reynolds", "daniel-kim"],
+  benefits: [
+    { id: "depth", title: "Editorial depth", description: "A sustained narrative makes room for context, decisions and the ideas behind a body of work." },
+    { id: "shape", title: "A complete editorial shape", description: "Cover, opening essay, interview, milestones and related reading become one coherent publication." },
+    { id: "independence", title: "A wider point of view", description: "The Perspective connects an individual story to the industries, institutions and questions around it." },
+    { id: "permanence", title: "Designed to be kept", description: "The edition is conceived as a lasting record rather than a passing profile or campaign page." },
+  ],
+  contents: [
+    { id: "cover", title: "A defining cover", description: "A clear editorial proposition for the person and the work at the center of the edition." },
+    { id: "opening", title: "The opening story", description: "A long-form introduction that establishes the central argument and the wider context." },
+    { id: "interview", title: "Interview and ideas", description: "First-person thinking, editorial questions and the principles that guide consequential decisions." },
+    { id: "journey", title: "Journey and milestones", description: "The moments, changes and choices that give the story its structure over time." },
+    { id: "chapters", title: "Thematic chapters", description: "Focused sections on building, leading, investing, inventing and thinking beyond the immediate horizon." },
+    { id: "reporting", title: "Related Perspective reporting", description: "Canonical stories that place the edition inside a broader field of ideas and evidence." },
+  ],
+  process: [
+    { id: "discover", title: "Discover the story", description: "Identify the central arc, the intended record and the questions the edition should preserve." },
+    { id: "research", title: "Research the context", description: "Build a working picture of the person, organization, field and defining moments." },
+    { id: "interview", title: "Conduct the interviews", description: "Create space for reflection, specificity and the thinking behind pivotal choices." },
+    { id: "shape", title: "Shape the narrative", description: "Develop the cover proposition, chapters, chronology and supporting editorial frame." },
+    { id: "edit", title: "Edit the edition", description: "Write, verify, refine and sequence every element as one publication." },
+    { id: "publish", title: "Publish with Perspective", description: "Present the finished edition within the Personal Magazine collection as a durable editorial record." },
+  ],
+  themes: [
+    { id: "founders", title: "Founders", description: "Company building, conviction and institutional endurance.", href: "/topic/founders", query: "Founders" },
+    { id: "leadership", title: "Leadership", description: "Judgment, responsibility and the work of leading through change.", href: "/leadership", query: "Leadership" },
+    { id: "technology", title: "Technology", description: "Infrastructure, invention and the systems shaping what comes next.", href: "/technology", query: "Technology" },
+    { id: "global-business", title: "Global Business", description: "Scale, markets and the disciplines required to build across borders.", href: "/business", query: "Global Business" },
+    { id: "capital-strategy", title: "Capital & Strategy", description: "Patient capital, transformation and decisions made for the long term.", href: "/topic/global-markets", query: "Capital Strategy" },
+  ],
+  audiences: [
+    { id: "founders", title: "Founders", description: "For documenting the ideas, turning points and long arc behind an enduring company." },
+    { id: "executives", title: "Executives", description: "For placing a leadership chapter inside the wider context of an institution and an industry." },
+    { id: "investors", title: "Investors", description: "For exploring a philosophy of capital, partnership and consequential judgment." },
+    { id: "innovators", title: "Innovators", description: "For explaining the patient work behind a technical or creative shift." },
+    { id: "industry-leaders", title: "Industry leaders", description: "For preserving a field-defining perspective in a publication with editorial depth." },
+  ],
+  principles: [
+    { id: "story", title: "Story before promotion", description: "The edition begins with a meaningful editorial question, not a marketing message." },
+    { id: "context", title: "Context creates meaning", description: "A personal story becomes more useful when it is connected to the forces and ideas around it." },
+    { id: "specificity", title: "Specificity earns trust", description: "Decisions, tensions and evidence matter more than broad claims about success." },
+    { id: "craft", title: "Craft serves clarity", description: "Design, imagery and sequence support the reading experience without overwhelming the narrative." },
+  ],
+  selectedArticleIds: [
+    "article-business-interview-arjun-mehta",
+    "article-companies-growth-cycle",
+    "article-purpose-capital",
+    "article-private-markets-financing",
+    "article-technology-interview-daniel-kim",
+    "article-ai-infrastructure-race",
+  ],
+  faqs: [
+    { id: "what", question: "What is a Personal Magazine?", answer: "It is a person-led editorial edition that brings a cover story, interviews, milestones, ideas and related reporting into one lasting publication." },
+    { id: "profile", question: "How is it different from a profile?", answer: "A profile is usually one story. A Personal Magazine creates a complete editorial architecture around a person’s work, context and defining ideas." },
+    { id: "subjects", question: "Who is a Personal Magazine for?", answer: "The format is intended for founders, executives, investors, innovators and industry leaders whose stories benefit from sustained editorial treatment." },
+    { id: "editorial", question: "Is the edition independently edited?", answer: "The format is editorial first. Its structure, writing and presentation are guided by clarity, context and the standards of The Perspective." },
+    { id: "contents", question: "What can an edition include?", answer: "An edition can include a defining cover, long-form narrative, interviews, chronology, thematic chapters, photography and related Perspective stories." },
+    { id: "reader", question: "Is this the same as the Magazine Digital Reader?", answer: "No. Personal Magazine profiles are continuous editorial web publications. The Digital Reader is a separate page-by-page experience for configured issues of The Perspective Magazine." },
+    { id: "subscription", question: "Is a Personal Magazine included with a subscription?", answer: "No. Personal Magazines are a separate editorial product and are not part of Reader, Digital or Premium subscription access." },
+    { id: "inquiry", question: "Can I submit an inquiry now?", answer: "An inquiry form and production service are not yet available. The current collection explains the format and presents the published example editions." },
+    { id: "scale", question: "Will more editions be added?", answer: "Yes. The collection is designed to grow as new canonical people, stories and edition records are published." },
+  ],
+} as const satisfies PersonalMagazineListingConfig;

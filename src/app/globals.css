@@ -138,4 +138,13 @@ body:has([data-reader-shell]) > main { min-height: 100dvh; }
   .reader-bottom-navigation { position: sticky; bottom: 0; }
 }
 
+#personal-magazine-collection header > div,
+#personal-magazine-collection form {
+  min-width: 0;
+}
+
+#personal-magazine-collection form {
+  width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

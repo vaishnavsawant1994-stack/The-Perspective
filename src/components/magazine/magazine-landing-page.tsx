@@ -54,7 +54,7 @@ export function MagazineLandingPage({ content }: { content: MagazineLandingConte
 
     <DigitalReaderPreview issue={content.latestIssue} />
     <PremiumMagazine issue={content.premiumIssue} />
-    <PersonalMagazineSection destination={null} id="personal-magazines" people={content.personalMagazineProfiles} />
+    <PersonalMagazineSection destination="/personal-magazines" id="personal-magazines" people={content.personalMagazineProfiles} />
     <ArchivePreview issues={archiveIssues} />
     <SubscriptionCta />
 

@@ -2,6 +2,7 @@ import type { Article, PersonalMagazine, ResolvedPersonalMagazineProfile, Resolv
 import { articles, getArticleById } from "@/data/mock/articles";
 import { getPersonalMagazineByPersonId, getPersonalMagazineBySlug, personalMagazines } from "@/data/mock/personal-magazines";
 import { getPersonById } from "@/data/mock/people";
+import { normalizeSearchQuery } from "@/lib/search-query";
 
 function resolveArticles(ids: readonly string[]) {
   return ids.map(getArticleById).filter((article): article is Article => article !== undefined);
@@ -13,6 +14,33 @@ function resolveSummary(magazine: PersonalMagazine): ResolvedPersonalMagazineSum
   const interview = magazine.interviewArticleId ? getArticleById(magazine.interviewArticleId) : undefined;
   const coverImage = person.portrait ?? interview?.heroImage ?? resolveArticles(magazine.featuredArticleIds)[0]?.heroImage;
   return { magazine, person, coverImage };
+}
+
+export function getResolvedPersonalMagazineSummaries() {
+  return personalMagazines
+    .map(resolveSummary)
+    .filter((summary): summary is ResolvedPersonalMagazineSummary => summary !== undefined);
+}
+
+export function searchPersonalMagazines(query: string) {
+  const tokens = normalizeSearchQuery(query).split(" ").filter(Boolean);
+  const summaries = getResolvedPersonalMagazineSummaries();
+  if (tokens.length === 0) return summaries;
+
+  return summaries.filter(({ magazine, person }) => {
+    const searchableText = normalizeSearchQuery([
+      person.name,
+      person.title,
+      person.company,
+      person.biography,
+      ...person.expertise,
+      magazine.coverHeadline,
+      ...magazine.themes.map((theme) => theme.label),
+      magazine.introduction,
+      ...magazine.editorialNarrative,
+    ].filter(Boolean).join(" "));
+    return tokens.every((token) => searchableText.includes(token));
+  });
 }
 
 export function getResolvedPersonalMagazineBySlug(slug: string): ResolvedPersonalMagazineProfile | undefined {
@@ -110,7 +138,7 @@ export function validatePersonalMagazineData() {
     if (magazine.highlight.kind === "person-quote" && !person?.quote) errors.push(`${magazine.id} requests a canonical Person quote that does not exist.`);
   }
 
-  if (personalMagazines.length !== 3) errors.push(`Expected three initial Personal Magazines, received ${personalMagazines.length}.`);
+  if (personalMagazines.length < 3) errors.push(`Expected at least three initial Personal Magazines, received ${personalMagazines.length}.`);
   if (articles.length === 0) errors.push("Canonical Article data is unavailable.");
   return errors;
 }

@@ -7,7 +7,7 @@ export function MagazinePageHeader({ readerHref }: { readerHref: string }) {
     { label: "Digital Reader", href: readerHref },
     { label: "Archive", href: "/magazine/archive" },
     { label: "Premium", href: "/magazine/premium" },
-    { label: "Personal Magazines", href: "/magazine#personal-magazines" },
+    { label: "Personal Magazines", href: "/personal-magazines" },
     { label: "Subscribe", href: "/magazine/subscribe" },
   ];
   return <header className="border-b border-foreground bg-surface">
