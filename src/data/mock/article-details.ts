@@ -301,11 +301,16 @@ function fallbackRelatedIds(article: Article) {
   return articles.filter((candidate) => candidate.id !== article.id && candidate.category.id === article.category.id).slice(0, 3).map((candidate) => candidate.id);
 }
 
+export function getArticleTags(article: Article): readonly Tag[] {
+  const detail = detailSeeds.find((candidate) => candidate.articleId === article.id);
+  return detail?.tags ?? [tag(article.category.name), tag("The Perspective")];
+}
+
 export function getArticleDetailBySlug(slug: string): ArticleDetail | undefined {
   const article = getArticleBySlug(slug);
   if (!article) return undefined;
   const detail = detailSeeds.find((candidate) => candidate.articleId === article.id);
-  return { ...article, tags: detail?.tags ?? [tag(article.category.name), tag("The Perspective")], relatedArticleIds: detail?.relatedArticleIds ?? fallbackRelatedIds(article), content: detail?.content ?? fallbackContent(article) };
+  return { ...article, tags: [...getArticleTags(article)], relatedArticleIds: detail?.relatedArticleIds ?? fallbackRelatedIds(article), content: detail?.content ?? fallbackContent(article) };
 }
 
 export function getRelatedArticles(article: Article, limit = 3) {

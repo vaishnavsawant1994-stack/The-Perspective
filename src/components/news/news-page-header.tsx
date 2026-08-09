@@ -1,14 +1,13 @@
 import { CategoryPageHeader } from "@/components/category/category-page-header";
 import { CategorySubnav } from "@/components/category/category-subnav";
-import { buildSearchUrl } from "@/lib/search";
 
 const newsNavigation = [
   { label: "Latest", href: "/latest" },
   { label: "Business", href: "/business" },
   { label: "Leadership", href: "/leadership" },
   { label: "Technology", href: "/technology" },
-  { label: "Markets", href: buildSearchUrl({ query: "markets", type: "articles" }) },
-  { label: "Global Affairs", href: buildSearchUrl({ query: "global affairs", type: "articles" }) },
+  { label: "Markets", href: "/topic/global-markets" },
+  { label: "Global Affairs", href: "/topic/global-affairs" },
   { label: "The Perspective", href: "/perspective" },
 ] as const;
 

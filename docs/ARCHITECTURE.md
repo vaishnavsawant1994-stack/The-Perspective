@@ -14,6 +14,7 @@ src/
     home/               Homepage sections composed from domain components
     latest/             Latest-news lead, filters, feed, insertion, and sidebar
     news/               Cross-desk news leads, topic clusters, and coverage discovery
+    topic/              Cross-category topic context, curation, voices, and related discovery
     category/           Reusable category headers, subnav, leads, modules, rankings, and CTAs
     perspective/        Author-led opinion leads, story lists, and editorial sections
     author/             Contributor mastheads, curation, expertise, and archives
@@ -65,6 +66,8 @@ The footer is permanently structured around publication context, configured link
 
 `article-details.ts` adds long-form content to representative summaries without bloating the listing dataset. Article bodies use a discriminated block union for paragraphs, semantic headings, pull quotes, images, lists, callouts, and dividers. Remaining summaries receive a deterministic structured fallback, so every centralized article slug has a valid reader destination.
 
+`topics.ts` stores concise Topic identity and explicit editorial curation by stable article and author IDs. `src/lib/topics.ts` combines those selections with deterministic tag, category, subcategory, title, and summary matching to derive current coverage. The resolver applies one ordered deduplication pass across the lead, supporting package, essential reading, analysis, opinion, latest coverage, and rankings; it never copies article records into Topic configuration.
+
 `business.ts`, `leadership.ts`, and `technology.ts` are category composition layers. They store stable article IDs, subcategory links, editorial section configuration, rankings, and category newsletter copy, then resolve those references against the shared article, person, and magazine records. Articles add optional `subcategory` metadata without changing broad-category filtering or article-reader behavior. Leadership and Technology reuse existing person identities for category-level people features rather than introducing route-specific profile markup.
 
 `perspective.ts` is a separate author-led composition layer. It resolves stable article and author IDs for columnists, text-led arguments, the Big Essay, contributor spotlight, rankings, and the reusable Point/Counterpoint pattern. Opinion contributors live in the shared author model, and every essay continues to use the shared article reader.
@@ -83,7 +86,13 @@ The `/latest` route is a Server Component with route-specific metadata. It passe
 
 The static `/news` route is an editorial discovery hub, distinct from the highly curated homepage and chronological `/latest` feed. `src/data/mock/news.ts` stores only stable selections and resolves existing article records into developing coverage, cross-desk leads, topic clusters, desk summaries, analysis, rankings, and latest updates. It introduces no duplicate article fixtures or client-side page filtering.
 
-Topic detail routes remain deferred. Until they exist, topic and unsupported desk links use working `/search` URLs, while every story continues to resolve through the shared `/article/[slug]` reader. News is exposed through the utility navigation, footer, and Search discovery without crowding the primary desktop navigation.
+News is the primary Topic-discovery hub. Configured cross-category subjects use canonical `/topic/[slug]` destinations, while unsupported or free-form subjects retain working `/search` URLs. Permanent desks continue to use `/business`, `/leadership`, and `/technology`; Topic does not duplicate or replace those category routes. Every story continues to resolve through the shared `/article/[slug]` reader.
+
+## Topic detail composition
+
+The single `/topic/[slug]` route statically generates every centralized Topic and returns the shared not-found experience for unsupported slugs. A Topic is a curated cross-category subject, not a `CategoryLandingPage` configuration and not a rendered Search result set. The route resolves one typed `TopicLandingContent` object and stays responsible only for metadata, CollectionPage/ItemList structured data, invalid-slug handling, and page composition.
+
+Topic pages combine a permanent subject masthead, lead package, date-sorted non-opinion coverage, essential reading, static editorial context, analysis, Perspectives, explicitly selected contributors, adjacent desk links, deterministic rankings, related Topics, premium context, and the shared newsletter form. Article tags and contributor expertise use a small destination helper: configured Topics route canonically, permanent categories keep their first-class routes, and all other labels fall back to Search rather than producing speculative paths.
 
 ## Category landing composition
 
@@ -119,6 +128,7 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/article/[slug]` — statically generated article reader for every centralized article record
 - `/author/[slug]` — statically generated contributor profile and editorial archive
 - `/search` — URL-driven editorial search across articles, contributors, people, and magazine issues
+- `/topic/[slug]` — statically generated cross-category editorial Topic hub
 
 Subcategory and Perspective topic destinations shown in navigation are reserved future routes. A contributor index remains intentionally deferred; canonical profile links resolve directly through `/author/[slug]`.
 

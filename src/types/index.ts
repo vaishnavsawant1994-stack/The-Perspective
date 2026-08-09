@@ -4,3 +4,4 @@ export type { PerspectiveArgument, PerspectiveColumnist, PerspectiveContent, Per
 export type { AuthorProfileConfig, AuthorProfileData, AuthorTopic } from "./author-profile";
 export type { ArticleSearchResult, ContributorSearchResult, MagazineSearchResult, PersonSearchResult, SearchCounts, SearchFilter, SearchResult, SearchResultType, SearchSort } from "./search";
 export type { NewsCoverageDestination, NewsDeskSection, NewsLandingContent, NewsTopicCluster } from "./news";
+export type { Topic, TopicContributor, TopicCoverageDestination, TopicLandingContent } from "./topic";
