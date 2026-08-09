@@ -14,4 +14,5 @@ export const authors: Author[] = [
   author("author-amara-okafor", "Amara Okafor", "Global Affairs Scholar", "Amara explores regional power, globalization and the institutions connecting economies and societies.", ["Global affairs", "Political economy", "Regionalization"]),
   author("author-julian-hart", "Julian Hart", "Management Writer", "Julian writes about founders, management systems and the design of organizations built to endure.", ["Management", "Institutions", "Founders"]),
 ];
-export const getAuthorById = (id: string) => authors.find((item) => item.id === id) ?? authors[0];
+export const getAuthorById = (id: string) => authors.find((item) => item.id === id);
+export const getAuthorBySlug = (slug: string) => authors.find((item) => item.slug === slug);

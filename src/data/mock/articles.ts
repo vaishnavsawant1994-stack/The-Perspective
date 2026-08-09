@@ -17,6 +17,11 @@ const images = {
 } satisfies Record<string, ImageAsset>;
 
 type ArticleSeed = { id: string; title: string; excerpt: string; category: keyof typeof categories; subcategory?: string; author?: string; image?: keyof typeof images; minutes?: number; time?: string; premium?: boolean; breaking?: boolean; featured?: boolean; dek?: string; articleType?: ArticleType; imageCaption?: string; updatedAt?: string };
+const requireAuthor = (id: string) => {
+  const resolvedAuthor = getAuthorById(id);
+  if (!resolvedAuthor) throw new Error(`Article author not found: ${id}`);
+  return resolvedAuthor;
+};
 const latestTimestamps: Record<string, string> = {
   "article-global-companies-reassess": "2026-08-07T12:42:00+05:30", "article-enterprise-ai-phase": "2026-08-07T12:18:00+05:30",
   "article-asian-markets-advance": "2026-08-07T11:54:00+05:30", "article-boards-succession": "2026-08-07T11:31:00+05:30",
@@ -61,7 +66,7 @@ const latestTimestamps: Record<string, string> = {
   "article-opinion-ai-economic-realism": "2026-08-06T18:10:00+05:30", "article-opinion-boards-technology-infrastructure": "2026-08-06T17:30:00+05:30",
   "article-opinion-globalization-changing": "2026-08-06T16:45:00+05:30", "article-opinion-productivity-organizational-design": "2026-08-06T15:50:00+05:30",
 };
-const makeArticle = (seed: ArticleSeed): Article => { const publishedAt = latestTimestamps[seed.id] ?? "2026-08-04T12:00:00+05:30"; return { id: seed.id, slug: seed.id.replace("article-", ""), title: seed.title, dek: seed.dek, excerpt: seed.excerpt, status: "published", category: categories[seed.category], subcategory: seed.subcategory, authors: [getAuthorById(seed.author ?? "author-ava-morgan")], tags: [], articleType: seed.articleType ?? (seed.category === "opinion" ? "opinion" : seed.featured ? "feature" : "news"), heroImage: images[seed.image ?? "growth"], imageCaption: seed.imageCaption, imageCredit: "Illustration for The Perspective.", publishedAt, updatedAt: seed.updatedAt ?? publishedAt, readingMinutes: seed.minutes ?? 7, displayTime: seed.time ?? "August 7, 2026", premium: seed.premium, breaking: seed.breaking, featured: seed.featured }; };
+const makeArticle = (seed: ArticleSeed): Article => { const publishedAt = latestTimestamps[seed.id] ?? "2026-08-04T12:00:00+05:30"; return { id: seed.id, slug: seed.id.replace("article-", ""), title: seed.title, dek: seed.dek, excerpt: seed.excerpt, status: "published", category: categories[seed.category], subcategory: seed.subcategory, authors: [requireAuthor(seed.author ?? "author-ava-morgan")], tags: [], articleType: seed.articleType ?? (seed.category === "opinion" ? "opinion" : seed.featured ? "feature" : "news"), heroImage: images[seed.image ?? "growth"], imageCaption: seed.imageCaption, imageCredit: "Illustration for The Perspective.", publishedAt, updatedAt: seed.updatedAt ?? publishedAt, readingMinutes: seed.minutes ?? 7, displayTime: seed.time ?? "August 7, 2026", premium: seed.premium, breaking: seed.breaking, featured: seed.featured }; };
 
 const seeds: ArticleSeed[] = [
   { id:"article-global-companies-reassess", title:"Global Companies Reassess Growth Plans as Investment Accelerates", excerpt:"A new cycle of capital investment is reshaping corporate strategy across technology, manufacturing and infrastructure.", dek:"Executives are redirecting capital toward resilience, automation, and the next generation of industrial capacity.", category:"business", subcategory:"Companies", author:"author-julian-cross", image:"growth", minutes:8, breaking:true, featured:true, articleType:"news", imageCaption:"Executives cross a research campus built around advanced manufacturing and applied science.", updatedAt:"2026-08-07T13:42:00+05:30" },
@@ -205,3 +210,10 @@ const seeds: ArticleSeed[] = [
 export const articles: Article[] = seeds.map(makeArticle);
 export const getArticleById = (id: string) => articles.find((article) => article.id === id);
 export const getArticleBySlug = (slug: string) => articles.find((article) => article.slug === slug);
+export const getArticlesByAuthor = (authorId: string) => articles
+  .filter((article) => article.authors.some((author) => author.id === authorId))
+  .sort((left, right) => {
+    const leftDate = left.publishedAt ?? left.updatedAt;
+    const rightDate = right.publishedAt ?? right.updatedAt;
+    return rightDate.localeCompare(leftDate);
+  });

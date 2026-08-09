@@ -15,6 +15,7 @@ src/
     latest/             Latest-news lead, filters, feed, insertion, and sidebar
     category/           Reusable category headers, subnav, leads, modules, rankings, and CTAs
     perspective/        Author-led opinion leads, story lists, and editorial sections
+    author/             Contributor mastheads, curation, expertise, and archives
     article/            Reusable listing patterns and the long-form story reader
     magazine/           Issue, cover, and personal-publication presentation
     person/             Reusable interview and profile-led presentation
@@ -67,6 +68,8 @@ The footer is permanently structured around publication context, configured link
 
 `perspective.ts` is a separate author-led composition layer. It resolves stable article and author IDs for columnists, text-led arguments, the Big Essay, contributor spotlight, rankings, and the reusable Point/Counterpoint pattern. Opinion contributors live in the shared author model, and every essay continues to use the shared article reader.
 
+`author-profiles.ts` keeps page curation separate from contributor identity. The shared `Author` record remains the single source for names, roles, biographies, expertise, avatars, and slugs, while profile configuration references only stable author/article IDs and topic treatments. `getArticlesByAuthor` derives the complete archive from article relationships; authors with published work receive public profiles, and newsroom contributors use the same route without duplicated page definitions. `Author` remains distinct from the executive/interview-subject `Person` model.
+
 ## Homepage composition
 
 The `/` route is a Server Component with page-specific metadata and lightweight Website JSON-LD. It assembles sixteen editorial moments from reusable article, person, magazine, home-section, market, premium, and newsletter components. Interactive behavior remains confined to the existing global-shell islands and the shared newsletter form, keeping the content-heavy page statically renderable with minimal client JavaScript.
@@ -85,6 +88,12 @@ Category pages are curated discovery experiences; `/latest` remains the chronolo
 
 The `/perspective` route deliberately does not use `CategoryLandingPage`. Its static `PerspectiveLandingPage` composition is author-led and argument-led, with a newspaper-style opinion lead, reusable contributor cards, typographic story lists, a print-like Big Essay, and the generic Point/Counterpoint module. It still reuses the global shell, topic subnavigation, ranked stories, premium promotion, newsletter, CollectionPage/ItemList helper, centralized authors/articles, and the shared `ArticleReader`.
 
+## Author profile composition
+
+The single `/author/[slug]` route statically generates every centralized author with published work. It resolves identity and editorial selections through shared helpers, returns the global not-found experience for unsupported slugs, and emits contributor-specific metadata plus sanitized ProfilePage/Person JSON-LD. The Server Component composition combines a controlled masthead, featured essay, latest work, topic expertise, essential reading, complete date-sorted archive, curated rankings, Perspective context, premium promotion, and newsletter. Only archives longer than twelve articles expose a focused client-side Load More control; profile identity and editorial content remain server-rendered.
+
+Perspective cards, homepage Opinion bylines, article headers, and author biographies already use canonical author slugs. Global search limits contributor results to public authors and labels them separately from articles and `Person` subjects, completing the Perspective-to-article-to-author reading loop.
+
 ## Implemented route inventory
 
 - `/perspective` — author-led Opinion and Ideas landing with essays, columnists, and curated debate
@@ -94,8 +103,9 @@ The `/perspective` route deliberately does not use `CategoryLandingPage`. Its st
 - `/leadership` — curated Leadership category landing with executive interviews and people-led publishing promotion
 - `/technology` — curated Technology category landing with infrastructure, enterprise, cybersecurity, startup, and future-tech coverage
 - `/article/[slug]` — statically generated article reader for every centralized article record
+- `/author/[slug]` — statically generated contributor profile and editorial archive
 
-Subcategory and Perspective topic destinations shown in navigation are reserved future routes. Author links likewise reserve `/author/[slug]` for the next stage. They are intentionally represented as real links without placeholder page implementations.
+Subcategory and Perspective topic destinations shown in navigation are reserved future routes. A contributor index remains intentionally deferred; canonical profile links resolve directly through `/author/[slug]`.
 
 ## Article reader composition
 

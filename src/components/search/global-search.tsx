@@ -4,18 +4,20 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { articles } from "@/data/mock/articles";
-import { authors } from "@/data/mock/authors";
+import { getPublicAuthors } from "@/data/mock/author-profiles";
 import { magazines } from "@/data/mock/magazines";
 import { people } from "@/data/mock/people";
 import { siteConfig } from "@/config/site";
 import { IconButton } from "@/components/ui/icon-button";
+
+const publicAuthors = getPublicAuthors();
 
 export function GlobalSearch({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false); const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null); const triggerRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (!open) return; const trigger = triggerRef.current; const previous = document.body.dataset.scrollLocked; document.body.dataset.scrollLocked = "true"; inputRef.current?.focus(); const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); }; document.addEventListener("keydown", escape); return () => { if (previous) document.body.dataset.scrollLocked = previous; else delete document.body.dataset.scrollLocked; document.removeEventListener("keydown", escape); trigger?.focus(); }; }, [open]);
   const results = useMemo(() => { const term = query.trim().toLowerCase(); if (!term) return []; return [
-    ...authors.filter((item) => `${item.name} ${item.role ?? ""} ${item.biography} ${item.expertise?.join(" ") ?? ""}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: "Author", title: item.name, href: `/author/${item.slug}` })),
+    ...publicAuthors.filter((item) => `${item.name} ${item.role ?? ""} ${item.biography} ${item.expertise?.join(" ") ?? ""}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: "Contributor", title: item.name, href: `/author/${item.slug}` })),
     ...articles.filter((item) => `${item.title} ${item.excerpt} ${item.authors.map((author) => `${author.name} ${author.role ?? ""}`).join(" ")}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: "Article", title: item.title, href: `/article/${item.slug}` })),
     ...magazines.filter((item) => item.title.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: "Magazine", title: item.title, href: `/magazine/${item.slug}` })),
     ...people.filter((item) => `${item.name} ${item.headline}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: "Person", title: item.name, href: `/people/${item.slug}` })),
