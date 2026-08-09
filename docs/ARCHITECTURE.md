@@ -13,6 +13,7 @@ src/
     search/             Global overlay, result controls, result types, and discovery states
     home/               Homepage sections composed from domain components
     latest/             Latest-news lead, filters, feed, insertion, and sidebar
+    news/               Cross-desk news leads, topic clusters, and coverage discovery
     category/           Reusable category headers, subnav, leads, modules, rankings, and CTAs
     perspective/        Author-led opinion leads, story lists, and editorial sections
     author/             Contributor mastheads, curation, expertise, and archives
@@ -78,6 +79,12 @@ The `/` route is a Server Component with page-specific metadata and lightweight 
 
 The `/latest` route is a Server Component with route-specific metadata. It passes a deterministic August 5–7, 2026 article edition into one focused client feed island for category filtering and batched reveal. Lead stories, chronological date groups, the In Depth insertion, ranked Most Read stories, magazine promotion, newsletter, and responsive desktop/sidebar composition all reuse centralized typed data and shared editorial primitives; no API or persistence layer is involved.
 
+## News and Topics composition
+
+The static `/news` route is an editorial discovery hub, distinct from the highly curated homepage and chronological `/latest` feed. `src/data/mock/news.ts` stores only stable selections and resolves existing article records into developing coverage, cross-desk leads, topic clusters, desk summaries, analysis, rankings, and latest updates. It introduces no duplicate article fixtures or client-side page filtering.
+
+Topic detail routes remain deferred. Until they exist, topic and unsupported desk links use working `/search` URLs, while every story continues to resolve through the shared `/article/[slug]` reader. News is exposed through the utility navigation, footer, and Search discovery without crowding the primary desktop navigation.
+
 ## Category landing composition
 
 The `/business`, `/leadership`, and `/technology` routes use the reusable `CategoryLandingPage` architecture. Each route remains a static Server Component responsible for metadata, shared CollectionPage/ItemList structured data, and passing one resolved configuration object into the category composer. Category components provide a restrained masthead, accessible scrollable subnavigation, asymmetric lead, story grid, configurable editorial-section treatments, optional people feature, In Depth feature, interview, category rankings, compact latest list, category-selected magazine, personal-magazine, or premium promotion, and shared newsletter form.
@@ -105,6 +112,7 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/perspective` — author-led Opinion and Ideas landing with essays, columnists, and curated debate
 - `/` — master editorial homepage
 - `/latest` — chronological, client-filterable newsroom feed
+- `/news` — cross-desk editorial discovery for current stories, topics, and coverage areas
 - `/business` — curated Business category landing
 - `/leadership` — curated Leadership category landing with executive interviews and people-led publishing promotion
 - `/technology` — curated Technology category landing with infrastructure, enterprise, cybersecurity, startup, and future-tech coverage

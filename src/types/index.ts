@@ -3,3 +3,4 @@ export type { CategoryEditorialSection, CategoryLandingContent, CategoryPeopleFe
 export type { PerspectiveArgument, PerspectiveColumnist, PerspectiveContent, PerspectiveSection } from "./perspective";
 export type { AuthorProfileConfig, AuthorProfileData, AuthorTopic } from "./author-profile";
 export type { ArticleSearchResult, ContributorSearchResult, MagazineSearchResult, PersonSearchResult, SearchCounts, SearchFilter, SearchResult, SearchResultType, SearchSort } from "./search";
+export type { NewsCoverageDestination, NewsDeskSection, NewsLandingContent, NewsTopicCluster } from "./news";

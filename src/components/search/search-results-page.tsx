@@ -12,6 +12,7 @@ import { SearchResultsList } from "./search-results-list";
 const popularSearches = ["Artificial Intelligence", "Leadership", "Global Markets", "Productivity", "Founders", "Technology"] as const;
 const exploreLinks = [
   { label: "Latest", href: "/latest" },
+  { label: "News", href: "/news" },
   { label: "Business", href: "/business" },
   { label: "Leadership", href: "/leadership" },
   { label: "Technology", href: "/technology" },
