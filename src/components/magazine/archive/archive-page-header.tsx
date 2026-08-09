@@ -6,7 +6,7 @@ export function ArchivePageHeader({ readerHref }: { readerHref: string }) {
     { label: "Latest Issue", href: "/magazine" },
     { label: "Archive", href: "/magazine/archive", current: true },
     { label: "Digital Reader", href: readerHref },
-    { label: "Premium", href: "/magazine#premium" },
+    { label: "Premium", href: "/magazine/premium" },
     { label: "Subscribe", href: "/magazine#subscribe" },
   ];
   return <header className="border-b border-foreground bg-surface">

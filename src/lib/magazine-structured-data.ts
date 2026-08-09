@@ -1,7 +1,7 @@
 import type { Magazine, MagazineCategory, MagazineIssue } from "@/types";
 import { siteConfig } from "@/config/site";
 
-function createIssueList(issues: readonly MagazineIssue[]) {
+function createIssueList(issues: readonly MagazineIssue[], fallbackPath = "/magazine/archive") {
   return {
     "@type": "ItemList",
     numberOfItems: issues.length,
@@ -14,7 +14,7 @@ function createIssueList(issues: readonly MagazineIssue[]) {
         description: issue.description,
         datePublished: issue.publicationDate,
         issueNumber: issue.issueNumber,
-        url: issue.readerAvailable ? `${siteConfig.url}/magazine/read/${issue.slug}` : `${siteConfig.url}/magazine/archive`,
+        url: issue.readerAvailable ? `${siteConfig.url}/magazine/read/${issue.slug}` : `${siteConfig.url}${fallbackPath}`,
         image: issue.coverImage ? new URL(issue.coverImage.src, siteConfig.url).href : undefined,
         isPartOf: { "@type": "Periodical", name: "The Perspective Magazine", url: `${siteConfig.url}/magazine` },
       },
@@ -42,6 +42,18 @@ export function createMagazineArchiveStructuredData(issues: readonly MagazineIss
     url: `${siteConfig.url}/magazine/archive`,
     isPartOf: { "@type": "Periodical", name: "The Perspective Magazine", url: `${siteConfig.url}/magazine` },
     mainEntity: createIssueList(issues),
+  };
+}
+
+export function createMagazinePremiumStructuredData(issues: readonly MagazineIssue[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Premium Magazine",
+    description: "Explore Premium editions of The Perspective Magazine, featuring deeper interviews, long-form analysis, special issues and exclusive editorial packages.",
+    url: `${siteConfig.url}/magazine/premium`,
+    isPartOf: { "@type": "Periodical", name: "The Perspective Magazine", url: `${siteConfig.url}/magazine` },
+    mainEntity: createIssueList(issues, "/magazine/premium"),
   };
 }
 

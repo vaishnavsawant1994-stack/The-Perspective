@@ -9,3 +9,4 @@ export type { MagazineLandingContent, ResolvedMagazineIssueSection } from "./mag
 export type { MagazineArticlePage, MagazineContentsPage, MagazineCoverPage, MagazineEditorialPage, MagazineEndPage, MagazineFeaturePage, MagazineImagePage, MagazinePage, MagazinePageBase, MagazineQuotePage, MagazineReaderArticle, MagazineReaderContentEntry, MagazineReaderIssue, MagazineSectionPage, ResolvedMagazinePage, ResolvedMagazineReaderIssue } from "./magazine-reader";
 export type { MagazineArchiveCounts, MagazineArchiveFilter, MagazineArchiveIssue, MagazineArchiveState } from "./magazine-archive";
 export type { MagazineCategory, MagazineCategoryContent, MagazineCategoryCoverage, MagazineCategoryStory } from "./magazine-category";
+export type { MagazinePremiumBenefit, MagazinePremiumComparison, MagazinePremiumPageConfig, MagazinePremiumPageContent, MagazinePremiumStory, MagazinePremiumThemeLink } from "./magazine-premium";

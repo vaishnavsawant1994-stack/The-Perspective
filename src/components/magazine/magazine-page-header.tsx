@@ -6,7 +6,7 @@ export function MagazinePageHeader({ readerHref }: { readerHref: string }) {
     { label: "Latest Issue", href: "/magazine#latest-issue" },
     { label: "Digital Reader", href: readerHref },
     { label: "Archive", href: "/magazine/archive" },
-    { label: "Premium", href: "/magazine#premium" },
+    { label: "Premium", href: "/magazine/premium" },
     { label: "Personal Magazines", href: "/magazine#personal-magazines" },
     { label: "Subscribe", href: "/magazine#subscribe" },
   ];

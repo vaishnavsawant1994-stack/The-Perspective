@@ -102,7 +102,13 @@ Topic pages combine a permanent subject masthead, lead package, date-sorted non-
 
 The static `/magazine` route is the permanent front door for The Perspective Magazine. It resolves a single typed composition from centralized publication, issue, article, and people data, then presents the latest issue, canonical cover story, highlights, print-like section contents, previous issues, digital-reader context, Premium edition, Personal Magazines, archive preview, subscription context, and the shared Magazine Briefing form. The cover component supports controlled size variants and renders all critical masthead/headline text as HTML over existing optimized local imagery.
 
-The current issue routes into `/magazine/read/august-2026`; historical covers remain non-reader previews until their issue records are explicitly marked `readerAvailable`. Magazine section labels now route into permanent `/magazine/category/[slug]` shelves where configured, while Archive actions route to `/magazine/archive`. Premium listing and Subscribe destinations remain future work and retain safe landing anchors. Search results still route broad issue discovery to `/magazine`, while referenced stories remain canonical `/article/[slug]` destinations.
+The current issue routes into `/magazine/read/august-2026`; historical covers remain non-reader previews until their issue records are explicitly marked `readerAvailable`. Magazine section labels route into permanent `/magazine/category/[slug]` shelves where configured, Archive actions route to `/magazine/archive`, and Premium discovery routes to `/magazine/premium`. Subscription plans remain future work. Standard Magazine search results use `/magazine`, Premium issue results use `/magazine/premium`, and referenced stories remain canonical `/article/[slug]` destinations.
+
+## Premium Magazine composition
+
+The static `/magazine/premium` route is the canonical editorial catalogue for published `MagazineIssue` records whose Premium metadata is true. A small configuration layer selects the hero, featured stories, voices, benefits, themes, and editorial comparison, while helpers resolve all issue and article relationships from the centralized records and validate the two-issue inventory. The server-rendered composition includes a Magazine masthead, hero, benefits, issue catalogue, public article selections, Premium voices, themes, archive context, Standard/Premium comparison, future-membership positioning, Magazine discovery, and the shared Magazine Briefing. Its CollectionPage/ItemList structured data describes publication issues without Offers.
+
+Premium is intentionally separate from both the general Magazine landing and the future Subscription page. It remains editorial metadata rather than an entitlement: there is no user state, authentication, pricing, payment flow, Stripe model, or paywall. Reader calls to action require independent `readerAvailable` metadata plus configured Reader content; because neither Premium issue currently meets both conditions, neither exposes a Reader action. Page 18 remains the future subscription/plans stage.
 
 ## Magazine Archive composition
 
@@ -114,7 +120,7 @@ Archive helpers derive chronology, real years, counts, Reader and Premium groups
 
 The single `/magazine/category/[slug]` route statically generates Leadership, Business, Technology, The Perspective, and Special Editions from centralized `MagazineCategory` configuration. These pages are curated Magazine shelves, distinct from current newsroom desks and cross-category Topics: they resolve canonical `MagazineIssue` and `Article` records through explicit selections plus deterministic theme, section, keyword, and article-category matching.
 
-Each category composes a Magazine-specific masthead and navigation, featured issue, issue-context story cards, curated issue grid, deduplicated text index, conditional Reader and Premium sections, historical issues, explicitly related categories, current-newsroom bridge, Archive query, conversion context, and the shared Magazine Briefing. Reader links require both canonical availability metadata and configured Reader content; Premium remains metadata-only. Archive themes and Magazine landing section labels use category routes where permanent shelves exist. Premium listing remains Page 17 future work.
+Each category composes a Magazine-specific masthead and navigation, featured issue, issue-context story cards, curated issue grid, deduplicated text index, conditional Reader and Premium sections, historical issues, explicitly related categories, current-newsroom bridge, Archive query, conversion context, and the shared Magazine Briefing. Reader links require both canonical availability metadata and configured Reader content; Premium remains metadata-only. Archive themes and Magazine landing section labels use category routes where permanent shelves exist, while Premium calls to action use the dedicated catalogue.
 
 ## Magazine Reader composition
 
@@ -142,7 +148,7 @@ Perspective cards, homepage Opinion bylines, article headers, and author biograp
 
 The `/search` route is a request-time Server Component because it reads asynchronous `searchParams`. Its canonical URL remains `/search`, while `q`, `type`, and `sort` make query, filtering, and ordering shareable through ordinary GET navigation. Search pages are intentionally `noindex, follow` and omit structured data because they are utility result views rather than durable editorial documents.
 
-`src/lib/search.ts` derives one compact in-memory index from centralized article summaries, public contributors, people, and magazine issues. The same normalized, weighted, deterministic search function powers the global overlay and full results route without importing full article bodies into client code. Article and contributor results use canonical routes; people link only when a published interview destination exists, and Magazine results retain their publication-level `/magazine` discovery destination even when an individual issue is readable. The only search-results client island manages batched Load More disclosure.
+`src/lib/search.ts` derives one compact in-memory index from centralized article summaries, public contributors, people, and magazine issues. The same normalized, weighted, deterministic search function powers the global overlay and full results route without importing full article bodies into client code. Article and contributor results use canonical routes; people link only when a published interview destination exists; standard Magazine results use `/magazine`, and Premium issue results use `/magazine/premium`. The only search-results client island manages batched Load More disclosure.
 
 ## Implemented route inventory
 
@@ -158,6 +164,7 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/search` — URL-driven editorial search across articles, contributors, people, and magazine issues
 - `/topic/[slug]` — statically generated cross-category editorial Topic hub
 - `/magazine` — static issue-led Magazine landing and future product-system front door
+- `/magazine/premium` — static Premium-edition catalogue derived from canonical Magazine issues and public stories
 - `/magazine/archive` — URL-driven chronological issue archive with search, year, Reader, and Premium filters
 - `/magazine/category/[slug]` — statically generated Magazine theme shelf across canonical issues, articles, Reader availability, and Premium state
 - `/magazine/read/[slug]` — reusable structured digital issue reader; August 2026 currently available

@@ -51,6 +51,7 @@ export type MagazineSearchResult = SearchResultBase & {
   issueLabel: string;
   publicationDate: string;
   featuredStory: string;
+  premium: boolean;
 };
 
 export type SearchResult = ArticleSearchResult | ContributorSearchResult | PersonSearchResult | MagazineSearchResult;

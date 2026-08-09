@@ -164,7 +164,7 @@ function createSearchIndex(): readonly SearchIndexEntry[] {
     const label = issueLabel(issue.publicationDate, issue.issueNumber);
     const titleText = normalizeSearchQuery(issue.title);
     const issueArticles = getMagazineIssueArticles(issue);
-    const primaryText = normalized([magazine.title, magazine.category.name, issue.theme, label, "magazine issue"]);
+    const primaryText = normalized([magazine.title, magazine.category.name, issue.theme, issue.coverKicker, label, "magazine issue", issue.premium ? "premium edition" : "standard edition"]);
     const secondaryText = normalized(issueArticles.map((article) => article.title));
     const bodyText = normalized([magazine.description, issue.description]);
     entries.push({
@@ -173,13 +173,14 @@ function createSearchIndex(): readonly SearchIndexEntry[] {
         type: "magazine",
         title: issue.title,
         description: issue.description,
-        href: "/magazine",
+        href: issue.premium ? "/magazine/premium" : "/magazine",
         image: issue.coverImage,
         magazineId: magazine.id,
         issueId: issue.id,
         issueLabel: label,
         publicationDate: issue.publicationDate,
         featuredStory: issueArticles[0]?.title ?? issue.title,
+        premium: issue.premium ?? false,
       },
       titleText,
       primaryText,

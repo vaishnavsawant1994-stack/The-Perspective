@@ -122,7 +122,7 @@ export const magazineCategories: readonly MagazineCategory[] = [
       eyebrow: "Premium Magazine Archive",
       title: "Focused editions with greater depth.",
       description: "Browse the complete set of Premium editions currently in The Perspective Magazine archive.",
-      href: "/magazine/archive?type=premium",
+      href: "/magazine/premium",
       actionLabel: "Browse Premium Editions",
     },
     includePremium: true,
