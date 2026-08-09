@@ -42,6 +42,7 @@ export const magazineIssues: readonly MagazineIssue[] = [
     pageCount: 156,
     status: "published",
     featured: true,
+    readerAvailable: true,
   },
   {
     id: "issue-global-leaders-special-2026",
@@ -162,6 +163,14 @@ export function getPreviousMagazineIssues(limit = 4) {
 
 export function getFeaturedMagazineIssue() {
   return magazineIssues.find((issue) => issue.featured) ?? getLatestMagazineIssue();
+}
+
+export function getMagazineIssueBySlug(slug: string) {
+  return magazineIssues.find((issue) => issue.slug === slug);
+}
+
+export function getReadableMagazineIssues() {
+  return magazineIssues.filter((issue) => issue.status === "published" && issue.readerAvailable);
 }
 
 export function getPremiumMagazineIssue() {

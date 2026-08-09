@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { PageContainer } from "@/components/layout/page-container";
 
-const magazineNavigation = [
-  { label: "Latest Issue", href: "/magazine#latest-issue" },
-  { label: "Digital Reader", href: "/magazine#digital-reader" },
-  { label: "Archive", href: "/magazine#archive" },
-  { label: "Premium", href: "/magazine#premium" },
-  { label: "Personal Magazines", href: "/magazine#personal-magazines" },
-  { label: "Subscribe", href: "/magazine#subscribe" },
-] as const;
-
-export function MagazinePageHeader() {
+export function MagazinePageHeader({ readerHref }: { readerHref: string }) {
+  const magazineNavigation = [
+    { label: "Latest Issue", href: "/magazine#latest-issue" },
+    { label: "Digital Reader", href: readerHref },
+    { label: "Archive", href: "/magazine#archive" },
+    { label: "Premium", href: "/magazine#premium" },
+    { label: "Personal Magazines", href: "/magazine#personal-magazines" },
+    { label: "Subscribe", href: "/magazine#subscribe" },
+  ];
   return <header className="border-b border-foreground bg-surface">
     <PageContainer className="pb-12 pt-7 sm:pb-16 sm:pt-9 lg:pb-20" width="standard">
       <nav aria-label="Breadcrumb"><ol className="flex items-center gap-2 text-xs font-semibold text-muted"><li><Link className="inline-flex min-h-11 items-center hover:text-accent" href="/">Home</Link></li><li aria-hidden="true">/</li><li aria-current="page" className="text-foreground">Magazine</li></ol></nav>

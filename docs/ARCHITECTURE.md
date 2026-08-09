@@ -19,7 +19,7 @@ src/
     perspective/        Author-led opinion leads, story lists, and editorial sections
     author/             Contributor mastheads, curation, expertise, and archives
     article/            Reusable listing patterns and the long-form story reader
-    magazine/           Publication masthead, issue covers, contents, archive previews, and future-product context
+    magazine/           Publication front door, issue covers, and focused visual/text Reader components
     person/             Reusable interview and profile-led presentation
   config/               Site identity, navigation, contact and footer data
   data/mock/            Small, typed fixtures for UI development
@@ -70,6 +70,8 @@ The footer is permanently structured around publication context, configured link
 
 `magazines.ts` keeps the publication brand (`Magazine`) distinct from its dated editions (`MagazineIssue`). Issues own stable slugs, deterministic publication dates, cover metadata, a canonical cover-story ID, featured article IDs, and simple labelled section groups. Resolvers filter those IDs through the shared article catalogue, so magazine stories and contributors continue to use `ArticleReader` and the existing Author system without duplicate content models. Personal Magazines remain presentations of centralized `PersonProfile` identities rather than being folded into the publication or issue types.
 
+`magazine-readers.ts` keeps substantial reading-layout content separate as `MagazineReaderIssue`. Its discriminated `MagazinePage` union models only the cover, contents, editor note, section, feature, article, quote, image, and end layouts used by the publication. Reader helpers validate issue identity, availability, contiguous page numbers, unique IDs, sections, article references, and declared page count before resolving compact serializable article snapshots for presentation.
+
 `business.ts`, `leadership.ts`, and `technology.ts` are category composition layers. They store stable article IDs, subcategory links, editorial section configuration, rankings, and category newsletter copy, then resolve those references against the shared article, person, and magazine records. Articles add optional `subcategory` metadata without changing broad-category filtering or article-reader behavior. Leadership and Technology reuse existing person identities for category-level people features rather than introducing route-specific profile markup.
 
 `perspective.ts` is a separate author-led composition layer. It resolves stable article and author IDs for columnists, text-led arguments, the Big Essay, contributor spotlight, rankings, and the reusable Point/Counterpoint pattern. Opinion contributors live in the shared author model, and every essay continues to use the shared article reader.
@@ -98,9 +100,15 @@ Topic pages combine a permanent subject masthead, lead package, date-sorted non-
 
 ## Magazine landing composition
 
-The static `/magazine` route is the permanent front door for The Perspective Magazine. It resolves a single typed composition from centralized publication, issue, article, and people data, then presents the latest issue, canonical cover story, highlights, print-like section contents, previous issues, future digital-reader context, Premium edition, Personal Magazines, archive preview, subscription context, and the shared Magazine Briefing form. The cover component supports controlled size variants and renders all critical masthead/headline text as HTML over existing optimized local imagery.
+The static `/magazine` route is the permanent front door for The Perspective Magazine. It resolves a single typed composition from centralized publication, issue, article, and people data, then presents the latest issue, canonical cover story, highlights, print-like section contents, previous issues, digital-reader context, Premium edition, Personal Magazines, archive preview, subscription context, and the shared Magazine Briefing form. The cover component supports controlled size variants and renders all critical masthead/headline text as HTML over existing optimized local imagery.
 
-Future product routes are intentionally reserved as `/magazine/read/[slug]`, `/magazine/archive`, `/magazine/category/[slug]`, and dedicated Premium/Subscribe destinations. Until those pages exist, Magazine navigation and promotional CTAs use working `/magazine` section anchors or clearly disabled future controls—never fake links or accidental 404s. Search results now route issue discovery to `/magazine`, while their referenced cover stories remain canonical `/article/[slug]` destinations.
+The current issue routes into `/magazine/read/august-2026`; historical covers remain previews until their issue records are explicitly marked `readerAvailable`. Archive, Magazine Category, Premium, and Subscribe destinations remain future work, so their existing Magazine sections continue to use safe anchors or disabled controls. Search results still route broad issue discovery to `/magazine`, while referenced stories remain canonical `/article/[slug]` destinations.
+
+## Magazine Reader composition
+
+The single `/magazine/read/[slug]` route resolves only configured readable issues, generates issue metadata and PublicationIssue JSON-LD, clamps `page` deep links, returns 404 for invalid or unavailable issues, and supports `?view=text` without changing its canonical URL. A narrowly matched root proxy rejects unavailable Reader slugs before Next.js begins streaming, preserving a real HTTP 404 in production while sharing the same readable-slug resolver. The route and text view remain server-rendered; one focused `MagazineReader` client boundary owns current-page state, URL replacement, keyboard navigation, panels, zoom, fit mode, and progressive Fullscreen API state.
+
+The primary Reader is structured HTML rather than PDF, canvas, screenshots, or a third-party flipbook. It mounts one full page at a time, represents thumbnails with lightweight semantic previews, preloads only the current page image, and adapts the same data into a full-width mobile layout with readable body type. The text view renders the complete issue as a linear document with one H1, section/story headings, figures, contents anchors, and canonical article links. Reader-specific shell CSS suppresses the normal site chrome while preserving a visible route back to Magazine.
 
 ## Category landing composition
 
@@ -122,7 +130,7 @@ Perspective cards, homepage Opinion bylines, article headers, and author biograp
 
 The `/search` route is a request-time Server Component because it reads asynchronous `searchParams`. Its canonical URL remains `/search`, while `q`, `type`, and `sort` make query, filtering, and ordering shareable through ordinary GET navigation. Search pages are intentionally `noindex, follow` and omit structured data because they are utility result views rather than durable editorial documents.
 
-`src/lib/search.ts` derives one compact in-memory index from centralized article summaries, public contributors, people, and magazine issues. The same normalized, weighted, deterministic search function powers the global overlay and full results route without importing full article bodies into client code. Article and contributor results use canonical routes; people link only when a published interview destination exists, and magazine issues remain informational until their reader routes are implemented. The only search-results client island manages batched Load More disclosure.
+`src/lib/search.ts` derives one compact in-memory index from centralized article summaries, public contributors, people, and magazine issues. The same normalized, weighted, deterministic search function powers the global overlay and full results route without importing full article bodies into client code. Article and contributor results use canonical routes; people link only when a published interview destination exists, and Magazine results retain their publication-level `/magazine` discovery destination even when an individual issue is readable. The only search-results client island manages batched Load More disclosure.
 
 ## Implemented route inventory
 
@@ -138,6 +146,7 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/search` — URL-driven editorial search across articles, contributors, people, and magazine issues
 - `/topic/[slug]` — statically generated cross-category editorial Topic hub
 - `/magazine` — static issue-led Magazine landing and future product-system front door
+- `/magazine/read/[slug]` — reusable structured digital issue reader; August 2026 currently available
 
 Subcategory and Perspective topic destinations shown in navigation are reserved future routes. A contributor index remains intentionally deferred; canonical profile links resolve directly through `/author/[slug]`.
 
