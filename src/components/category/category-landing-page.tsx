@@ -1,6 +1,4 @@
 import type { CategoryLandingContent } from "@/types";
-import { MagazineSpotlight } from "@/components/home/magazine-spotlight";
-import { PersonalMagazineSection } from "@/components/home/personal-magazine-section";
 import { PageContainer } from "@/components/layout/page-container";
 import { PersonFeature } from "@/components/person/person-feature";
 import { CategoryEditorialSection } from "./category-editorial-section";
@@ -10,6 +8,7 @@ import { CategoryLead } from "./category-lead";
 import { CategoryNewsletter } from "./category-newsletter";
 import { CategoryPageHeader } from "./category-page-header";
 import { CategoryPeopleFeature } from "./category-people-feature";
+import { CategoryPromotionSection } from "./category-promotion";
 import { CategoryRankedStories } from "./category-ranked-stories";
 import { CategoryStoryGrid } from "./category-story-grid";
 import { CategorySubnav } from "./category-subnav";
@@ -26,7 +25,7 @@ export function CategoryLandingPage({ content }: { content:CategoryLandingConten
     <div className="bg-accent-strong"><PageContainer className="section-space-lg" width="standard"><section aria-label={`The ${content.label} Interview`}><PersonFeature dark href={content.interviewHref} label={`The ${content.label} Interview`} person={content.interview} /></section></PageContainer></div>
     <PageContainer className="section-space" width="standard"><CategoryRankedStories articles={content.mostRead} label={content.label} /></PageContainer>
     <div className="bg-surface"><PageContainer className="section-space" width="standard"><CategoryLatest articles={content.latest} label={content.label} /></PageContainer></div>
-    {content.promotion.kind === "magazine" ? <MagazineSpotlight issue={content.promotion.issue} /> : <PersonalMagazineSection people={content.promotion.people} />}
+    <CategoryPromotionSection promotion={content.promotion} />
     <PageContainer className="section-space" width="standard"><CategoryNewsletter {...content.newsletter} /></PageContainer>
   </>;
 }

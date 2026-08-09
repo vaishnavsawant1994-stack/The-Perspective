@@ -37,7 +37,15 @@ export type CategoryPeopleFeatureContent = {
 
 export type CategoryPromotion =
   | { kind: "magazine"; issue: MagazineIssue }
-  | { kind: "personal-magazines"; people: readonly PersonProfile[] };
+  | { kind: "personal-magazines"; people: readonly PersonProfile[] }
+  | {
+      kind: "premium";
+      eyebrow: string;
+      title: string;
+      description: string;
+      primaryAction: { label: string; href: string };
+      secondaryAction: { label: string; href: string };
+    };
 
 export type CategoryLandingContent = {
   slug: string;

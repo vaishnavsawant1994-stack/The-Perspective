@@ -66,7 +66,7 @@ The footer is permanently structured around publication context, configured link
 
 `article-details.ts` adds long-form content to representative summaries without bloating the listing dataset. Article bodies use a discriminated block union for paragraphs, semantic headings, pull quotes, images, lists, callouts, and dividers. Remaining summaries receive a deterministic structured fallback, so every centralized article slug has a valid reader destination.
 
-`business.ts` and `leadership.ts` are category composition layers. They store stable article IDs, subcategory links, editorial section configuration, rankings, and category newsletter copy, then resolve those references against the shared article, person, and magazine records. Articles add optional `subcategory` metadata without changing broad-category filtering or article-reader behavior. Leadership reuses the existing person identities and adds a single category-level people feature rather than introducing route-specific profile markup.
+`business.ts`, `leadership.ts`, and `technology.ts` are category composition layers. They store stable article IDs, subcategory links, editorial section configuration, rankings, and category newsletter copy, then resolve those references against the shared article, person, and magazine records. Articles add optional `subcategory` metadata without changing broad-category filtering or article-reader behavior. Leadership and Technology reuse existing person identities for category-level people features rather than introducing route-specific profile markup.
 
 ## Homepage composition
 
@@ -78,9 +78,9 @@ The `/latest` route is a Server Component with route-specific metadata. It passe
 
 ## Category landing composition
 
-The `/business` and `/leadership` routes use the reusable `CategoryLandingPage` architecture. Each route remains a static Server Component responsible for metadata, shared CollectionPage/ItemList structured data, and passing one resolved configuration object into the category composer. Category components provide a restrained masthead, accessible scrollable subnavigation, asymmetric lead, story grid, configurable editorial-section treatments, optional people feature, In Depth feature, interview, category rankings, compact latest list, category-selected magazine or personal-magazine promotion, and shared newsletter form.
+The `/business`, `/leadership`, and `/technology` routes use the reusable `CategoryLandingPage` architecture. Each route remains a static Server Component responsible for metadata, shared CollectionPage/ItemList structured data, and passing one resolved configuration object into the category composer. Category components provide a restrained masthead, accessible scrollable subnavigation, asymmetric lead, story grid, configurable editorial-section treatments, optional people feature, In Depth feature, interview, category rankings, compact latest list, category-selected magazine, personal-magazine, or premium promotion, and shared newsletter form.
 
-Category pages are curated discovery experiences; `/latest` remains the chronological filterable newsroom feed. Future Technology, Finance, Markets, Culture, and Lifestyle routes should supply new configuration and content selections to the category primitives, adding a new layout variant only when their editorial requirements cannot be expressed by the existing treatments.
+Category pages are curated discovery experiences; `/latest` remains the chronological filterable newsroom feed. Future Finance, Markets, Culture, and Lifestyle routes should supply new configuration and content selections to the category primitives, adding a new layout variant only when their editorial requirements cannot be expressed by the existing treatments.
 
 ## Implemented route inventory
 
@@ -88,6 +88,7 @@ Category pages are curated discovery experiences; `/latest` remains the chronolo
 - `/latest` — chronological, client-filterable newsroom feed
 - `/business` — curated Business category landing
 - `/leadership` — curated Leadership category landing with executive interviews and people-led publishing promotion
+- `/technology` — curated Technology category landing with infrastructure, enterprise, cybersecurity, startup, and future-tech coverage
 - `/article/[slug]` — statically generated article reader for every centralized article record
 
 Subcategory destinations shown in category navigation are reserved future routes. They are intentionally represented as real links without placeholder page implementations.
