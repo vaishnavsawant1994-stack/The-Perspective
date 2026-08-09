@@ -7,3 +7,4 @@ export type { NewsCoverageDestination, NewsDeskSection, NewsLandingContent, News
 export type { Topic, TopicContributor, TopicCoverageDestination, TopicLandingContent } from "./topic";
 export type { MagazineLandingContent, ResolvedMagazineIssueSection } from "./magazine";
 export type { MagazineArticlePage, MagazineContentsPage, MagazineCoverPage, MagazineEditorialPage, MagazineEndPage, MagazineFeaturePage, MagazineImagePage, MagazinePage, MagazinePageBase, MagazineQuotePage, MagazineReaderArticle, MagazineReaderContentEntry, MagazineReaderIssue, MagazineSectionPage, ResolvedMagazinePage, ResolvedMagazineReaderIssue } from "./magazine-reader";
+export type { MagazineArchiveCounts, MagazineArchiveFilter, MagazineArchiveIssue, MagazineArchiveState } from "./magazine-archive";

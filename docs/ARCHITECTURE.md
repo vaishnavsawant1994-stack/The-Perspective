@@ -102,7 +102,13 @@ Topic pages combine a permanent subject masthead, lead package, date-sorted non-
 
 The static `/magazine` route is the permanent front door for The Perspective Magazine. It resolves a single typed composition from centralized publication, issue, article, and people data, then presents the latest issue, canonical cover story, highlights, print-like section contents, previous issues, digital-reader context, Premium edition, Personal Magazines, archive preview, subscription context, and the shared Magazine Briefing form. The cover component supports controlled size variants and renders all critical masthead/headline text as HTML over existing optimized local imagery.
 
-The current issue routes into `/magazine/read/august-2026`; historical covers remain previews until their issue records are explicitly marked `readerAvailable`. Archive, Magazine Category, Premium, and Subscribe destinations remain future work, so their existing Magazine sections continue to use safe anchors or disabled controls. Search results still route broad issue discovery to `/magazine`, while referenced stories remain canonical `/article/[slug]` destinations.
+The current issue routes into `/magazine/read/august-2026`; historical covers remain non-reader previews until their issue records are explicitly marked `readerAvailable`. Magazine Archive actions now route to `/magazine/archive`, while Magazine Category, Premium listing, and Subscribe destinations remain future work and retain safe landing anchors. Search results still route broad issue discovery to `/magazine`, while referenced stories remain canonical `/article/[slug]` destinations.
+
+## Magazine Archive composition
+
+The request-rendered `/magazine/archive` route is the permanent issue-discovery surface. It awaits Next.js 16 `searchParams`, parses `q`, `year`, and `type`, and passes plain server-derived data into `MagazineArchivePage`; only the reused newsletter form requires a client boundary. GET search, year links, and All/Reader/Premium filters keep archive state shareable through ordinary URLs, while every variant canonicalizes to `/magazine/archive` and query variants are `noindex, follow`.
+
+Archive helpers derive chronology, real years, counts, Reader and Premium groups, featured history, themes, story previews, and result sets directly from the canonical `MagazineIssue` array. Search uses the same lightweight normalization primitives as global Search and requires every query token to appear somewhere across issue metadata, section labels, or resolved article titles. Reader calls to action depend exclusively on `readerAvailable`; Premium remains metadata-only. The deterministic archive currently spans fourteen editions across 2025–2026, with existing local cover assets and canonical article records reused rather than duplicated. Magazine Category routes remain reserved for the next stage.
 
 ## Magazine Reader composition
 
@@ -146,6 +152,7 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/search` — URL-driven editorial search across articles, contributors, people, and magazine issues
 - `/topic/[slug]` — statically generated cross-category editorial Topic hub
 - `/magazine` — static issue-led Magazine landing and future product-system front door
+- `/magazine/archive` — URL-driven chronological issue archive with search, year, Reader, and Premium filters
 - `/magazine/read/[slug]` — reusable structured digital issue reader; August 2026 currently available
 
 Subcategory and Perspective topic destinations shown in navigation are reserved future routes. A contributor index remains intentionally deferred; canonical profile links resolve directly through `/author/[slug]`.

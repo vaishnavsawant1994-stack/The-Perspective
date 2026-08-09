@@ -3,6 +3,9 @@ import { getPublicAuthors } from "@/data/mock/author-profiles";
 import { articles, getArticleById } from "@/data/mock/articles";
 import { getMagazineIssueArticles, magazineIssues, magazines } from "@/data/mock/magazines";
 import { people } from "@/data/mock/people";
+import { getSearchDisplayQuery, normalizeSearchQuery, readSearchParameter } from "@/lib/search-query";
+
+export { getSearchDisplayQuery, normalizeSearchQuery, readSearchParameter } from "@/lib/search-query";
 
 type WithoutScore<T> = T extends unknown ? Omit<T, "score"> : never;
 
@@ -47,24 +50,6 @@ export const searchResultLabels: Readonly<Record<SearchResultType, string>> = {
   person: "Person",
   magazine: "Magazine",
 };
-
-export function normalizeSearchQuery(value: string) {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}&]+/gu, " ")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-export function getSearchDisplayQuery(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-export function readSearchParameter(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
-}
 
 export function parseSearchFilter(value: string | string[] | undefined): SearchFilter {
   const candidate = readSearchParameter(value).toLowerCase() as SearchFilter;
