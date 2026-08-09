@@ -14,13 +14,10 @@ src/
     home/               Homepage sections composed from domain components
     latest/             Latest-news lead, filters, feed, insertion, and sidebar
     category/           Reusable category headers, subnav, leads, modules, rankings, and CTAs
+    perspective/        Author-led opinion leads, story lists, and editorial sections
     article/            Reusable listing patterns and the long-form story reader
     magazine/           Issue, cover, and personal-publication presentation
     person/             Reusable interview and profile-led presentation
-    article/            Future article presentation components
-    magazine/           Future magazine presentation components
-    person/             Future profile presentation components
-    search/             Future search presentation components
   config/               Site identity, navigation, contact and footer data
   data/mock/            Small, typed fixtures for UI development
   features/             Future feature-level application modules
@@ -68,6 +65,8 @@ The footer is permanently structured around publication context, configured link
 
 `business.ts`, `leadership.ts`, and `technology.ts` are category composition layers. They store stable article IDs, subcategory links, editorial section configuration, rankings, and category newsletter copy, then resolve those references against the shared article, person, and magazine records. Articles add optional `subcategory` metadata without changing broad-category filtering or article-reader behavior. Leadership and Technology reuse existing person identities for category-level people features rather than introducing route-specific profile markup.
 
+`perspective.ts` is a separate author-led composition layer. It resolves stable article and author IDs for columnists, text-led arguments, the Big Essay, contributor spotlight, rankings, and the reusable Point/Counterpoint pattern. Opinion contributors live in the shared author model, and every essay continues to use the shared article reader.
+
 ## Homepage composition
 
 The `/` route is a Server Component with page-specific metadata and lightweight Website JSON-LD. It assembles sixteen editorial moments from reusable article, person, magazine, home-section, market, premium, and newsletter components. Interactive behavior remains confined to the existing global-shell islands and the shared newsletter form, keeping the content-heavy page statically renderable with minimal client JavaScript.
@@ -82,8 +81,13 @@ The `/business`, `/leadership`, and `/technology` routes use the reusable `Categ
 
 Category pages are curated discovery experiences; `/latest` remains the chronological filterable newsroom feed. Future Finance, Markets, Culture, and Lifestyle routes should supply new configuration and content selections to the category primitives, adding a new layout variant only when their editorial requirements cannot be expressed by the existing treatments.
 
+## Perspective landing composition
+
+The `/perspective` route deliberately does not use `CategoryLandingPage`. Its static `PerspectiveLandingPage` composition is author-led and argument-led, with a newspaper-style opinion lead, reusable contributor cards, typographic story lists, a print-like Big Essay, and the generic Point/Counterpoint module. It still reuses the global shell, topic subnavigation, ranked stories, premium promotion, newsletter, CollectionPage/ItemList helper, centralized authors/articles, and the shared `ArticleReader`.
+
 ## Implemented route inventory
 
+- `/perspective` — author-led Opinion and Ideas landing with essays, columnists, and curated debate
 - `/` — master editorial homepage
 - `/latest` — chronological, client-filterable newsroom feed
 - `/business` — curated Business category landing
@@ -91,7 +95,7 @@ Category pages are curated discovery experiences; `/latest` remains the chronolo
 - `/technology` — curated Technology category landing with infrastructure, enterprise, cybersecurity, startup, and future-tech coverage
 - `/article/[slug]` — statically generated article reader for every centralized article record
 
-Subcategory destinations shown in category navigation are reserved future routes. They are intentionally represented as real links without placeholder page implementations.
+Subcategory and Perspective topic destinations shown in navigation are reserved future routes. Author links likewise reserve `/author/[slug]` for the next stage. They are intentionally represented as real links without placeholder page implementations.
 
 ## Article reader composition
 

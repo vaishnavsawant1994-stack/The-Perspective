@@ -21,9 +21,4 @@ export const markets = [
   { name:"FTSE 100", value:"8,269.10", change:"+0.34%" }, { name:"NIFTY 50", value:"24,415.60", change:"+0.48%" },
 ] as const;
 
-export const opinions = [
-  { author:"Dr. Maya Patel", role:"Economist", headline:"Why Productivity May Be Entering a New Golden Age", excerpt:"Technology matters most when institutions learn how to use it." },
-  { author:"Daniel Brooks", role:"Investor", headline:"Private Markets Need Greater Transparency", excerpt:"Trust will determine whether a larger market becomes a better one." },
-  { author:"Sophia Laurent", role:"Technology Strategist", headline:"AI Regulation Must Focus on Outcomes, Not Fear", excerpt:"Good rules begin with the harms we can define." },
-  { author:"Oliver Grant", role:"Former CEO", headline:"Boards Are Asking the Wrong Questions About Innovation", excerpt:"The central question is not speed. It is organizational permission." },
-] as const;
+export const opinions = select(["article-opinion-productivity", "article-opinion-private-markets", "article-opinion-ai-regulation", "article-opinion-board-innovation"]);

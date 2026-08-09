@@ -1,18 +1,16 @@
 import { siteConfig } from "@/config/site";
-import type { CategoryLandingContent } from "@/types";
+import type { Article, CategoryLandingContent } from "@/types";
 
-export function createCategoryStructuredData(content: CategoryLandingContent, description: string) {
-  const majorStories = [content.lead.primary, ...content.lead.supporting, ...content.topStories];
-
+export function createCollectionStructuredData(name: string, path: string, description: string, articles: readonly Article[]) {
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: `${content.label} | ${siteConfig.name}`,
+    name,
     description,
-    url: `${siteConfig.url}/${content.slug}`,
+    url: `${siteConfig.url}${path}`,
     mainEntity: {
       "@type": "ItemList",
-      itemListElement: majorStories.map((article, index) => ({
+      itemListElement: articles.map((article, index) => ({
         "@type": "ListItem",
         position: index + 1,
         url: `${siteConfig.url}/article/${article.slug}`,
@@ -20,4 +18,9 @@ export function createCategoryStructuredData(content: CategoryLandingContent, de
       })),
     },
   };
+}
+
+export function createCategoryStructuredData(content: CategoryLandingContent, description: string) {
+  const majorStories = [content.lead.primary, ...content.lead.supporting, ...content.topStories];
+  return createCollectionStructuredData(`${content.label} | ${siteConfig.name}`, `/${content.slug}`, description, majorStories);
 }

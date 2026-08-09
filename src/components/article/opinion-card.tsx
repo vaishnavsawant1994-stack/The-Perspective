@@ -1,2 +1,14 @@
 import Link from "next/link";
-export function OpinionCard({ author, role, headline, excerpt, index }: { author:string; role:string; headline:string; excerpt:string; index:number }) { return <article className="border-t border-border pt-5"><div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-full bg-surface-subtle font-serif text-sm" aria-hidden="true">{author.split(" ").map((part) => part[0]).join("").slice(0,2)}</span><div><p className="text-sm font-semibold">{author}</p><p className="type-caption text-muted">{role}</p></div></div><h3 className="mt-6 font-serif text-2xl leading-tight"><Link className="hover:text-accent" href={`/opinion/${index + 1}`}>{headline}</Link></h3><p className="mt-4 text-sm leading-6 text-muted">{excerpt}</p></article>; }
+import type { Article } from "@/types";
+import { Avatar } from "@/components/ui/avatar";
+
+export function OpinionCard({ article, compact = false }: { article: Article; compact?: boolean }) {
+  const author = article.authors[0];
+  const initials = author?.name.split(" ").map((part) => part[0]).join("").slice(0, 2) ?? "TP";
+
+  return <article className="border-t border-border pt-5">
+    {author && <div className="flex items-center gap-3"><Avatar alt={author.name} initials={initials} src={author.avatar?.src} /><div><p className="text-sm font-semibold"><Link className="hover:text-accent" href={`/author/${author.slug}`}>{author.name}</Link></p>{author.role && <p className="type-caption text-muted">{author.role}</p>}</div></div>}
+    <h3 className={`mt-5 font-serif leading-tight ${compact ? "text-xl" : "text-2xl"}`}><Link className="hover:text-accent" href={`/article/${article.slug}`}>{article.title}</Link></h3>
+    {!compact && <p className="mt-4 text-sm leading-6 text-muted">{article.excerpt}</p>}
+  </article>;
+}
