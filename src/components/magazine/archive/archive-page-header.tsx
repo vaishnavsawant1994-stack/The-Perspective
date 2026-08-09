@@ -7,7 +7,7 @@ export function ArchivePageHeader({ readerHref }: { readerHref: string }) {
     { label: "Archive", href: "/magazine/archive", current: true },
     { label: "Digital Reader", href: readerHref },
     { label: "Premium", href: "/magazine/premium" },
-    { label: "Subscribe", href: "/magazine#subscribe" },
+    { label: "Subscribe", href: "/magazine/subscribe" },
   ];
   return <header className="border-b border-foreground bg-surface">
     <PageContainer className="pb-12 pt-7 sm:pb-16 sm:pt-9 lg:pb-20" width="standard">

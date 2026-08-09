@@ -15,10 +15,6 @@ import { PreviousIssues } from "./previous-issues";
 const premiumBenefits = ["Exclusive editions", "Premium essays", "Member interviews", "Archive access", "Special reports"];
 const subscriptionBenefits = ["Digital magazine access", "Premium editions", "Archive access", "Exclusive stories", "Special reports"];
 
-function FutureControl({ children, descriptionId }: { children: React.ReactNode; descriptionId: string }) {
-  return <button aria-describedby={descriptionId} className="inline-flex min-h-12 cursor-not-allowed items-center border border-current px-5 text-sm font-bold opacity-65" disabled type="button">{children}</button>;
-}
-
 function DigitalReaderPreview({ issue }: { issue: MagazineIssue }) {
   const readerHref = issue.readerAvailable ? `/magazine/read/${issue.slug}` : "/magazine#inside-this-issue";
   return <div className="bg-[#d8d0c2]" id="digital-reader"><PageContainer className="section-space-lg" width="standard"><section aria-labelledby="digital-reader-heading" className="grid gap-12 lg:grid-cols-[.82fr_1.18fr] lg:items-center lg:gap-20">
@@ -36,7 +32,7 @@ function ArchivePreview({ issues }: { issues: readonly MagazineIssue[] }) {
 }
 
 function SubscriptionCta() {
-  return <div className="bg-accent text-white" id="subscribe"><PageContainer className="section-space-lg" width="standard"><section aria-labelledby="magazine-subscribe-heading" className="grid gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-end lg:gap-20"><div><p className="eyebrow text-white/70">The complete publication</p><h2 className="type-display-lg mt-5" id="magazine-subscribe-heading">Subscribe to The Perspective</h2><p className="type-deck mt-7 max-w-2xl text-white/75">Read every issue, unlock premium editions and keep The Perspective close wherever you read.</p><p className="mt-7 text-sm text-white/70" id="subscription-future-note">Subscription plans and account access will be introduced in their dedicated product stage.</p><div className="mt-5"><FutureControl descriptionId="subscription-future-note">Subscription options coming soon</FutureControl></div></div><ul className="border-t border-white/35">{subscriptionBenefits.map((benefit) => <li className="flex min-h-12 items-center gap-3 border-b border-white/25 text-sm text-white/85" key={benefit}><Check aria-hidden="true" className="size-4" />{benefit}</li>)}</ul></section></PageContainer></div>;
+  return <div className="bg-accent text-white" id="subscribe"><PageContainer className="section-space-lg" width="standard"><section aria-labelledby="magazine-subscribe-heading" className="grid gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-end lg:gap-20"><div><p className="eyebrow text-white/70">The complete publication</p><h2 className="type-display-lg mt-5" id="magazine-subscribe-heading">Subscribe to The Perspective</h2><p className="type-deck mt-7 max-w-2xl text-white/75">Read every issue, explore Premium editions and choose the level of the publication that fits how you want to read.</p><p className="mt-7 text-sm text-white/70">Compare the Reader, Digital and Premium experiences. Checkout and account access remain reserved for the membership phase.</p><div className="mt-5"><Link className="inline-flex min-h-12 items-center gap-2 bg-white px-5 text-sm font-bold text-foreground hover:bg-[#f3e6d0]" href="/magazine/subscribe">Compare Subscription Plans <ArrowRight aria-hidden="true" className="size-4" /></Link></div></div><ul className="border-t border-white/35">{subscriptionBenefits.map((benefit) => <li className="flex min-h-12 items-center gap-3 border-b border-white/25 text-sm text-white/85" key={benefit}><Check aria-hidden="true" className="size-4" />{benefit}</li>)}</ul></section></PageContainer></div>;
 }
 
 export function MagazineLandingPage({ content }: { content: MagazineLandingContent }) {

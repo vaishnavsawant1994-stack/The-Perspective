@@ -102,13 +102,19 @@ Topic pages combine a permanent subject masthead, lead package, date-sorted non-
 
 The static `/magazine` route is the permanent front door for The Perspective Magazine. It resolves a single typed composition from centralized publication, issue, article, and people data, then presents the latest issue, canonical cover story, highlights, print-like section contents, previous issues, digital-reader context, Premium edition, Personal Magazines, archive preview, subscription context, and the shared Magazine Briefing form. The cover component supports controlled size variants and renders all critical masthead/headline text as HTML over existing optimized local imagery.
 
-The current issue routes into `/magazine/read/august-2026`; historical covers remain non-reader previews until their issue records are explicitly marked `readerAvailable`. Magazine section labels route into permanent `/magazine/category/[slug]` shelves where configured, Archive actions route to `/magazine/archive`, and Premium discovery routes to `/magazine/premium`. Subscription plans remain future work. Standard Magazine search results use `/magazine`, Premium issue results use `/magazine/premium`, and referenced stories remain canonical `/article/[slug]` destinations.
+The current issue routes into `/magazine/read/august-2026`; historical covers remain non-reader previews until their issue records are explicitly marked `readerAvailable`. Magazine section labels route into permanent `/magazine/category/[slug]` shelves where configured, Archive actions route to `/magazine/archive`, Premium discovery routes to `/magazine/premium`, and Magazine subscription actions route to `/magazine/subscribe`. Standard Magazine search results use `/magazine`, Premium issue results use `/magazine/premium`, and referenced stories remain canonical `/article/[slug]` destinations.
 
 ## Premium Magazine composition
 
 The static `/magazine/premium` route is the canonical editorial catalogue for published `MagazineIssue` records whose Premium metadata is true. A small configuration layer selects the hero, featured stories, voices, benefits, themes, and editorial comparison, while helpers resolve all issue and article relationships from the centralized records and validate the two-issue inventory. The server-rendered composition includes a Magazine masthead, hero, benefits, issue catalogue, public article selections, Premium voices, themes, archive context, Standard/Premium comparison, future-membership positioning, Magazine discovery, and the shared Magazine Briefing. Its CollectionPage/ItemList structured data describes publication issues without Offers.
 
-Premium is intentionally separate from both the general Magazine landing and the future Subscription page. It remains editorial metadata rather than an entitlement: there is no user state, authentication, pricing, payment flow, Stripe model, or paywall. Reader calls to action require independent `readerAvailable` metadata plus configured Reader content; because neither Premium issue currently meets both conditions, neither exposes a Reader action. Page 18 remains the future subscription/plans stage.
+Premium is intentionally separate from both the general Magazine landing and Subscription plan selection. It remains editorial metadata rather than an enforced entitlement: there is no user state, authentication, payment flow, Stripe model, or paywall. Reader calls to action require independent `readerAvailable` metadata plus configured Reader content; because neither Premium issue currently meets both conditions, neither exposes a Reader action.
+
+## Magazine Subscription composition
+
+The static `/magazine/subscribe` route explains the future Reader, Digital, and Premium product levels without transacting. Centralized `SubscriptionPlan` records store integer-cent monthly and annual demonstration prices, provider-neutral future product keys, marketing benefits, and cumulative machine-readable entitlements across the typed `public`, `digital`, and `premium` access tiers. Validation enforces unique plans and entitlements, zero Reader pricing, honest annual savings, valid routes, and Reader → Digital → Premium inheritance. The comparison table and entitlement preview derive from this source of truth.
+
+The page remains server-rendered except for one billing-frequency client island that changes displayed prices using derived savings. Paid CTAs resolve to an explanatory status anchor; no checkout route, cookie, local storage, account, authentication, billing SDK, or access guard exists. A future backend can map authenticated subscription records and real provider price IDs onto the stable plan/product keys before enforcing the entitlement matrix. Subscription answers which access level fits the reader; Premium remains the edition catalogue. The next public stage is the Personal Magazine Profile detail architecture.
 
 ## Magazine Archive composition
 
@@ -165,6 +171,7 @@ The `/search` route is a request-time Server Component because it reads asynchro
 - `/topic/[slug]` — statically generated cross-category editorial Topic hub
 - `/magazine` — static issue-led Magazine landing and future product-system front door
 - `/magazine/premium` — static Premium-edition catalogue derived from canonical Magazine issues and public stories
+- `/magazine/subscribe` — static subscription-plan comparison with demonstration pricing and future entitlement metadata
 - `/magazine/archive` — URL-driven chronological issue archive with search, year, Reader, and Premium filters
 - `/magazine/category/[slug]` — statically generated Magazine theme shelf across canonical issues, articles, Reader availability, and Premium state
 - `/magazine/read/[slug]` — reusable structured digital issue reader; August 2026 currently available

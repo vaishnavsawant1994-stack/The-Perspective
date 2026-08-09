@@ -10,3 +10,4 @@ export type { MagazineArticlePage, MagazineContentsPage, MagazineCoverPage, Maga
 export type { MagazineArchiveCounts, MagazineArchiveFilter, MagazineArchiveIssue, MagazineArchiveState } from "./magazine-archive";
 export type { MagazineCategory, MagazineCategoryContent, MagazineCategoryCoverage, MagazineCategoryStory } from "./magazine-category";
 export type { MagazinePremiumBenefit, MagazinePremiumComparison, MagazinePremiumPageConfig, MagazinePremiumPageContent, MagazinePremiumStory, MagazinePremiumThemeLink } from "./magazine-premium";
+export type { BillingFrequency, MagazineAccessTier, MagazineSubscriptionContent, SubscriptionAudience, SubscriptionEntitlement, SubscriptionEntitlementKey, SubscriptionFaq, SubscriptionPlan } from "./magazine-subscription";

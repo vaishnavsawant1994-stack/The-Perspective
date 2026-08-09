@@ -57,6 +57,17 @@ export function createMagazinePremiumStructuredData(issues: readonly MagazineIss
   };
 }
 
+export function createMagazineSubscriptionStructuredData() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Subscribe to The Perspective Magazine",
+    description: "Compare The Perspective Magazine subscription options for digital editions, archive access and Premium editorial experiences.",
+    url: `${siteConfig.url}/magazine/subscribe`,
+    isPartOf: { "@type": "Periodical", name: "The Perspective Magazine", url: `${siteConfig.url}/magazine` },
+  };
+}
+
 export function createMagazineCategoryStructuredData(category: MagazineCategory, issues: readonly MagazineIssue[]) {
   const url = `${siteConfig.url}/magazine/category/${category.slug}`;
   return {

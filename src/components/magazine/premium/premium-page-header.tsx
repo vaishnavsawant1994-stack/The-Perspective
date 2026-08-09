@@ -7,7 +7,7 @@ export function PremiumPageHeader({ readerHref }: { readerHref: string }) {
     { label: "Digital Reader", href: readerHref },
     { label: "Archive", href: "/magazine/archive" },
     { label: "Premium", href: "/magazine/premium", current: true },
-    { label: "Subscribe", href: "/magazine#subscribe" },
+    { label: "Subscribe", href: "/magazine/subscribe" },
   ];
 
   return <header className="border-b border-foreground bg-surface">
