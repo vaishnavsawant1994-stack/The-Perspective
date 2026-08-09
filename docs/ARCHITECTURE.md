@@ -10,7 +10,7 @@ src/
     ui/                 Accessible low-level primitives
     common/             Reusable editorial composition helpers
     navigation/         Configuration-driven desktop menu presentation
-    search/             Global search trigger, overlay, and local suggestions
+    search/             Global overlay, result controls, result types, and discovery states
     home/               Homepage sections composed from domain components
     latest/             Latest-news lead, filters, feed, insertion, and sidebar
     category/           Reusable category headers, subnav, leads, modules, rankings, and CTAs
@@ -94,6 +94,12 @@ The single `/author/[slug]` route statically generates every centralized author 
 
 Perspective cards, homepage Opinion bylines, article headers, and author biographies already use canonical author slugs. Global search limits contributor results to public authors and labels them separately from articles and `Person` subjects, completing the Perspective-to-article-to-author reading loop.
 
+## Search composition
+
+The `/search` route is a request-time Server Component because it reads asynchronous `searchParams`. Its canonical URL remains `/search`, while `q`, `type`, and `sort` make query, filtering, and ordering shareable through ordinary GET navigation. Search pages are intentionally `noindex, follow` and omit structured data because they are utility result views rather than durable editorial documents.
+
+`src/lib/search.ts` derives one compact in-memory index from centralized article summaries, public contributors, people, and magazine issues. The same normalized, weighted, deterministic search function powers the global overlay and full results route without importing full article bodies into client code. Article and contributor results use canonical routes; people link only when a published interview destination exists, and magazine issues remain informational until their reader routes are implemented. The only search-results client island manages batched Load More disclosure.
+
 ## Implemented route inventory
 
 - `/perspective` — author-led Opinion and Ideas landing with essays, columnists, and curated debate
@@ -104,6 +110,7 @@ Perspective cards, homepage Opinion bylines, article headers, and author biograp
 - `/technology` — curated Technology category landing with infrastructure, enterprise, cybersecurity, startup, and future-tech coverage
 - `/article/[slug]` — statically generated article reader for every centralized article record
 - `/author/[slug]` — statically generated contributor profile and editorial archive
+- `/search` — URL-driven editorial search across articles, contributors, people, and magazine issues
 
 Subcategory and Perspective topic destinations shown in navigation are reserved future routes. A contributor index remains intentionally deferred; canonical profile links resolve directly through `/author/[slug]`.
 

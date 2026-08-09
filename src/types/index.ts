@@ -2,3 +2,4 @@ export type { Article, ArticleCategory, ArticleContentBlock, ArticleDetail, Arti
 export type { CategoryEditorialSection, CategoryLandingContent, CategoryPeopleFeatureContent, CategoryPersonStory, CategoryPromotion, CategorySectionLayout, CategorySubnavItem } from "./category";
 export type { PerspectiveArgument, PerspectiveColumnist, PerspectiveContent, PerspectiveSection } from "./perspective";
 export type { AuthorProfileConfig, AuthorProfileData, AuthorTopic } from "./author-profile";
+export type { ArticleSearchResult, ContributorSearchResult, MagazineSearchResult, PersonSearchResult, SearchCounts, SearchFilter, SearchResult, SearchResultType, SearchSort } from "./search";
