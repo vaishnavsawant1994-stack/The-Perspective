@@ -1,0 +1,3 @@
+import type { Metadata } from "next";import { AuthPage } from "@/components/auth/auth-page";import { SearchResultsPage } from "@/components/search/search-results-page";import { filterSearchResults,getSearchCounts,searchSite } from "@/lib/search";
+export const metadata:Metadata={title:"Verify Your Email",description:"Confirm your email and activate your Perspective account.",alternates:{canonical:"/verify-email"}};
+export default function Page(){const q="account";const a=searchSite(q);const t="all" as const;return <><AuthPage mode="verify"/><div id="current-verification-experience"><SearchResultsPage allResults={a} counts={getSearchCounts(a)} filteredResults={filterSearchResults(a,t)} query={q} rawQuery={q} sort="relevance" type={t}/></div></>}

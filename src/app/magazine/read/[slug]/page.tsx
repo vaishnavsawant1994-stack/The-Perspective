@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MagazineReader } from "@/components/magazine/reader/magazine-reader";
+import { MagazineReaderRedesign } from "@/components/magazine/reader/magazine-reader-redesign";
 import { MagazineTextReader } from "@/components/magazine/reader/magazine-text-reader";
+import { getPreviousMagazineIssues } from "@/data/mock/magazines";
 import { siteConfig } from "@/config/site";
 import { formatMagazineIssueDate } from "@/lib/magazine-issue-date";
 import { clampMagazineReaderPage, createMagazineReaderStructuredData, getMagazineReaderBySlug, getReadableMagazineSlugs } from "@/lib/magazine-reader";
@@ -47,6 +49,9 @@ export default async function MagazineReaderPage({ params, searchParams }: Magaz
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
-    {viewValue === "text" ? <MagazineTextReader initialPage={initialPage} reader={reader} /> : <MagazineReader initialPage={initialPage} reader={reader} />}
+    {viewValue === "text" ? <MagazineTextReader initialPage={initialPage} reader={reader} /> : <>
+      <MagazineReaderRedesign initialPage={initialPage} previousIssues={getPreviousMagazineIssues(6)} reader={reader} />
+      <MagazineReader initialPage={initialPage} reader={reader} />
+    </>}
   </>;
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MagazineSubscriptionPage } from "@/components/magazine/subscription/magazine-subscription-page";
+import { MagazineSubscriptionRedesign } from "@/components/magazine/subscription/magazine-subscription-redesign";
 import { siteConfig } from "@/config/site";
 import { getMagazineSubscriptionContent, validateMagazineSubscriptionData } from "@/lib/magazine-subscription";
 import { createMagazineSubscriptionStructuredData } from "@/lib/magazine-structured-data";
@@ -22,6 +23,7 @@ export default function MagazineSubscriptionRoute() {
   const structuredData = createMagazineSubscriptionStructuredData();
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <MagazineSubscriptionRedesign content={content} />
     <MagazineSubscriptionPage content={content} />
   </>;
 }

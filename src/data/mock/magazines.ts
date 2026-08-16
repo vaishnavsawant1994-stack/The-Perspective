@@ -368,7 +368,7 @@ export function getMagazineLandingContent(): MagazineLandingContent {
     coverStory,
     issueHighlights: latestArticles.filter((article) => article.id !== coverStory.id).slice(0, 6),
     issueSections: getMagazineIssueSections(latestIssue),
-    previousIssues: getPreviousMagazineIssues(),
+    previousIssues: getPreviousMagazineIssues(8),
     premiumIssue,
     personalMagazineProfiles,
   };

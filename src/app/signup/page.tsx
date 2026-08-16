@@ -1,0 +1,3 @@
+import type { Metadata } from "next";import { AuthPage } from "@/components/auth/auth-page";import { SearchResultsPage } from "@/components/search/search-results-page";import { filterSearchResults,getSearchCounts,searchSite } from "@/lib/search";
+export const metadata:Metadata={title:"Create Account",description:"Create your Perspective reader account.",alternates:{canonical:"/signup"}};
+export default function Page(){const q="sign up";const a=searchSite(q);const t="all" as const;return <><AuthPage mode="signup"/><div id="current-signup-experience"><SearchResultsPage allResults={a} counts={getSearchCounts(a)} filteredResults={filterSearchResults(a,t)} query={q} rawQuery={q} sort="relevance" type={t}/></div></>}

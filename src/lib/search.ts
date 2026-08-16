@@ -1,8 +1,7 @@
 import type { SearchCounts, SearchFilter, SearchResult, SearchResultType, SearchSort } from "@/types";
 import { getPublicAuthors } from "@/data/mock/author-profiles";
-import { articles, getArticleById } from "@/data/mock/articles";
+import { articles } from "@/data/mock/articles";
 import { getMagazineIssueArticles, magazineIssues, magazines } from "@/data/mock/magazines";
-import { getPersonalMagazineHrefByPersonId } from "@/data/mock/personal-magazines";
 import { people } from "@/data/mock/people";
 import { getSearchDisplayQuery, normalizeSearchQuery, readSearchParameter } from "@/lib/search-query";
 
@@ -18,13 +17,6 @@ type SearchIndexEntry = {
   bodyText: string;
   allText: string;
   sourceOrder: number;
-};
-
-const PERSON_ARTICLE_IDS: Readonly<Record<string, string>> = {
-  "person-elena-rossi": "article-interview-elena-rossi",
-  "person-marcus-chen": "article-interview-marcus-chen",
-  "person-arjun-mehta": "article-business-interview-arjun-mehta",
-  "person-daniel-kim": "article-technology-interview-daniel-kim",
 };
 
 const FILTER_TO_TYPE: Readonly<Record<Exclude<SearchFilter, "all">, SearchResultType>> = {
@@ -130,9 +122,6 @@ function createSearchIndex(): readonly SearchIndexEntry[] {
   }
 
   for (const person of people) {
-    const destinationId = PERSON_ARTICLE_IDS[person.id];
-    const destination = destinationId ? getArticleById(destinationId) : undefined;
-    const profileHref = getPersonalMagazineHrefByPersonId(person.id);
     const titleText = normalizeSearchQuery(person.name);
     const primaryText = normalized([person.title, person.company, ...person.expertise]);
     const secondaryText = normalizeSearchQuery(person.headline);
@@ -143,13 +132,13 @@ function createSearchIndex(): readonly SearchIndexEntry[] {
         type: "person",
         title: person.name,
         description: person.biography,
-        href: profileHref ?? (destination ? `/article/${destination.slug}` : undefined),
+        href: `/people/${person.slug}`,
         image: person.portrait,
         personId: person.id,
         role: person.title,
         company: person.company,
         expertise: person.expertise,
-        actionLabel: profileHref ? "View Profile" : destination ? "Read Interview" : undefined,
+        actionLabel: "View Profile",
       },
       titleText,
       primaryText,

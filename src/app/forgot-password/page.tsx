@@ -1,0 +1,3 @@
+import type { Metadata } from "next";import { AuthPage } from "@/components/auth/auth-page";import { SearchResultsPage } from "@/components/search/search-results-page";import { filterSearchResults,getSearchCounts,searchSite } from "@/lib/search";
+export const metadata:Metadata={title:"Reset Account Access",description:"Recover secure access to your Perspective account.",alternates:{canonical:"/forgot-password"}};
+export default function Page(){const q="account support";const a=searchSite(q);const t="all" as const;return <><AuthPage mode="forgot"/><div id="current-recovery-experience"><SearchResultsPage allResults={a} counts={getSearchCounts(a)} filteredResults={filterSearchResults(a,t)} query={q} rawQuery={q} sort="relevance" type={t}/></div></>}

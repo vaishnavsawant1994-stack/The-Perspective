@@ -173,6 +173,14 @@ The `/search` route is a request-time Server Component because it reads asynchro
 
 `src/lib/search.ts` derives one compact in-memory index from centralized article summaries, public contributors, people, and magazine issues. The same normalized, weighted, deterministic search function powers the global overlay and full results route without importing full article bodies into client code. Article and contributor results use canonical routes; configured Personal Magazine people use their profile route while other people retain a canonical interview destination when one exists; standard Magazine results use `/magazine`, and Premium issue results use `/magazine/premium`. The only search-results client island manages batched Load More disclosure.
 
+## Master homepage composition
+
+The static `/` route uses a dedicated homepage shell inside the normal root layout. A `data-home-v2` boundary suppresses the shared header and footer only for this route, allowing the approved 1200px light editorial system to reproduce its 36px utility bar, 80px masthead, 44px navigation, 40px breaking strip, and 440px three-column skyline hero without changing any completed discovery or reader page.
+
+`homepage-redesign.ts` contains editorial selection IDs and small page-only presentation records; `getHomepageRedesignContent` resolves every story, author, person, magazine issue, and Personal Magazine from the canonical data modules and validates all relationships before rendering. The fictional Anika Rao cover package is represented as ordinary typed `PersonProfile` and `Article` records. Its generated editorial skyline and supporting transparent portrait are local assets under `public/images/home`. Remaining modules reuse canonical destinations, with explicitly page-only fictional profiles routing through search rather than pretending to have unsupported detail pages.
+
+The homepage stays server-rendered except for the established newsletter form. Its market line is an illustrative local interface graphic rather than a live market feed; utility figures, events, podcast metadata, and demonstration membership prices are realistic editorial dummy content and do not imply external integrations, accounts, payments, saved state, or live data.
+
 ## Implemented route inventory
 
 - `/perspective` — author-led Opinion and Ideas landing with essays, columnists, and curated debate

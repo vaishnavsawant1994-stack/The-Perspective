@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MagazineArchivePage } from "@/components/magazine/archive/magazine-archive-page";
+import { MagazineArchiveRedesign } from "@/components/magazine/archive/magazine-archive-redesign";
 import { siteConfig } from "@/config/site";
 import { getLatestMagazineIssue } from "@/data/mock/magazines";
 import { filterMagazineIssues, getFeaturedArchiveIssue, getMagazineArchiveCounts, getMagazineArchiveThemes, getMagazineArchiveYears, getMagazineIssues, getPremiumMagazineIssues, getReaderAvailableIssues, parseMagazineArchiveFilter, parseMagazineArchiveQuery, parseMagazineArchiveYear, resolveMagazineArchiveIssues, validateMagazineArchiveData } from "@/lib/magazine-archive";
@@ -11,6 +12,7 @@ type MagazineArchivePageProps = {
     q?: string | string[];
     year?: string | string[];
     type?: string | string[];
+    sort?: string | string[];
   }>;
 };
 
@@ -18,7 +20,7 @@ const description = "Browse past issues of The Perspective Magazine, including l
 
 export async function generateMetadata({ searchParams }: MagazineArchivePageProps): Promise<Metadata> {
   const parameters = await searchParams;
-  const hasArchiveState = Boolean(readSearchParameter(parameters.q).trim() || readSearchParameter(parameters.year).trim() || readSearchParameter(parameters.type).trim());
+  const hasArchiveState = Boolean(readSearchParameter(parameters.q).trim() || readSearchParameter(parameters.year).trim() || readSearchParameter(parameters.type).trim() || readSearchParameter(parameters.sort).trim());
   return {
     title: { absolute: "Magazine Archive | The Perspective" },
     description,
@@ -36,22 +38,28 @@ export default async function MagazineArchiveRoute({ searchParams }: MagazineArc
     year: parseMagazineArchiveYear(parameters.year),
     type: parseMagazineArchiveFilter(parameters.type),
   } as const;
+  const sort = readSearchParameter(parameters.sort) === "oldest" ? "oldest" : "latest";
   const issues = getMagazineIssues();
   const validationErrors = validateMagazineArchiveData();
   if (validationErrors.length > 0) throw new Error(`Invalid Magazine Archive data:\n${validationErrors.join("\n")}`);
 
   const latestIssue = getLatestMagazineIssue();
   if (!latestIssue) throw new Error("Magazine Archive requires a latest published issue.");
-  const filteredIssues = filterMagazineIssues({ issues, ...state });
+  const filteredIssues = [...filterMagazineIssues({ issues, ...state })];
+  if (sort === "oldest") filteredIssues.reverse();
   const featuredIssue = getFeaturedArchiveIssue(issues);
+  const resolvedIssues = resolveMagazineArchiveIssues(filteredIssues);
+  const resolvedFeatured = resolveMagazineArchiveIssues([issues[0]])[0];
+  if (!resolvedFeatured) throw new Error("Magazine Archive requires a featured issue.");
   const structuredData = createMagazineArchiveStructuredData(issues);
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <MagazineArchiveRedesign counts={getMagazineArchiveCounts(issues)} displayedIssues={resolvedIssues} featuredIssue={resolvedFeatured} sort={sort} state={state} years={getMagazineArchiveYears(issues)} />
     <MagazineArchivePage
       counts={getMagazineArchiveCounts(issues)}
       featuredIssue={featuredIssue ? resolveMagazineArchiveIssues([featuredIssue])[0] : undefined}
-      filteredIssues={resolveMagazineArchiveIssues(filteredIssues)}
+      filteredIssues={resolvedIssues}
       latestIssueId={latestIssue.id}
       premiumIssues={resolveMagazineArchiveIssues(getPremiumMagazineIssues(issues))}
       readerIssues={resolveMagazineArchiveIssues(getReaderAvailableIssues(issues))}

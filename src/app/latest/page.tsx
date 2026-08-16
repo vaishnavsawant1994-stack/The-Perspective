@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { LatestFeedClient } from "@/components/latest/latest-feed-client";
-import { LatestPageHeader } from "@/components/latest/latest-page-header";
+import { LatestNewsPage } from "@/components/latest/latest-news-page";
 import { latestArticles, latestInDepth, latestLeadArticles, latestMagazineIssue, latestMostRead } from "@/data/mock/latest";
 
 const description = "Read the latest reporting, analysis and developments in business, leadership, technology, finance, markets, culture and global affairs from The Perspective.";
@@ -13,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function LatestPage() {
-  return <><LatestPageHeader /><LatestFeedClient articles={latestArticles} inDepth={latestInDepth} leadArticles={latestLeadArticles} magazineIssue={latestMagazineIssue} mostRead={[...latestMostRead]} /></>;
+  return <LatestNewsPage articles={latestArticles} inDepth={latestInDepth} leadArticles={latestLeadArticles} magazineIssue={latestMagazineIssue} mostRead={[...latestMostRead]} />;
 }

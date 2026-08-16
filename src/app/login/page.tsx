@@ -1,0 +1,3 @@
+import type { Metadata } from "next";import { AuthPage } from "@/components/auth/auth-page";import { SearchResultsPage } from "@/components/search/search-results-page";import { filterSearchResults,getSearchCounts,searchSite } from "@/lib/search";
+export const metadata:Metadata={title:"Sign In",description:"Sign in to your Perspective member account.",alternates:{canonical:"/login"}};
+export default function Page(){const q="membership";const a=searchSite(q);const t="all" as const;return <><AuthPage mode="login"/><div id="current-login-experience"><SearchResultsPage allResults={a} counts={getSearchCounts(a)} filteredResults={filterSearchResults(a,t)} query={q} rawQuery={q} sort="relevance" type={t}/></div></>}

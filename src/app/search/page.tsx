@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SearchResultsPage } from "@/components/search/search-results-page";
+import { SearchRedesign } from "@/components/search/search-redesign";
 import { filterSearchResults, getSearchCounts, getSearchDisplayQuery, normalizeSearchQuery, parseSearchFilter, parseSearchSort, readSearchParameter, searchSite } from "@/lib/search";
 
 type SearchPageProps = {
@@ -33,5 +34,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const filteredResults = filterSearchResults(allResults, type);
   const counts = getSearchCounts(allResults);
 
-  return <SearchResultsPage allResults={allResults} counts={counts} filteredResults={filteredResults} query={query} rawQuery={rawQuery} sort={sort} type={type} />;
+  return <>
+    <SearchRedesign allResults={allResults} counts={counts} filteredResults={filteredResults} query={query} rawQuery={rawQuery} sort={sort} type={type} />
+    <SearchResultsPage allResults={allResults} counts={counts} filteredResults={filteredResults} query={query} rawQuery={rawQuery} sort={sort} type={type} />
+  </>;
 }

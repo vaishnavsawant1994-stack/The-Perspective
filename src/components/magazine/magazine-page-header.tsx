@@ -1,23 +1,62 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
+import styles from "./magazine-page-header.module.css";
+
+const categoryNavigation = [
+  { label: "All issues", href: "/magazine/archive" },
+  { label: "Leadership", href: "/magazine/category/leadership" },
+  { label: "Business & Economy", href: "/magazine/category/business" },
+  { label: "Technology", href: "/magazine/category/technology" },
+  { label: "Markets & Finance", href: "/search?q=markets" },
+  { label: "Culture & Lifestyle", href: "/search?q=culture&type=articles" },
+  { label: "Special Editions", href: "/magazine/archive?type=special" },
+] as const;
 
 export function MagazinePageHeader({ readerHref }: { readerHref: string }) {
+  const router = useRouter();
   const magazineNavigation = [
-    { label: "Latest Issue", href: "/magazine#latest-issue" },
-    { label: "Digital Reader", href: readerHref },
+    { label: "Latest issue", href: "/magazine#latest-issue" },
+    { label: "Digital reader", href: readerHref },
     { label: "Archive", href: "/magazine/archive" },
     { label: "Premium", href: "/magazine/premium" },
-    { label: "Personal Magazines", href: "/personal-magazines" },
+    { label: "Personal magazines", href: "/personal-magazines" },
     { label: "Subscribe", href: "/magazine/subscribe" },
   ];
-  return <header className="border-b border-foreground bg-surface">
-    <PageContainer className="pb-12 pt-7 sm:pb-16 sm:pt-9 lg:pb-20" width="standard">
-      <nav aria-label="Breadcrumb"><ol className="flex items-center gap-2 text-xs font-semibold text-muted"><li><Link className="inline-flex min-h-11 items-center hover:text-accent" href="/">Home</Link></li><li aria-hidden="true">/</li><li aria-current="page" className="text-foreground">Magazine</li></ol></nav>
-      <div className="mt-9 grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,.75fr)] lg:items-end lg:gap-16">
-        <div><p className="eyebrow text-accent">The Magazine</p><h1 className="type-display-lg mt-5 max-w-5xl">The Perspective Magazine</h1></div>
-        <div className="border-t border-foreground pt-5"><p className="type-deck text-muted">A curated collection of ideas, leaders and stories designed to be read, kept and returned to.</p><p className="mt-5 text-sm leading-6 text-muted">Each issue brings together original reporting, interviews, essays and perspectives around the people and forces shaping tomorrow.</p></div>
-      </div>
-    </PageContainer>
-    <nav aria-label="Magazine sections" className="border-t border-border"><PageContainer width="standard"><ul className="flex overflow-x-auto [scrollbar-width:thin]">{magazineNavigation.map((item, index) => <li className={index === 0 ? "border-l border-border" : ""} key={item.href}><Link className="inline-flex min-h-12 whitespace-nowrap border-r border-border px-4 py-3 text-xs font-bold uppercase tracking-[.08em] hover:bg-surface-subtle hover:text-accent sm:px-5" href={item.href}>{item.label}</Link></li>)}</ul></PageContainer></nav>
-  </header>;
+
+  return (
+    <header className={styles.header}>
+      <PageContainer width="standard">
+        <div className={styles.headingRow}>
+          <div className={styles.headingCopy}>
+            <p>The Magazine</p>
+            <h1>The Perspective Magazine</h1>
+            <div>A curated collection of original reporting, interviews and ideas designed to be read, kept and returned to.</div>
+          </div>
+          <nav aria-label="Explore magazine" className={styles.quickLinks}>
+            <span>Explore:</span>
+            {magazineNavigation.map((item, index) => <Link aria-current={index === 0 ? "page" : undefined} href={item.href} key={item.href}>{item.label}</Link>)}
+          </nav>
+        </div>
+
+        <div className={styles.filterBar}>
+          <nav aria-label="Browse magazine categories" className={styles.categoryScroller}>
+            {categoryNavigation.map((item, index) => <Link aria-current={index === 0 ? "page" : undefined} href={item.href} key={item.label}>{item.label}</Link>)}
+          </nav>
+          <label className={styles.sortControl}>
+            Browse by:
+            <select aria-label="Browse magazine editions" defaultValue="/magazine#latest-issue" onChange={(event) => router.push(event.target.value)}>
+              <option value="/magazine#latest-issue">Latest</option>
+              <option value="/magazine/archive?sort=oldest">Oldest</option>
+              <option value="/magazine/premium">Premium</option>
+            </select>
+            <ChevronDown aria-hidden="true" />
+          </label>
+        </div>
+      </PageContainer>
+    </header>
+  );
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { PersonalMagazineCollectionPage } from "@/components/personal-magazine/personal-magazine-collection-page";
+import { PersonalMagazinesRedesign } from "@/components/personal-magazine/personal-magazines-redesign";
+import { PersonalMagazineDiscoveryRedesign } from "@/components/personal-magazine/personal-magazine-discovery-redesign";
 import { siteConfig } from "@/config/site";
 import { getFeaturedPersonalMagazines, getSelectedPersonalMagazineStories, validatePersonalMagazineListing } from "@/lib/personal-magazine-listing";
 import { createPersonalMagazineListingStructuredData } from "@/lib/personal-magazine-listing-structured-data";
@@ -39,6 +41,8 @@ export default async function PersonalMagazinesRoute({ searchParams }: PersonalM
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <PersonalMagazineDiscoveryRedesign editions={allEditions} />
+    <PersonalMagazinesRedesign editions={allEditions} />
     <PersonalMagazineCollectionPage featured={featured} query={query} results={results} selectedStories={getSelectedPersonalMagazineStories()} totalCount={allEditions.length} />
   </>;
 }

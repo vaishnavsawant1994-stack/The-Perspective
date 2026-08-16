@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PersonalMagazineProfilePage } from "@/components/personal-magazine/personal-magazine-profile-page";
+import { PersonalMagazineProfileRedesign } from "@/components/personal-magazine/personal-magazine-profile-redesign";
 import { siteConfig } from "@/config/site";
 import { personalMagazines } from "@/data/mock/personal-magazines";
 import { createPersonalMagazineStructuredData } from "@/lib/personal-magazine-structured-data";
@@ -39,6 +40,7 @@ export default async function PersonalMagazineRoute({ params }: PersonalMagazine
   const structuredData = createPersonalMagazineStructuredData(profile);
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <PersonalMagazineProfileRedesign profile={profile} />
     <PersonalMagazineProfilePage profile={profile} />
   </>;
 }

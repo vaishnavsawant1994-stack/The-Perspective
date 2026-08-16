@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MagazinePremiumPage } from "@/components/magazine/premium/magazine-premium-page";
+import { MagazinePremiumRedesign } from "@/components/magazine/premium/magazine-premium-redesign";
 import { siteConfig } from "@/config/site";
 import { getMagazinePremiumContent, validateMagazinePremiumData } from "@/lib/magazine-premium";
 import { createMagazinePremiumStructuredData } from "@/lib/magazine-structured-data";
@@ -31,6 +32,7 @@ export default function MagazinePremiumRoute() {
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <MagazinePremiumRedesign content={content} />
     <MagazinePremiumPage content={content} />
   </>;
 }

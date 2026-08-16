@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MagazineCategoryPage } from "@/components/magazine/category/magazine-category-page";
+import { MagazineCategoryRedesign } from "@/components/magazine/category/magazine-category-redesign";
 import { siteConfig } from "@/config/site";
 import { createMagazineCategoryStructuredData } from "@/lib/magazine-structured-data";
 import { getMagazineCategories, getMagazineCategoryBySlug, getMagazineCategoryContent, validateMagazineCategoryData } from "@/lib/magazine-categories";
@@ -46,6 +47,7 @@ export default async function MagazineCategoryRoute({ params }: MagazineCategory
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <MagazineCategoryRedesign content={content} />
     <MagazineCategoryPage content={content} />
   </>;
 }

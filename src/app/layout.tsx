@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Newsreader } from "next/font/google";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { SiteHeader } from "@/components/layout/site-header";
+import { HomepageRedesignHeader } from "@/components/home/homepage-redesign-header";
+import { GlobalMembershipNewsletter, GlobalPerspectiveFooter } from "@/components/layout/perspective-global-shell";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
 
@@ -19,9 +19,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${inter.variable} ${newsreader.variable}`} data-scroll-behavior="smooth">
       <body className="flex min-h-screen flex-col font-sans antialiased">
         <a className="sr-only z-50 bg-foreground px-4 py-3 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4" href="#main-content">Skip to content</a>
-        <SiteHeader />
+        <HomepageRedesignHeader />
         <main id="main-content" className="flex-1">{children}</main>
-        <SiteFooter />
+        <div className="home-wrap home-global-newsletter-wrap">
+          <GlobalMembershipNewsletter />
+        </div>
+        <GlobalPerspectiveFooter />
       </body>
     </html>
   );

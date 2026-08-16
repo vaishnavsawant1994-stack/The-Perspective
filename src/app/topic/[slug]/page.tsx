@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TopicLandingPage } from "@/components/topic/topic-landing-page";
+import { TopicDetailRedesign } from "@/components/topic/topic-detail-redesign";
 import { siteConfig } from "@/config/site";
 import { getAllTopics, getTopicBySlug } from "@/data/mock/topics";
 import { createCollectionStructuredData } from "@/lib/category-structured-data";
@@ -43,6 +44,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <TopicDetailRedesign content={content} />
     <TopicLandingPage content={content} />
   </>;
 }

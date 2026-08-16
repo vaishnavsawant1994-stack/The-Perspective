@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AuthorProfilePage } from "@/components/author/author-profile-page";
+import { AuthorProfileDetailRedesign } from "@/components/author/author-profile-detail-redesign";
 import { siteConfig } from "@/config/site";
 import { getAuthorProfileBySlug, getPublicAuthors } from "@/data/mock/author-profiles";
 
@@ -78,6 +79,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <AuthorProfileDetailRedesign profile={profile} />
     <AuthorProfilePage profile={profile} />
   </>;
 }

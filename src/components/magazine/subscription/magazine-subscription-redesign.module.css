@@ -1,0 +1,898 @@
+.page {
+  --ink: #151515;
+  --muted: #666159;
+  --gold: #b66a05;
+  --paper: #fff;
+  --soft: #f8f5ef;
+  color: var(--ink);
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.page h1,
+.page h2,
+.page h3 {
+  font-family: Georgia, "Times New Roman", serif;
+}
+.page a {
+  text-decoration: none;
+}
+.subnav {
+  height: 48px;
+  background: #0e171f;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 68px;
+  padding: 0 max(24px, calc((100vw - 1380px) / 2));
+  font-size: 13px;
+  font-weight: 700;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.subnav a {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-bottom: 3px solid transparent;
+}
+.subnav a[aria-current="page"] {
+  color: #e4a329;
+  border-color: #e4a329;
+}
+.subnav svg {
+  width: 14px;
+}
+.hero,
+.plans,
+.comparison,
+.featureStrip,
+.audienceFaq,
+.whySubscribe,
+.briefing,
+.originalIntro {
+  width: min(1380px, calc(100% - 56px));
+  margin-inline: auto;
+}
+.hero {
+  min-height: 485px;
+  display: grid;
+  grid-template-columns: 0.84fr 1.16fr;
+  gap: 34px;
+  align-items: center;
+  padding: 32px 6px 25px;
+}
+.heroCopy > p {
+  color: #a14d00;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  font-size: 14px;
+}
+.heroCopy h1 {
+  font-size: clamp(45px, 4.55vw, 66px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  margin: 18px 0 22px;
+}
+.heroCopy > span {
+  display: block;
+  max-width: 600px;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #32302d;
+}
+.billingToggle {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.billingToggle button {
+  border: 1px solid #c8c5bf;
+  background: #fff;
+  padding: 13px 22px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.billingToggle button:first-child {
+  border-radius: 7px 0 0 7px;
+}
+.billingToggle button:nth-child(2) {
+  border-radius: 0 7px 7px 0;
+}
+.billingToggle button[aria-pressed="true"] {
+  background: #111923;
+  color: #fff;
+}
+.billingToggle b {
+  color: #20924c;
+  margin-left: 18px;
+  font-size: 13px;
+}
+.trustList {
+  display: flex;
+  gap: 35px;
+  list-style: none;
+  margin: 25px 0 0;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.trustList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.trustList svg {
+  width: 17px;
+  color: var(--gold);
+}
+.heroVisual {
+  height: 425px;
+  position: relative;
+  background: radial-gradient(
+    circle at 70% 50%,
+    #eee9df 0 37%,
+    transparent 65%
+  );
+}
+.heroCover {
+  position: absolute;
+  left: 6%;
+  top: 3%;
+  width: 30%;
+  z-index: 3;
+  transform: rotate(-3deg);
+}
+.heroMagazine {
+  position: relative;
+  aspect-ratio: 3/4;
+  overflow: hidden;
+  background: #12202c;
+  box-shadow: 0 22px 35px #0004;
+  color: #fff;
+}
+.heroMagazine > img {
+  object-fit: cover;
+}
+.heroMagazine > i {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#07131b99, #07131b20 44%, #07131be6);
+}
+.heroMagazine > div {
+  position: absolute;
+  inset: 0;
+  padding: 8%;
+  display: flex;
+  flex-direction: column;
+}
+.heroMagazine small {
+  font-family: Georgia, serif;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: clamp(14px, 1.5vw, 24px);
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #ffffff73;
+  padding-bottom: 8px;
+}
+.heroMagazine b {
+  font-family: Georgia, serif;
+  font-size: clamp(24px, 2.4vw, 39px);
+  line-height: 0.9;
+  margin-top: auto;
+}
+.heroMagazine span {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #e4ae55;
+  margin-top: 12px;
+}
+.laptop {
+  position: absolute;
+  left: 37%;
+  top: 10%;
+  width: 51%;
+  height: 69%;
+  background: #24272a;
+  border: 9px solid #272a2e;
+  border-radius: 13px 13px 4px 4px;
+  box-shadow: 0 25px 42px #0003;
+  transform: perspective(900px) rotateY(-5deg);
+}
+.laptopScreen {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: #eee;
+}
+.laptopScreen img {
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.28;
+}
+.laptopScreen > div {
+  position: relative;
+  z-index: 2;
+  width: 57%;
+  padding: 34px 24px;
+}
+.laptopScreen small {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+.laptopScreen h2 {
+  font-size: 30px;
+  line-height: 1;
+  margin: 18px 0;
+}
+.laptopScreen p {
+  font-family: Georgia, serif;
+  line-height: 1.5;
+}
+.laptop > span {
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  height: 15px;
+  bottom: -22px;
+  background: linear-gradient(#aeb2b5, #565b5f);
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+}
+.phone {
+  position: absolute;
+  right: 2%;
+  bottom: 6%;
+  width: 18%;
+  aspect-ratio: 9/18;
+  border: 7px solid #1a1c1f;
+  border-radius: 18px;
+  overflow: hidden;
+  z-index: 4;
+  box-shadow: 0 18px 28px #0004;
+}
+.phone img {
+  object-fit: cover;
+}
+.phone i {
+  position: absolute;
+  width: 26%;
+  height: 4px;
+  left: 37%;
+  top: 5px;
+  background: #111;
+  border-radius: 5px;
+}
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 16px 0 32px;
+  scroll-margin-top: 30px;
+}
+.planCard {
+  position: relative;
+  min-height: 600px;
+  border: 1px solid #ddd8cf;
+  border-radius: 8px;
+  padding: 36px 42px 30px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+.featuredPlan {
+  border: 1.5px solid #c27812;
+  background: linear-gradient(145deg, #fff 0, #fffdf8 100%);
+}
+.bestValue {
+  position: absolute;
+  right: 0;
+  top: -1px;
+  padding: 8px 25px;
+  background: #c77c05;
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 11px;
+  border-radius: 0 7px 0 7px;
+}
+.planCard header {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.planCard header > span {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  border: 1px solid #e2ddd4;
+  display: grid;
+  place-items: center;
+  color: #b66a05;
+}
+.planCard header svg {
+  width: 34px;
+  height: 34px;
+}
+.featuredPlan header > span {
+  background: #111923;
+  color: #dba13d;
+  border: 0;
+}
+.planCard h2 {
+  font-size: 30px;
+  margin: 0 0 8px;
+}
+.planCard header p {
+  margin: 0;
+}
+.planCard header strong {
+  font-family: Georgia, serif;
+  font-size: 44px;
+}
+.planCard header small {
+  display: block;
+  color: #26904b;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.planDescription {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 26px 0 15px;
+  min-height: 46px;
+}
+.planCard ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px;
+}
+.planCard li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 16px 0;
+}
+.planCard li svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  color: #9c5200;
+}
+.planCard > a {
+  margin-top: auto;
+  height: 48px;
+  border: 1px solid #b8b4ae;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  border-radius: 4px;
+  color: var(--ink);
+}
+.planCard:not(:first-child) > a {
+  background: #b76a02;
+  color: #fff;
+  border-color: #b76a02;
+}
+.featuredPlan > a {
+  background: #101923 !important;
+  border-color: #101923 !important;
+}
+.comparison {
+  padding: 0 0 30px;
+}
+.comparison > h2,
+.audienceFaq > article > h2,
+.whySubscribe > h2 {
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0 0 14px;
+}
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #ddd8cf;
+  border-radius: 7px;
+}
+.comparison table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 820px;
+  font-size: 13px;
+}
+.comparison th,
+.comparison td {
+  border-bottom: 1px solid #e5e2dd;
+  border-right: 1px solid #e5e2dd;
+  height: 38px;
+  padding: 0 18px;
+  text-align: center;
+}
+.comparison thead th {
+  height: 58px;
+  font-family: Georgia, serif;
+  font-size: 18px;
+}
+.comparison thead th:first-child,
+.comparison tbody th {
+  text-align: left;
+}
+.comparison thead small {
+  display: block;
+  font: 11px Arial;
+  margin-top: 4px;
+}
+.comparison tbody th {
+  font-weight: 700;
+}
+.comparison tbody th span {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  border: 1px solid #d28a31;
+  color: #b76500;
+  border-radius: 3px;
+  font-size: 9px;
+}
+.comparison td svg {
+  width: 17px;
+  color: #0b161e;
+  margin: auto;
+}
+.comparison td i {
+  font-style: normal;
+  color: #999;
+}
+.premiumColumn {
+  border-left: 1.5px solid #d2872b !important;
+  border-right: 1.5px solid #d2872b !important;
+  color: #ad5c00;
+}
+.featureStrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 12px 0 38px;
+}
+.featureStrip > a {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 18px;
+  min-width: 0;
+  color: inherit;
+}
+.featureArtwork {
+  position: relative;
+  height: 154px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #e9e3d9;
+}
+.featureArtwork > img {
+  object-fit: cover;
+}
+.featureArtwork > b {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  color: #a65900;
+}
+.featureArtwork svg {
+  width: 18px;
+}
+.featureStrip h2 {
+  font: 700 13px Arial;
+  text-transform: uppercase;
+  margin: 4px 0 10px;
+}
+.featureStrip p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #4f4c48;
+  margin: 0 0 12px;
+}
+.featureStrip a > div:last-child > span {
+  font-size: 11px;
+  font-weight: 800;
+  color: #a75800;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.featureStrip a > div:last-child > span svg {
+  width: 12px;
+}
+.archiveGrid {
+  position: absolute;
+  inset: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.archiveGrid i {
+  background: linear-gradient(145deg, #182a38, #bd7623);
+  border: 1px solid #fff5;
+}
+.audienceFaq {
+  display: grid;
+  grid-template-columns: 1.65fr 0.9fr;
+  gap: 16px;
+  padding: 0 0 38px;
+}
+.audienceFaq > article {
+  border: 1px solid #ddd8cf;
+  border-radius: 7px;
+  padding: 24px;
+}
+.audienceFaq > article:first-child > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.audienceFaq section {
+  padding: 15px 22px;
+  border-right: 1px solid #dedbd5;
+}
+.audienceFaq section:last-child {
+  border: 0;
+}
+.audienceFaq section > svg {
+  width: 32px;
+  color: #b76700;
+}
+.audienceFaq h3 {
+  font-size: 23px;
+  margin: 16px 0 12px;
+}
+.audienceFaq section p {
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: 75px;
+}
+.audienceFaq section a,
+.audienceFaq > article:last-child > a {
+  font-size: 11px;
+  font-weight: 800;
+  color: #a95d00;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.audienceFaq a svg {
+  width: 13px;
+}
+.audienceFaq details {
+  border-bottom: 1px solid #ddd8cf;
+}
+.audienceFaq summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.audienceFaq summary span {
+  font-size: 18px;
+  color: #a95d00;
+}
+.audienceFaq details p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #625f59;
+  margin: 0 0 14px;
+}
+.audienceFaq > article:last-child > a {
+  margin-top: 18px;
+}
+.whySubscribe {
+  position: relative;
+  padding: 0 320px 42px 0;
+  min-height: 170px;
+}
+.whySubscribe > div {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.whySubscribe article {
+  display: flex;
+  gap: 12px;
+  padding: 10px 20px;
+  border-right: 1px solid #ddd8cf;
+}
+.whySubscribe article > svg {
+  width: 29px;
+  color: #ae6200;
+  flex: 0 0 auto;
+}
+.whySubscribe h3 {
+  font: 700 12px Arial;
+  margin: 0 0 8px;
+}
+.whySubscribe article p {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
+.whySubscribe aside {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 300px;
+  height: 160px;
+  background: #f3eee7;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  padding: 12px;
+  overflow: hidden;
+}
+.ctaCovers {
+  position: relative;
+  height: 140px;
+}
+.ctaCovers > a,
+.ctaCovers > div {
+  position: absolute;
+  width: 75px;
+  left: 5px;
+  bottom: -24px;
+}
+.ctaCovers > a:nth-child(2),
+.ctaCovers > div:nth-child(2) {
+  left: 47px;
+  transform: rotate(4deg);
+}
+.whySubscribe aside h3 {
+  font: 700 13px Arial;
+}
+.whySubscribe aside p {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.whySubscribe aside a {
+  display: inline-block;
+  background: #b76600;
+  color: #fff;
+  padding: 11px 17px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.briefing {
+  min-height: 110px;
+  background: linear-gradient(90deg, #f4efe7, #fbf9f5);
+  display: grid;
+  grid-template-columns: auto 1fr 1.2fr;
+  gap: 25px;
+  align-items: center;
+  padding: 20px 35px;
+  margin-bottom: 34px;
+}
+.briefing > svg {
+  width: 46px;
+  height: 46px;
+  color: #ad6000;
+}
+.briefing h2 {
+  font-size: 20px;
+  margin: 0 0 7px;
+}
+.briefing p {
+  font-size: 12px;
+  margin: 0;
+}
+.originalIntro {
+  border-top: 1px solid #d6d1c8;
+  padding: 42px 0 28px;
+  text-align: center;
+}
+.originalIntro > p {
+  text-transform: uppercase;
+  color: #a85a00;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.originalIntro h2 {
+  font-size: clamp(32px, 4vw, 52px);
+  margin: 10px 0;
+}
+.originalIntro span {
+  color: #625f59;
+}
+.originalIntro + div {
+  scroll-margin-top: 40px;
+}
+@media (max-width: 1050px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: 45px;
+  }
+  .heroVisual {
+    height: 390px;
+  }
+  .plans {
+    grid-template-columns: 1fr 1fr;
+  }
+  .plans .planCard:last-child {
+    grid-column: 1/-1;
+  }
+  .featureStrip {
+    grid-template-columns: 1fr 1fr;
+  }
+  .audienceFaq {
+    grid-template-columns: 1fr;
+  }
+  .whySubscribe {
+    padding-right: 0;
+  }
+  .whySubscribe aside {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    margin-top: 25px;
+  }
+  .subnav {
+    justify-content: flex-start;
+    gap: 35px;
+  }
+  .planCard {
+    min-height: 560px;
+  }
+}
+@media (max-width: 700px) {
+  .hero,
+  .plans,
+  .comparison,
+  .featureStrip,
+  .audienceFaq,
+  .whySubscribe,
+  .briefing,
+  .originalIntro {
+    width: min(100% - 28px, 1380px);
+  }
+  .subnav {
+    height: 45px;
+    padding-inline: 14px;
+    gap: 24px;
+  }
+  .hero {
+    display: block;
+  }
+  .heroCopy h1 {
+    font-size: 42px;
+  }
+  .heroVisual {
+    height: 310px;
+    margin-top: 22px;
+  }
+  .heroCover {
+    width: 34%;
+    left: 2%;
+    top: 4%;
+  }
+  .laptop {
+    left: 32%;
+    width: 58%;
+    height: 64%;
+  }
+  .laptopScreen > div {
+    padding: 18px 12px;
+  }
+  .laptopScreen h2 {
+    font-size: 18px;
+  }
+  .laptopScreen p {
+    display: none;
+  }
+  .phone {
+    width: 22%;
+    right: 0;
+  }
+  .billingToggle {
+    flex-wrap: wrap;
+  }
+  .billingToggle button {
+    padding: 12px 15px;
+  }
+  .billingToggle b {
+    margin: 10px 0 0 14px;
+  }
+  .trustList {
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
+  .plans {
+    grid-template-columns: 1fr;
+  }
+  .plans .planCard:last-child {
+    grid-column: auto;
+  }
+  .planCard {
+    min-height: auto;
+    padding: 30px 25px;
+  }
+  .planCard ul {
+    margin-bottom: 25px;
+  }
+  .planCard > a {
+    margin-top: 10px;
+  }
+  .featureStrip {
+    grid-template-columns: 1fr;
+  }
+  .audienceFaq > article:first-child > div {
+    grid-template-columns: 1fr;
+  }
+  .audienceFaq section {
+    border-right: 0;
+    border-bottom: 1px solid #ddd8cf;
+  }
+  .whySubscribe > div {
+    grid-template-columns: 1fr 1fr;
+  }
+  .whySubscribe article {
+    border-bottom: 1px solid #ddd8cf;
+  }
+  .briefing {
+    grid-template-columns: auto 1fr;
+    padding: 20px;
+  }
+  .briefing form {
+    grid-column: 1/-1;
+  }
+  .originalIntro {
+    text-align: left;
+  }
+  .laptopScreen img {
+    opacity: 0.18;
+  }
+}
+@media (max-width: 460px) {
+  .heroVisual {
+    height: 255px;
+  }
+  .phone {
+    display: none;
+  }
+  .laptop {
+    left: 35%;
+    width: 63%;
+  }
+  .whySubscribe > div {
+    grid-template-columns: 1fr;
+  }
+  .featureStrip > a {
+    grid-template-columns: 105px 1fr;
+  }
+  .planCard header > span {
+    width: 58px;
+    height: 58px;
+  }
+  .planCard header strong {
+    font-size: 36px;
+  }
+  .comparison th,
+  .comparison td {
+    padding-inline: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page * {
+    scroll-behavior: auto !important;
+  }
+}

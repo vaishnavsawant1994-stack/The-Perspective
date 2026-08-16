@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { MagazineLandingPage } from "@/components/magazine/magazine-landing-page";
+import { MagazineLandingPage, MagazineLegacyHeader } from "@/components/magazine/magazine-landing-page";
+import { MagazineBreakingRail, MagazineRedesign } from "@/components/magazine/magazine-redesign";
 import { siteConfig } from "@/config/site";
 import { getMagazineLandingContent } from "@/data/mock/magazines";
 import { createMagazineStructuredData } from "@/lib/magazine-structured-data";
@@ -19,6 +20,9 @@ export default function MagazinePage() {
   const structuredData = createMagazineStructuredData(content.magazine, [content.latestIssue, ...content.previousIssues, content.premiumIssue]);
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <MagazineBreakingRail />
+    <MagazineLegacyHeader content={content} />
+    <MagazineRedesign content={content} />
     <MagazineLandingPage content={content} />
   </>;
 }

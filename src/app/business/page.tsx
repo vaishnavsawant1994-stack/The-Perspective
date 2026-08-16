@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CategoryLandingPage } from "@/components/category/category-landing-page";
+import { BusinessRedesign } from "@/components/category/business-redesign";
 import { siteConfig } from "@/config/site";
 import { businessContent } from "@/data/mock/business";
 import { createCategoryStructuredData } from "@/lib/category-structured-data";
@@ -16,5 +17,5 @@ export const metadata: Metadata = {
 
 export default function BusinessPage() {
   const structuredData = createCategoryStructuredData(businessContent, description);
-  return <><script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" /><CategoryLandingPage content={businessContent} /></>;
+  return <><script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" /><BusinessRedesign content={businessContent} /><div id="current-business-experience"><CategoryLandingPage content={businessContent} /></div></>;
 }
