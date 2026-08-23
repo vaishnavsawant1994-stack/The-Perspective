@@ -1,0 +1,2 @@
+import { RolePermissionsAdminScreen } from "@/components/workspace/system-administration-screens";
+export default function Page(){return <RolePermissionsAdminScreen/>}

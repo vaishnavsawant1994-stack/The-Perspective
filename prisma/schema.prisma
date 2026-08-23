@@ -1,0 +1,908 @@
+generator client {
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  engineType = "client"
+  runtime    = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["iam", "platform", "audit"]
+}
+
+enum OrganizationType {
+  PLATFORM
+  CLIENT
+  PARTNER
+  VENDOR
+
+  @@schema("iam")
+}
+
+enum RecordStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+
+  @@schema("iam")
+}
+
+enum AccountState {
+  PENDING
+  ACTIVE
+  LOCKED
+  DISABLED
+
+  @@schema("iam")
+}
+
+enum IdentityProvider {
+  PASSWORD
+  GOOGLE
+  MICROSOFT
+  SAML
+  OIDC
+
+  @@schema("iam")
+}
+
+enum MembershipType {
+  STAFF
+  CLIENT
+  PARTNER
+  VENDOR
+
+  @@schema("iam")
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  ENDED
+
+  @@schema("iam")
+}
+
+enum RoleScope {
+  ORG
+  DEPT
+  ASN
+  OWN
+  CLIENT
+  READ
+  NONE
+
+  @@schema("iam")
+}
+
+enum PermissionEffect {
+  ALLOW
+  DENY
+
+  @@schema("iam")
+}
+
+enum MfaMethodType {
+  TOTP
+  WEBAUTHN
+  RECOVERY_CODES
+
+  @@schema("iam")
+}
+
+enum AuthSurface {
+  TEAM
+  CLIENT
+
+  @@schema("iam")
+}
+
+enum AuthAttemptKind {
+  LOGIN
+  RECOVERY_REQUEST
+  RECOVERY_COMPLETE
+  MFA_VERIFY
+  INVITATION_ACCEPT
+
+  @@schema("iam")
+}
+
+enum AuthAttemptOutcome {
+  SUCCEEDED
+  FAILED
+  THROTTLED
+  CHALLENGE_REQUIRED
+
+  @@schema("iam")
+}
+
+enum AuthenticationSecretKind {
+  TOTP_SEED
+
+  @@schema("iam")
+}
+
+enum MfaChallengePurpose {
+  LOGIN
+  ENROLLMENT
+
+  @@schema("iam")
+}
+
+enum Visibility {
+  INTERNAL
+  CLIENT_SHARED
+  PUBLIC
+
+  @@schema("platform")
+}
+
+enum Sensitivity {
+  STANDARD
+  CONFIDENTIAL
+  PII
+  FINANCIAL
+  SECURITY
+  SECRET
+
+  @@schema("platform")
+}
+
+enum ProcessingStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  DEAD_LETTER
+
+  @@schema("platform")
+}
+
+enum IdempotencyState {
+  STARTED
+  COMPLETED
+  FAILED
+
+  @@schema("platform")
+}
+
+enum CallbackStatus {
+  RECEIVED
+  VALIDATED
+  PROCESSED
+  REJECTED
+  FAILED
+
+  @@schema("platform")
+}
+
+enum AutomationRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+  PAUSED
+  CANCELLED
+  NEEDS_ATTENTION
+
+  @@schema("platform")
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("platform")
+}
+
+enum IncidentStatus {
+  INVESTIGATING
+  IDENTIFIED
+  MONITORING
+  RESOLVED
+  MAINTENANCE
+
+  @@schema("platform")
+}
+
+enum ReconciliationStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  NEEDS_REVIEW
+
+  @@schema("platform")
+}
+
+enum AuditActorType {
+  USER
+  SYSTEM
+  SERVICE
+
+  @@schema("audit")
+}
+
+model Organization {
+  id               String           @id @db.Uuid
+  organizationType OrganizationType @map("organization_type")
+  legalName        String           @map("legal_name")
+  displayName      String           @map("display_name")
+  slug             String
+  normalizedDomain String?          @map("normalized_domain") @db.Citext
+  status           RecordStatus     @default(ACTIVE)
+  parentId         String?          @map("parent_organization_id") @db.Uuid
+  settings         Json             @default("{}")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  parent              Organization?            @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children            Organization[]           @relation("OrganizationHierarchy")
+  departments         Department[]
+  memberships         OrganizationMembership[]
+  roles               Role[]
+  invitations         Invitation[]
+  ownedResources      Resource[]               @relation("ResourceOwnerOrganization")
+  clientResources     Resource[]               @relation("ResourceClientOrganization")
+  idempotencyReceipts IdempotencyReceipt[]
+  outboxEvents        OutboxEvent[]
+  callbackReceipts    CallbackReceipt[]
+  automationRuns      AutomationRun[]
+  incidents           Incident[]
+  reconciliationRuns  ReconciliationRun[]
+  auditEvents         AuditEvent[]
+
+  @@unique([slug])
+  @@index([organizationType, status])
+  @@map("organizations")
+  @@schema("iam")
+}
+
+model Person {
+  id              String   @id @db.Uuid
+  displayName     String   @map("display_name")
+  givenName       String?  @map("given_name")
+  familyName      String?  @map("family_name")
+  emailOriginal   String?  @map("email_original")
+  emailNormalized String?  @map("email_normalized") @db.Citext
+  phoneMasked     String?  @map("phone_masked")
+  locale          String   @default("en")
+  timezone        String   @default("UTC")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  userAccount UserAccount?
+
+  @@index([emailNormalized])
+  @@map("people")
+  @@schema("iam")
+}
+
+model UserAccount {
+  id              String       @id @db.Uuid
+  personId        String       @unique @map("person_id") @db.Uuid
+  accountState    AccountState @default(PENDING) @map("account_state")
+  emailVerifiedAt DateTime?    @map("email_verified_at") @db.Timestamptz(6)
+  lastLoginAt     DateTime?    @map("last_login_at") @db.Timestamptz(6)
+  lockedUntil     DateTime?    @map("locked_until") @db.Timestamptz(6)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person                 Person                   @relation(fields: [personId], references: [id], onDelete: Restrict)
+  identities             UserIdentity[]
+  sessions               Session[]
+  memberships            OrganizationMembership[]
+  mfaMethods             MfaMethod[]
+  recoveryChallenges     RecoveryChallenge[]
+  authenticationAttempts AuthenticationAttempt[]
+  authenticationSecrets  AuthenticationSecret[]
+  mfaChallenges          MfaChallenge[]
+  auditEvents            AuditEvent[]
+
+  @@map("user_accounts")
+  @@schema("iam")
+}
+
+model UserIdentity {
+  id                  String           @id @db.Uuid
+  userAccountId       String           @map("user_account_id") @db.Uuid
+  provider            IdentityProvider
+  providerSubject     String           @map("provider_subject")
+  credentialReference String?          @map("credential_reference")
+  lastUsedAt          DateTime?        @map("last_used_at") @db.Timestamptz(6)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userAccount         UserAccount          @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  passwordCredentials PasswordCredential[]
+
+  @@unique([provider, providerSubject])
+  @@index([userAccountId])
+  @@map("user_identities")
+  @@schema("iam")
+}
+
+model Department {
+  id                  String       @id @db.Uuid
+  organizationId      String       @map("organization_id") @db.Uuid
+  name                String
+  slug                String
+  parentDepartmentId  String?      @map("parent_department_id") @db.Uuid
+  managerMembershipId String?      @map("manager_membership_id") @db.Uuid
+  status              RecordStatus @default(ACTIVE)
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization      Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parent            Department?              @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id], onDelete: Restrict)
+  children          Department[]             @relation("DepartmentHierarchy")
+  managerMembership OrganizationMembership?  @relation("DepartmentManager", fields: [managerMembershipId], references: [id], onDelete: Restrict)
+  members           OrganizationMembership[] @relation("MembershipDepartment")
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status])
+  @@map("departments")
+  @@schema("iam")
+}
+
+model OrganizationMembership {
+  id                  String           @id @db.Uuid
+  organizationId      String           @map("organization_id") @db.Uuid
+  userAccountId       String           @map("user_account_id") @db.Uuid
+  membershipType      MembershipType   @map("membership_type")
+  title               String?
+  departmentId        String?          @map("department_id") @db.Uuid
+  managerMembershipId String?          @map("manager_membership_id") @db.Uuid
+  status              MembershipStatus @default(INVITED)
+  joinedAt            DateTime?        @map("joined_at") @db.Timestamptz(6)
+  endedAt             DateTime?        @map("ended_at") @db.Timestamptz(6)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization       Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  userAccount        UserAccount              @relation(fields: [userAccountId], references: [id], onDelete: Restrict)
+  department         Department?              @relation("MembershipDepartment", fields: [departmentId], references: [id], onDelete: Restrict)
+  manager            OrganizationMembership?  @relation("MembershipManager", fields: [managerMembershipId], references: [id], onDelete: Restrict)
+  reports            OrganizationMembership[] @relation("MembershipManager")
+  managedDepartments Department[]             @relation("DepartmentManager")
+  activeSessions     Session[]
+  membershipRoles    MembershipRole[]
+  invitationsSent    Invitation[]
+  incidentEvents     IncidentEvent[]
+  auditEvents        AuditEvent[]
+
+  @@index([organizationId, status])
+  @@index([userAccountId, status])
+  @@index([departmentId, status])
+  @@map("organization_memberships")
+  @@schema("iam")
+}
+
+model Role {
+  id             String       @id @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  key            String
+  name           String
+  description    String?
+  systemRole     Boolean      @default(false) @map("system_role")
+  defaultScope   RoleScope    @default(NONE) @map("default_scope")
+  status         RecordStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  rolePermissions RolePermission[]
+  membershipRoles MembershipRole[]
+  invitations     Invitation[]
+
+  @@unique([organizationId, key])
+  @@index([organizationId, status])
+  @@map("roles")
+  @@schema("iam")
+}
+
+model Permission {
+  id          String   @id @db.Uuid
+  key         String   @unique
+  domain      String
+  action      String
+  description String?
+  riskLevel   String   @map("risk_level")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rolePermissions RolePermission[]
+
+  @@index([domain, action])
+  @@map("permissions")
+  @@schema("iam")
+}
+
+model RolePermission {
+  roleId       String           @map("role_id") @db.Uuid
+  permissionId String           @map("permission_id") @db.Uuid
+  effect       PermissionEffect @default(ALLOW)
+  constraints  Json             @default("{}")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+  @@schema("iam")
+}
+
+model MembershipRole {
+  id           String    @id @db.Uuid
+  membershipId String    @map("membership_id") @db.Uuid
+  roleId       String    @map("role_id") @db.Uuid
+  scope        RoleScope
+  validFrom    DateTime  @default(now()) @map("valid_from") @db.Timestamptz(6)
+  validUntil   DateTime? @map("valid_until") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  membership OrganizationMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  role       Role                   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@index([membershipId, validUntil])
+  @@index([roleId])
+  @@map("membership_roles")
+  @@schema("iam")
+}
+
+model Session {
+  id                   String      @id @db.Uuid
+  userAccountId        String      @map("user_account_id") @db.Uuid
+  activeMembershipId   String?     @map("active_membership_id") @db.Uuid
+  tokenHash            String      @unique @map("token_hash")
+  surface              AuthSurface
+  authenticationMethod String      @map("authentication_method")
+  mfaVerifiedAt        DateTime?   @map("mfa_verified_at") @db.Timestamptz(6)
+  deviceId             String?     @map("device_id")
+  ipHash               String?     @map("ip_hash")
+  issuedAt             DateTime    @default(now()) @map("issued_at") @db.Timestamptz(6)
+  expiresAt            DateTime    @map("expires_at") @db.Timestamptz(6)
+  revokedAt            DateTime?   @map("revoked_at") @db.Timestamptz(6)
+  revokeReason         String?     @map("revoke_reason")
+
+  userAccount      UserAccount             @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  activeMembership OrganizationMembership? @relation(fields: [activeMembershipId], references: [id], onDelete: Restrict)
+
+  @@index([userAccountId, expiresAt])
+  @@index([activeMembershipId, expiresAt])
+  @@map("sessions")
+  @@schema("iam")
+}
+
+model MfaMethod {
+  id              String        @id @db.Uuid
+  userAccountId   String        @map("user_account_id") @db.Uuid
+  methodType      MfaMethodType @map("method_type")
+  secretReference String?       @map("secret_reference")
+  keyFingerprint  String        @map("key_fingerprint")
+  verifiedAt      DateTime?     @map("verified_at") @db.Timestamptz(6)
+  lastUsedAt      DateTime?     @map("last_used_at") @db.Timestamptz(6)
+  disabledAt      DateTime?     @map("disabled_at") @db.Timestamptz(6)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userAccount UserAccount    @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  challenges  MfaChallenge[]
+
+  @@unique([userAccountId, methodType, keyFingerprint])
+  @@map("mfa_methods")
+  @@schema("iam")
+}
+
+model Invitation {
+  id                  String    @id @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  emailNormalized     String    @map("email_normalized") @db.Citext
+  intendedRoleId      String?   @map("intended_role_id") @db.Uuid
+  tokenHash           String    @unique @map("token_hash")
+  inviterMembershipId String?   @map("inviter_membership_id") @db.Uuid
+  expiresAt           DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedAt          DateTime? @map("accepted_at") @db.Timestamptz(6)
+  termsAcceptedAt     DateTime? @map("terms_accepted_at") @db.Timestamptz(6)
+  revokedAt           DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization      Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  intendedRole      Role?                   @relation(fields: [intendedRoleId], references: [id], onDelete: Restrict)
+  inviterMembership OrganizationMembership? @relation(fields: [inviterMembershipId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, emailNormalized])
+  @@map("invitations")
+  @@schema("iam")
+}
+
+model RecoveryChallenge {
+  id              String      @id @db.Uuid
+  userAccountId   String      @map("user_account_id") @db.Uuid
+  tokenHash       String      @unique @map("token_hash")
+  surface         AuthSurface
+  identifierHash  String      @map("identifier_hash")
+  requestedIpHash String?     @map("requested_ip_hash")
+  attemptCount    Int         @default(0) @map("attempt_count")
+  expiresAt       DateTime    @map("expires_at") @db.Timestamptz(6)
+  consumedAt      DateTime?   @map("consumed_at") @db.Timestamptz(6)
+  revokedAt       DateTime?   @map("revoked_at") @db.Timestamptz(6)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userAccount UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+
+  @@index([userAccountId, expiresAt])
+  @@map("recovery_challenges")
+  @@schema("iam")
+}
+
+model PasswordCredential {
+  id             String   @id @db.Uuid
+  userIdentityId String   @map("user_identity_id") @db.Uuid
+  passwordHash   String   @map("password_hash")
+  version        Int
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userIdentity UserIdentity @relation(fields: [userIdentityId], references: [id], onDelete: Restrict)
+
+  @@unique([userIdentityId, version])
+  @@index([userIdentityId, createdAt])
+  @@map("password_credentials")
+  @@schema("iam")
+}
+
+model AuthenticationAttempt {
+  id             String             @id @db.Uuid
+  surface        AuthSurface
+  kind           AuthAttemptKind
+  outcome        AuthAttemptOutcome
+  identifierHash String             @map("identifier_hash")
+  ipHash         String?            @map("ip_hash")
+  userAccountId  String?            @map("user_account_id") @db.Uuid
+  correlationId  String             @map("correlation_id")
+  evidence       Json               @default("{}")
+  occurredAt     DateTime           @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  userAccount UserAccount? @relation(fields: [userAccountId], references: [id], onDelete: SetNull)
+
+  @@index([identifierHash, kind, occurredAt])
+  @@index([ipHash, kind, occurredAt])
+  @@index([userAccountId, occurredAt])
+  @@map("authentication_attempts")
+  @@schema("iam")
+}
+
+model AuthenticationSecret {
+  id            String                   @id @db.Uuid
+  userAccountId String                   @map("user_account_id") @db.Uuid
+  secretKind    AuthenticationSecretKind @map("secret_kind")
+  ciphertext    String
+  nonce         String
+  authTag       String                   @map("auth_tag")
+  keyVersion    Int                      @map("key_version")
+  createdAt     DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userAccount UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Restrict)
+
+  @@index([userAccountId, secretKind, createdAt])
+  @@map("authentication_secrets")
+  @@schema("iam")
+}
+
+model MfaChallenge {
+  id              String              @id @db.Uuid
+  userAccountId   String              @map("user_account_id") @db.Uuid
+  mfaMethodId     String?             @map("mfa_method_id") @db.Uuid
+  purpose         MfaChallengePurpose
+  tokenHash       String              @unique @map("token_hash")
+  surface         AuthSurface
+  rememberSession Boolean             @default(false) @map("remember_session")
+  failedAttempts  Int                 @default(0) @map("failed_attempts")
+  expiresAt       DateTime            @map("expires_at") @db.Timestamptz(6)
+  consumedAt      DateTime?           @map("consumed_at") @db.Timestamptz(6)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userAccount UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  mfaMethod   MfaMethod?  @relation(fields: [mfaMethodId], references: [id], onDelete: Restrict)
+
+  @@index([userAccountId, purpose, expiresAt])
+  @@index([mfaMethodId, expiresAt])
+  @@map("mfa_challenges")
+  @@schema("iam")
+}
+
+model Resource {
+  id                   String      @id @db.Uuid
+  resourceType         String      @map("resource_type")
+  title                String?
+  ownerOrganizationId  String      @map("owner_organization_id") @db.Uuid
+  clientOrganizationId String?     @map("client_organization_id") @db.Uuid
+  projectId            String?     @map("project_id") @db.Uuid
+  visibility           Visibility  @default(INTERNAL)
+  sensitivity          Sensitivity @default(STANDARD)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  archivedAt           DateTime?   @map("archived_at") @db.Timestamptz(6)
+
+  ownerOrganization      Organization            @relation("ResourceOwnerOrganization", fields: [ownerOrganizationId], references: [id], onDelete: Restrict)
+  clientOrganization     Organization?           @relation("ResourceClientOrganization", fields: [clientOrganizationId], references: [id], onDelete: Restrict)
+  outboxEvents           OutboxEvent[]
+  reconciliationFindings ReconciliationFinding[]
+  auditEvents            AuditEvent[]
+
+  @@index([ownerOrganizationId, resourceType, archivedAt])
+  @@index([clientOrganizationId, visibility, createdAt(sort: Desc)])
+  @@index([projectId, resourceType])
+  @@map("resources")
+  @@schema("platform")
+}
+
+model IdempotencyReceipt {
+  id                  String           @id @db.Uuid
+  ownerOrganizationId String           @map("owner_organization_id") @db.Uuid
+  scope               String
+  idempotencyKey      String           @map("idempotency_key")
+  requestHash         String           @map("request_hash")
+  state               IdempotencyState @default(STARTED)
+  responseStatus      Int?             @map("response_status")
+  responseHash        String?          @map("response_hash")
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt         DateTime?        @map("completed_at") @db.Timestamptz(6)
+  expiresAt           DateTime         @map("expires_at") @db.Timestamptz(6)
+
+  ownerOrganization Organization @relation(fields: [ownerOrganizationId], references: [id], onDelete: Restrict)
+
+  @@unique([ownerOrganizationId, scope, idempotencyKey])
+  @@index([ownerOrganizationId, state, expiresAt])
+  @@map("idempotency_receipts")
+  @@schema("platform")
+}
+
+model OutboxEvent {
+  id                  String           @id @db.Uuid
+  ownerOrganizationId String           @map("owner_organization_id") @db.Uuid
+  aggregateResourceId String?          @map("aggregate_resource_id") @db.Uuid
+  eventType           String           @map("event_type")
+  schemaVersion       Int              @default(1) @map("schema_version")
+  payload             Json
+  idempotencyKey      String           @unique @map("idempotency_key")
+  status              ProcessingStatus @default(PENDING)
+  availableAt         DateTime         @default(now()) @map("available_at") @db.Timestamptz(6)
+  publishedAt         DateTime?        @map("published_at") @db.Timestamptz(6)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  ownerOrganization Organization            @relation(fields: [ownerOrganizationId], references: [id], onDelete: Restrict)
+  aggregateResource Resource?               @relation(fields: [aggregateResourceId], references: [id], onDelete: Restrict)
+  attempts          OutboxDeliveryAttempt[]
+
+  @@index([ownerOrganizationId, status, availableAt])
+  @@map("outbox_events")
+  @@schema("platform")
+}
+
+model OutboxDeliveryAttempt {
+  id            String           @id @db.Uuid
+  outboxEventId String           @map("outbox_event_id") @db.Uuid
+  attemptNumber Int              @map("attempt_number")
+  status        ProcessingStatus
+  startedAt     DateTime         @map("started_at") @db.Timestamptz(6)
+  finishedAt    DateTime?        @map("finished_at") @db.Timestamptz(6)
+  requestHash   String?          @map("request_hash")
+  responseHash  String?          @map("response_hash")
+  errorCode     String?          @map("error_code")
+  errorSummary  String?          @map("error_summary")
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  outboxEvent OutboxEvent @relation(fields: [outboxEventId], references: [id], onDelete: Restrict)
+
+  @@unique([outboxEventId, attemptNumber])
+  @@index([status, startedAt])
+  @@map("outbox_delivery_attempts")
+  @@schema("platform")
+}
+
+model CallbackReceipt {
+  id                  String         @id @db.Uuid
+  ownerOrganizationId String         @map("owner_organization_id") @db.Uuid
+  provider            String
+  externalEventId     String         @map("external_event_id")
+  connectionReference String?        @map("connection_reference")
+  signatureValid      Boolean        @map("signature_valid")
+  payloadHash         String         @map("payload_hash")
+  payload             Json
+  status              CallbackStatus @default(RECEIVED)
+  receivedAt          DateTime       @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt         DateTime?      @map("processed_at") @db.Timestamptz(6)
+
+  ownerOrganization Organization      @relation(fields: [ownerOrganizationId], references: [id], onDelete: Restrict)
+  attempts          CallbackAttempt[]
+
+  @@unique([provider, externalEventId])
+  @@index([ownerOrganizationId, status, receivedAt])
+  @@map("callback_receipts")
+  @@schema("platform")
+}
+
+model CallbackAttempt {
+  id                String           @id @db.Uuid
+  callbackReceiptId String           @map("callback_receipt_id") @db.Uuid
+  attemptNumber     Int              @map("attempt_number")
+  status            ProcessingStatus
+  startedAt         DateTime         @map("started_at") @db.Timestamptz(6)
+  finishedAt        DateTime?        @map("finished_at") @db.Timestamptz(6)
+  resultHash        String?          @map("result_hash")
+  errorCode         String?          @map("error_code")
+  errorSummary      String?          @map("error_summary")
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  callbackReceipt CallbackReceipt @relation(fields: [callbackReceiptId], references: [id], onDelete: Restrict)
+
+  @@unique([callbackReceiptId, attemptNumber])
+  @@map("callback_attempts")
+  @@schema("platform")
+}
+
+model AutomationRun {
+  id                  String              @id @db.Uuid
+  ownerOrganizationId String              @map("owner_organization_id") @db.Uuid
+  workflowKey         String              @map("workflow_key")
+  triggerKey          String              @map("trigger_key")
+  rootRunId           String?             @map("root_run_id") @db.Uuid
+  parentRunId         String?             @map("parent_run_id") @db.Uuid
+  executionNumber     Int                 @default(1) @map("execution_number")
+  status              AutomationRunStatus @default(QUEUED)
+  inputHash           String              @map("input_hash")
+  startedAt           DateTime?           @map("started_at") @db.Timestamptz(6)
+  completedAt         DateTime?           @map("completed_at") @db.Timestamptz(6)
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  ownerOrganization Organization            @relation(fields: [ownerOrganizationId], references: [id], onDelete: Restrict)
+  rootRun           AutomationRun?          @relation("AutomationRoot", fields: [rootRunId], references: [id], onDelete: Restrict)
+  lineageRuns       AutomationRun[]         @relation("AutomationRoot")
+  parentRun         AutomationRun?          @relation("AutomationParent", fields: [parentRunId], references: [id], onDelete: Restrict)
+  retries           AutomationRun[]         @relation("AutomationParent")
+  stepAttempts      AutomationStepAttempt[]
+
+  @@unique([rootRunId, executionNumber])
+  @@index([ownerOrganizationId, status, createdAt])
+  @@index([workflowKey, status, createdAt])
+  @@map("automation_runs")
+  @@schema("platform")
+}
+
+model AutomationStepAttempt {
+  id              String           @id @db.Uuid
+  automationRunId String           @map("automation_run_id") @db.Uuid
+  stepKey         String           @map("step_key")
+  attemptNumber   Int              @map("attempt_number")
+  status          ProcessingStatus
+  inputHash       String           @map("input_hash")
+  outputHash      String?          @map("output_hash")
+  errorCode       String?          @map("error_code")
+  errorSummary    String?          @map("error_summary")
+  startedAt       DateTime         @map("started_at") @db.Timestamptz(6)
+  finishedAt      DateTime?        @map("finished_at") @db.Timestamptz(6)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  automationRun AutomationRun @relation(fields: [automationRunId], references: [id], onDelete: Restrict)
+
+  @@unique([automationRunId, stepKey, attemptNumber])
+  @@map("automation_step_attempts")
+  @@schema("platform")
+}
+
+model Incident {
+  id                  String           @id @db.Uuid
+  ownerOrganizationId String           @map("owner_organization_id") @db.Uuid
+  incidentKey         String           @map("incident_key")
+  title               String
+  severity            IncidentSeverity
+  status              IncidentStatus
+  startedAt           DateTime         @map("started_at") @db.Timestamptz(6)
+  resolvedAt          DateTime?        @map("resolved_at") @db.Timestamptz(6)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ownerOrganization Organization    @relation(fields: [ownerOrganizationId], references: [id], onDelete: Restrict)
+  events            IncidentEvent[]
+
+  @@unique([ownerOrganizationId, incidentKey])
+  @@index([ownerOrganizationId, status, startedAt])
+  @@map("incidents")
+  @@schema("platform")
+}
+
+model IncidentEvent {
+  id                String   @id @db.Uuid
+  incidentId        String   @map("incident_id") @db.Uuid
+  eventType         String   @map("event_type")
+  actorMembershipId String?  @map("actor_membership_id") @db.Uuid
+  previousStatus    String?  @map("previous_status")
+  newStatus         String?  @map("new_status")
+  summary           String
+  payload           Json     @default("{}")
+  occurredAt        DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  incident        Incident                @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  actorMembership OrganizationMembership? @relation(fields: [actorMembershipId], references: [id], onDelete: Restrict)
+
+  @@index([incidentId, occurredAt])
+  @@map("incident_events")
+  @@schema("platform")
+}
+
+model ReconciliationRun {
+  id                  String               @id @db.Uuid
+  ownerOrganizationId String               @map("owner_organization_id") @db.Uuid
+  reconciliationType  String               @map("reconciliation_type")
+  scopeKey            String               @map("scope_key")
+  status              ReconciliationStatus @default(PENDING)
+  cutoffAt            DateTime?            @map("cutoff_at") @db.Timestamptz(6)
+  startedAt           DateTime?            @map("started_at") @db.Timestamptz(6)
+  finishedAt          DateTime?            @map("finished_at") @db.Timestamptz(6)
+  resultHash          String?              @map("result_hash")
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  ownerOrganization Organization            @relation(fields: [ownerOrganizationId], references: [id], onDelete: Restrict)
+  findings          ReconciliationFinding[]
+
+  @@index([ownerOrganizationId, status, createdAt])
+  @@map("reconciliation_runs")
+  @@schema("platform")
+}
+
+model ReconciliationFinding {
+  id                  String   @id @db.Uuid
+  reconciliationRunId String   @map("reconciliation_run_id") @db.Uuid
+  resourceId          String?  @map("resource_id") @db.Uuid
+  findingKey          String   @map("finding_key")
+  severity            String
+  expectedHash        String?  @map("expected_hash")
+  actualHash          String?  @map("actual_hash")
+  details             Json     @default("{}")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  reconciliationRun ReconciliationRun @relation(fields: [reconciliationRunId], references: [id], onDelete: Restrict)
+  resource          Resource?         @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+
+  @@unique([reconciliationRunId, findingKey])
+  @@map("reconciliation_findings")
+  @@schema("platform")
+}
+
+model AuditEvent {
+  id                  String         @id @db.Uuid
+  ownerOrganizationId String         @map("owner_organization_id") @db.Uuid
+  targetResourceId    String?        @map("target_resource_id") @db.Uuid
+  actorType           AuditActorType @map("actor_type")
+  actorUserId         String?        @map("actor_user_id") @db.Uuid
+  actorMembershipId   String?        @map("actor_membership_id") @db.Uuid
+  action              String
+  requestId           String         @map("request_id")
+  correlationId       String?        @map("correlation_id")
+  causationId         String?        @map("causation_id")
+  beforeHash          String?        @map("before_hash")
+  afterHash           String?        @map("after_hash")
+  redactedDiff        Json?          @map("redacted_diff")
+  ipHash              String?        @map("ip_hash")
+  deviceId            String?        @map("device_id")
+  reason              String?
+  idempotencyKey      String?        @unique @map("idempotency_key")
+  occurredAt          DateTime       @map("occurred_at") @db.Timestamptz(6)
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  ownerOrganization Organization            @relation(fields: [ownerOrganizationId], references: [id], onDelete: Restrict)
+  targetResource    Resource?               @relation(fields: [targetResourceId], references: [id], onDelete: Restrict)
+  actorUser         UserAccount?            @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorMembership   OrganizationMembership? @relation(fields: [actorMembershipId], references: [id], onDelete: Restrict)
+
+  @@index([ownerOrganizationId, occurredAt(sort: Desc)])
+  @@index([targetResourceId, occurredAt(sort: Desc)])
+  @@index([actorUserId, occurredAt(sort: Desc)])
+  @@index([requestId])
+  @@map("audit_events")
+  @@schema("audit")
+}

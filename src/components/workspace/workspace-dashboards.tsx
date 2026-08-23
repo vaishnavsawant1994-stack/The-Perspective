@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, BellRing,
-  BookOpen, BriefcaseBusiness, CalendarDays, CheckCircle2, ChevronRight,
+  AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, BellRing,
+  BookOpen, CalendarDays, CheckCircle2, ChevronRight,
   CircleDollarSign, CircleHelp, ClipboardCheck, Clock3, CloudUpload, DollarSign, FileCheck2, FileText,
-  Filter, FolderKanban, Gauge, Handshake, Headphones, ListChecks, Mail,
-  MessageSquare, Mic2, PackageCheck, PenLine, Plus, ReceiptText, Rocket, Search, Send,
-  Settings, Share2, ShieldCheck, Sparkles, Target, TrendingUp, Upload,
+  Filter, FolderKanban, Gauge, ListChecks, Mail,
+  MessageSquare, PackageCheck, PenLine, Plus, ReceiptText, Rocket, Search, Send,
+  Settings, Share2, ShieldCheck, Sparkles, TrendingUp, Upload,
   UserPlus, Users, Video, WalletCards,
 } from "lucide-react";
 import styles from "./workspace.module.css";
@@ -111,7 +111,7 @@ export function TeamShellShowcase() {
   return <div className={styles.shellShowcase}><PageTitle title="Executive Overview" subtitle="Real-time overview of key metrics across the business." actions={<><button className={styles.controlButton}><Share2 size={16}/> Share</button><button className={styles.primaryAction}><Plus size={16}/> Add widget</button></>} /><div className={styles.shellGrid}><div><div className={styles.statsGrid}>{stats.map(s=><StatCard stat={s} key={s.label}/>)}</div><div className={styles.shellCharts}><Panel title="Revenue Overview" action="This month"><CssLineChart /></Panel><Panel title="Projects by Stage" action="All projects"><Donut total="86" label="Total" /></Panel></div><div className={styles.shellTables}><Panel title="Recent Projects" action="View all"><ProjectTable /></Panel><Panel title="My Tasks" action="View all (243)"><TaskRows /></Panel></div></div><aside className={styles.shellRail}><Panel title="Activity Feed" action="View all"><ActivityList /></Panel><Panel title="Upcoming Meetings" action="View calendar"><MeetingRows /></Panel><Panel title="Quick Actions"><QuickActions /></Panel></aside></div></div>;
 }
 
-function ProjectTable(){return <div className={styles.dataTable}><div className={styles.tableHead}><span>Project name</span><span>Client</span><span>Stage</span><span>Due date</span><span>Progress</span><span>Status</span></div>{[["Q2 Magazine Issue","Acme Corporation","In production","May 24","72%","On track"],["Leadership Podcast Ep. 23","TechNova","Review","May 20","58%","On track"],["Brand Film","BluePeak Partners","Production","May 28","41%","At risk"],["Industry Report 2026","Global Dynamics","Research","Jun 03","24%","On track"],["CEO Interview Series","InnovateX","Planning","Jun 10","12%","On track"]].map((x,i)=><div className={styles.tableRow} key={x[0]}>{x.map((y,j)=><span className={j===0?styles.cellLink:j===5?styles.statusCell:""} key={j}>{j===4?<i className={styles.miniProgress}><b style={{width:y}}/></i>:y}</span>)}</div>)}</div>}
+function ProjectTable(){return <div className={styles.dataTable}><div className={styles.tableHead}><span>Project name</span><span>Client</span><span>Stage</span><span>Due date</span><span>Progress</span><span>Status</span></div>{[["Q2 Magazine Issue","Acme Corporation","In production","May 24","72%","On track"],["Leadership Podcast Ep. 23","TechNova","Review","May 20","58%","On track"],["Brand Film","BluePeak Partners","Production","May 28","41%","At risk"],["Industry Report 2026","Global Dynamics","Research","Jun 03","24%","On track"],["CEO Interview Series","InnovateX","Planning","Jun 10","12%","On track"]].map((x)=><div className={styles.tableRow} key={x[0]}>{x.map((y,j)=><span className={j===0?styles.cellLink:j===5?styles.statusCell:""} key={j}>{j===4?<i className={styles.miniProgress}><b style={{width:y}}/></i>:y}</span>)}</div>)}</div>}
 function TaskRows(){return <div className={styles.taskRows}>{[["Review magazine draft","Q2 Magazine Issue","High","May 20"],["Client questionnaire follow-up","Acme Corporation Project","Medium","May 20"],["Approve podcast episode outline","Leadership Podcast Ep. 23","High","May 21"],["Upload brand assets","Brand Film","Low","May 22"],["Finance report review","May Monthly Report","Medium","May 23"]].map(x=><label key={x[0]}><input type="checkbox"/><p><b>{x[0]}</b><small>{x[1]}</small></p><em>{x[2]}</em><span>{x[3]}</span></label>)}</div>}
 
 const salesStats: Stat[] = [

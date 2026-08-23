@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { ClientDashboard } from "@/components/workspace/workspace-dashboards";
+import { ClientHomeScreen } from "@/components/workspace/client-portal-screens";
 
 export const metadata: Metadata = { title: "Client Portal — The Perspective" };
 
-export default function ClientDashboardPage() { return <ClientDashboard />; }
+export default function ClientDashboardPage() { return <ClientHomeScreen />; }

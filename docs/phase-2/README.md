@@ -83,3 +83,17 @@ Phase 2D is frozen. UI implementation was intentionally not started during Phase
 The Phase 2E source of truth maps all **151 frozen operational routes** to **35 reusable design families**, sequences **35 anchor designs** before **118 route variants**, and defines desktop, tablet, mobile, empty, loading, error and permission-reduced behavior for every screen.
 
 Phase 2E planning is frozen. No Admin, Employee or Client Portal UI implementation was started in this phase. The next visual execution item is **Design 001 — TeamShell**, followed by **Design 002 — ClientShell** and then the exact routed sequence in the master document.
+
+### Phase 2E visual execution checkpoint
+
+Frontend visual execution is tracked separately from the frozen planning document in the [Phase 2E Implementation Tracker](./PHASE-2E-IMPLEMENTATION-TRACKER.md). The current local checkpoint is **153 / 153 designs completed**, **0 pending** (**100%**). The latest completed reference batch is **Design 141–153**, covering automation monitoring, alerting, access administration, organization configuration, developer access, health, data transfer, shared states, responsive systems, and the final design system.
+
+The completed **Design 031–153** range uses the shared visual system for consistent shell sizing, navigation, route access, responsive behavior, realistic prototype content, and client-safe visibility treatment.
+
+## Phase 2F deliverable — frozen
+
+1. [Master API & Service Architecture](./PHASE-2F-MASTER-API-AND-SERVICE-ARCHITECTURE.md)
+
+Phase 2F defines the versioned Team Workspace, Client Portal, public, file, webhook, and worker contracts; modular domain-service ownership; query and command boundaries; organization/client authorization; endpoint catalog; idempotency and concurrency; transactional events; provider integration; caching; search; reporting provenance; observability; testing; and implementation sequence.
+
+The initial backend remains a modular monolith with explicit domain boundaries. Phase 2G may sequence implementation or justify later service extraction, but it must preserve the canonical IDs, commands, events, authorization rules, immutable evidence, and API behavior frozen here.

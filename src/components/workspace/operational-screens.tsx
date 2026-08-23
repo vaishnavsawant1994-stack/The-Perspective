@@ -1,13 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Activity, AlertCircle, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight,
+  Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight,
   BadgeCheck, BarChart3, BriefcaseBusiness, CalendarDays, Check, CheckCircle2,
   CircleDollarSign, CircleGauge, Clock3, CloudUpload, ContactRound, CreditCard,
-  Database, Download, FileCheck2, FileSearch, FileText, Filter, FolderKanban,
+  Database, Download, FileSearch, FileText, Filter, FolderKanban,
   Gauge, Globe2, HandCoins, Landmark, ListChecks, Mail, Merge,
-  MessageSquare, Pause, Phone, Plus, ReceiptText, RefreshCw, Search, Send,
-  ShieldCheck, Sparkles, Target, TriangleAlert, Upload, UserPlus, Users, WalletCards,
+  MessageSquare, Pause, Phone, Plus, ReceiptText, RefreshCw, Search,
+  ShieldCheck, Upload, UserPlus, Users, WalletCards,
   XCircle,
 } from "lucide-react";
 import styles from "./workspace.module.css";
