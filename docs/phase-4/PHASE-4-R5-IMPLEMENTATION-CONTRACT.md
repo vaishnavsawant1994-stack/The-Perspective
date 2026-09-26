@@ -602,7 +602,7 @@ Human RBAC and system execution are separate authority classes.
 - browser-supplied actor/system flags are ignored/rejected;
 - consequential worker side effects re-load canonical tenant/resource state when the operation can become stale.
 
-## 44. List/search/count/pagination policy
+## 24. List/search/count/pagination policy
 
 Authorization filters must be applied before:
 
@@ -616,7 +616,7 @@ Authorization filters must be applied before:
 
 Post-filtering unauthorized rows after database retrieval is not an accepted security boundary for tenant-sensitive queries.
 
-## 24. Bulk command policy
+## 25. Bulk command policy
 
 Default behavior:
 
@@ -626,7 +626,7 @@ Default behavior:
 
 Endpoints may explicitly define per-item results only if their contract prevents enumeration and applies policy independently per item.
 
-## 25. Export policy
+## 26. Export policy
 
 Exports are protected commands.
 
@@ -641,7 +641,7 @@ They require:
 
 No “download all” bypass.
 
-## 26. Error contract
+## 27. Error contract
 
 Recommended internal reason families:
 
@@ -663,7 +663,7 @@ Recommended internal reason families:
 
 Caller response may intentionally collapse several cases to 404/403 to prevent enumeration.
 
-## 27. Audit and security evidence
+## 28. Audit and security evidence
 
 ### Mandatory immutable audit
 
@@ -687,7 +687,7 @@ High-risk escalation attempts should additionally create durable audit/security 
 
 Do not store secrets or full protected payloads in audit.
 
-## 28. Role/permission administration API design
+## 29. Role/permission administration API design
 
 R5 may implement only the authorization-admin endpoints necessary to administer/test R5 itself, aligned with Phase-2F:
 
@@ -712,7 +712,7 @@ Rules:
 
 This does not authorize R6 business APIs.
 
-## 29. Database rules
+## 30. Database rules
 
 R5 reuses existing IAM tables.
 
@@ -729,7 +729,7 @@ R5 must **not** create R6 business-domain entities merely to demonstrate `ASN`, 
 
 R5 must not introduce a parallel authorization database.
 
-## 30. Database tenant enforcement
+## 31. Database tenant enforcement
 
 R4 tenant RLS remains mandatory.
 
@@ -752,7 +752,7 @@ R5 must prove:
 - role-admin queries are tenant-bound;
 - restricted domain/resource access uses the correct database boundary where applicable.
 
-## 31. Client-safe projection architecture
+## 32. Client-safe projection architecture
 
 Team and Client serializers/repositories remain separate policy projections.
 
@@ -772,7 +772,7 @@ authorized canonical record
 
 Nested relationships obey the same rule.
 
-## 32. Search and future indexes
+## 33. Search and future indexes
 
 Any search/index document later used by R6+ must carry sufficient policy metadata such as:
 
@@ -789,7 +789,7 @@ Server-derived authorization filters apply before results/counts/facets.
 
 R5 only freezes this requirement; R11 implements production search.
 
-## 33. File/media policy
+## 34. File/media policy
 
 R5 policy must be capable of authorizing:
 
@@ -804,7 +804,7 @@ Storage signing occurs only after authorization.
 
 R13 may implement the provider-backed storage operations.
 
-## 34. Authorization module boundaries
+## 35. Authorization module boundaries
 
 Expected implementation responsibility, subject to frozen contract:
 
@@ -826,7 +826,7 @@ Exact filenames are not frozen by this contract.
 
 The architecture must remain modular and server-only.
 
-## 35. Planned implementation slices after authorization
+## 36. Planned implementation slices after authorization
 
 Only after P4-R5-G0 is frozen and owner-authorized:
 
@@ -848,7 +848,7 @@ Only after P4-R5-G0 is frozen and owner-authorized:
 
 No R6 feature implementation belongs in these slices.
 
-## 36. Required tests
+## 37. Required tests
 
 ### Unit
 
@@ -915,7 +915,7 @@ No R6 feature implementation belongs in these slices.
 - lint/typecheck/build;
 - dependency/security audit.
 
-## 37. Qualification
+## 38. Qualification
 
 Final R5 implementation candidate requires one exact SHA.
 
@@ -942,7 +942,7 @@ dependency audit
 
 Any repair creates a new candidate SHA and affected gates rerun.
 
-## 38. R5 checkpoint
+## 39. R5 checkpoint
 
 P4-R5-C1 must record:
 
@@ -962,7 +962,7 @@ P4-R5-C1 must record:
 - rollback;
 - confirmation R6 work has not started.
 
-## 39. Rollback strategy
+## 40. Rollback strategy
 
 R5 changes must be reversible without weakening R1–R4:
 
@@ -972,7 +972,7 @@ R5 changes must be reversible without weakening R1–R4:
 - rollback must return protected business authorization to fail-closed behavior, not open access;
 - R4 tenant isolation remains intact.
 
-## 40. Explicit exclusions
+## 41. Explicit exclusions
 
 R5 does **not** authorize implementation of:
 
@@ -992,7 +992,7 @@ R5 does **not** authorize implementation of:
 
 R6–R14 remain locked.
 
-## 41. Contract attack checklist
+## 42. Contract attack checklist
 
 Before freeze, reviewers must explicitly test the design against all cases in `PHASE-4-R5-AUTHORIZATION-THREAT-MODEL.md`, including:
 
@@ -1013,7 +1013,7 @@ Before freeze, reviewers must explicitly test the design against all cases in `P
 - malformed constraints;
 - audit mutation.
 
-## 42. Acceptance criteria for contract freeze
+## 43. Acceptance criteria for contract freeze
 
 P4-R5-G0 may be frozen only when:
 
@@ -1035,7 +1035,7 @@ P4-R5-G0 may be frozen only when:
 16. exact frozen contract SHA is recorded;
 17. owner explicitly authorizes implementation.
 
-## 43. Current gate state
+## 44. Current gate state
 
 ```text
 R1 accepted
