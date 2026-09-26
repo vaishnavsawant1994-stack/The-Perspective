@@ -446,26 +446,34 @@ export async function authenticatePassword(
   }
 
   return database.$transaction(async (transaction) => {
-    const created =
-      memberships.length === 1
-        ? await createSession(transaction, {
-            userAccountId: identity!.userAccountId,
-            membershipId: membership.id,
-            organizationId: membership.organizationId,
-            surface: input.surface,
-            remember: input.remember ?? false,
-            authenticationMethod: "password",
-            metadata,
-            ipHash: signals.ipHash,
-          })
-        : await createUnselectedSession(transaction, {
-            userAccountId: identity!.userAccountId,
-            surface: input.surface,
-            remember: input.remember ?? false,
-            authenticationMethod: "password",
-            metadata,
-            ipHash: signals.ipHash,
-          });
+    let result: LoginResult;
+    if (memberships.length === 1) {
+      const created = await createSession(transaction, {
+        userAccountId: identity!.userAccountId,
+        membershipId: membership.id,
+        organizationId: membership.organizationId,
+        surface: input.surface,
+        remember: input.remember ?? false,
+        authenticationMethod: "password",
+        metadata,
+        ipHash: signals.ipHash,
+      });
+      result = { kind: "authenticated", ...created };
+    } else {
+      const created = await createUnselectedSession(transaction, {
+        userAccountId: identity!.userAccountId,
+        surface: input.surface,
+        remember: input.remember ?? false,
+        authenticationMethod: "password",
+        metadata,
+        ipHash: signals.ipHash,
+      });
+      result = {
+        kind: "context-selection-required",
+        ...created,
+        contexts: toContextOptions(memberships, input.surface),
+      };
+    }
     await transaction.userAccount.update({
       where: { id: identity!.userAccountId },
       data: { lastLoginAt: now },
@@ -484,13 +492,7 @@ export async function authenticatePassword(
       evidence:
         memberships.length > 1 ? { contextSelectionRequired: true } : {},
     });
-    return memberships.length === 1
-      ? ({ kind: "authenticated", ...created } as const)
-      : ({
-          kind: "context-selection-required",
-          ...created,
-          contexts: toContextOptions(memberships, input.surface),
-        } as const);
+    return result;
   });
 }
 
@@ -780,28 +782,36 @@ export async function verifyMfaLogin(
       where: { id: method!.id },
       data: { lastUsedAt: verifiedAt },
     });
-    const created =
-      memberships.length === 1
-        ? await createSession(transaction, {
-            userAccountId: challenge.userAccountId,
-            membershipId: membership.id,
-            organizationId: membership.organizationId,
-            surface,
-            remember: challenge.rememberSession,
-            authenticationMethod: "password+totp",
-            mfaVerifiedAt: verifiedAt,
-            metadata,
-            ipHash: signals.ipHash,
-          })
-        : await createUnselectedSession(transaction, {
-            userAccountId: challenge.userAccountId,
-            surface,
-            remember: challenge.rememberSession,
-            authenticationMethod: "password+totp",
-            mfaVerifiedAt: verifiedAt,
-            metadata,
-            ipHash: signals.ipHash,
-          });
+    let result: LoginResult;
+    if (memberships.length === 1) {
+      const created = await createSession(transaction, {
+        userAccountId: challenge.userAccountId,
+        membershipId: membership.id,
+        organizationId: membership.organizationId,
+        surface,
+        remember: challenge.rememberSession,
+        authenticationMethod: "password+totp",
+        mfaVerifiedAt: verifiedAt,
+        metadata,
+        ipHash: signals.ipHash,
+      });
+      result = { kind: "authenticated", ...created };
+    } else {
+      const created = await createUnselectedSession(transaction, {
+        userAccountId: challenge.userAccountId,
+        surface,
+        remember: challenge.rememberSession,
+        authenticationMethod: "password+totp",
+        mfaVerifiedAt: verifiedAt,
+        metadata,
+        ipHash: signals.ipHash,
+      });
+      result = {
+        kind: "context-selection-required",
+        ...created,
+        contexts: toContextOptions(memberships, surface),
+      };
+    }
     await recordAttempt(transaction, {
       surface,
       kind: "MFA_VERIFY",
@@ -812,13 +822,7 @@ export async function verifyMfaLogin(
       evidence:
         memberships.length > 1 ? { contextSelectionRequired: true } : {},
     });
-    return memberships.length === 1
-      ? ({ kind: "authenticated", ...created } as const)
-      : ({
-          kind: "context-selection-required",
-          ...created,
-          contexts: toContextOptions(memberships, surface),
-        } as const);
+    return result;
   });
 }
 
