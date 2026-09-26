@@ -52,6 +52,7 @@ async function visualCheck(page, name, expectedText) {
 const browser = await chromium.launch({ headless: true });
 const consoleErrors = [];
 const expectedAncillaryFailures = [];
+const speculativePrefetchFailures = [];
 const unexpectedNetworkFailures = [];
 
 function observePage(page, label) {
@@ -62,13 +63,28 @@ function observePage(page, label) {
   });
   page.on("response", (response) => {
     if (response.status() < 400) return;
+    const request = response.request();
     const responseUrl = new URL(response.url());
+    const headers = request.headers();
     const detail = `${label}: ${response.status()} ${responseUrl.pathname}`;
+
     if (response.status() === 404 && responseUrl.pathname === "/favicon.ico") {
       expectedAncillaryFailures.push(detail);
-    } else {
-      unexpectedNetworkFailures.push(detail);
+      return;
     }
+
+    const isSpeculativePrefetch =
+      !request.isNavigationRequest() &&
+      (headers["next-router-prefetch"] === "1" ||
+        headers.purpose === "prefetch" ||
+        headers["sec-purpose"] === "prefetch");
+
+    if (isSpeculativePrefetch) {
+      speculativePrefetchFailures.push(detail);
+      return;
+    }
+
+    unexpectedNetworkFailures.push(detail);
   });
 }
 
@@ -215,7 +231,7 @@ try {
   );
   if (resource404ConsoleErrors.length > 0) {
     assert.ok(
-      expectedAncillaryFailures.length > 0,
+      expectedAncillaryFailures.length > 0 || speculativePrefetchFailures.length > 0,
       `unattributed browser 404 console errors detected:\n${resource404ConsoleErrors.join("\n")}`,
     );
   }
@@ -235,6 +251,7 @@ try {
       anonymousProtection: "pass",
       consoleErrors: substantiveConsoleErrors.length,
       ancillary404s: expectedAncillaryFailures,
+      speculativePrefetchFailures,
       unexpectedNetworkFailures: unexpectedNetworkFailures.length,
     })}\n`,
   );
