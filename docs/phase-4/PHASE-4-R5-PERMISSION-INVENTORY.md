@@ -12,7 +12,7 @@ The primary Phase-2B permission matrix is missing, but frozen downstream documen
 1. Phase-2E screen contracts quoting the Phase-2A screen permission for each operational surface.
 2. Phase-2D transition rules defining higher-risk workflow-command permissions.
 
-Their union currently contains **166 distinct permission keys**.
+The Phase-2D/2E union contains **166 explicit permission keys**. Frozen Phase-2F additionally names `permission.manage`, producing **167 explicit permission keys**. Four Phase-2E client lines use slash shorthand (`client.task.view/complete`, `client.asset.upload/view`, `client.approval.view/decide`, `client.media.view/review`) that prove additional distinct capabilities but do not preserve their exact historical normalized key names; those four names remain unresolved rather than being invented.
 
 This is a derived inventory, not a replacement for the missing role-to-permission matrix.
 
@@ -67,6 +67,22 @@ R5 should distinguish:
 The same domain may legitimately contain both screen/query keys and higher-risk workflow-command keys.
 
 ## 5. Derived permission registry
+
+### Additional explicit Phase-2F key
+
+- `permission.manage` — required by Phase-2F for role-permission changes; distinct from the Phase-2E screen capability `role.manage`.
+
+### Unresolved slash-shorthand capabilities
+
+The following frozen UI strings show multiple client capabilities but do not preserve the exact original key spelling for the second capability:
+
+- `client.task.view/complete`
+- `client.asset.upload/view`
+- `client.approval.view/decide`
+- `client.media.view/review`
+
+R5 contract freeze must either recover their original names or record an explicit normalization decision. Until then, no inferred second-key names may be seeded as historical fact.
+
 
 
 ### analytics
@@ -411,12 +427,14 @@ Scopes do not replace permissions.
 The contract must resolve:
 
 1. UI/query vs workflow-command keys that overlap semantically.
-2. risk level for every production permission.
-3. which permissions may use which scope values.
-4. which permissions require reason, MFA/recent authentication, exact version, approval or separation of duty.
-5. which permissions are Team-only, Client-only, self-service or system-only.
-6. which permissions require field-level policies.
-7. which permissions are future-domain keys that can be registered now but must not authorize unimplemented R6+ behavior.
+2. `role.manage` vs `permission.manage`: role/screen administration and permission-edge administration must remain distinct; changing `RolePermission` requires `permission.manage`, while `role.manage` governs the role-management surface/role lifecycle as frozen by Phase-2E. An operation affecting both must satisfy both relevant policies.
+3. risk level for every production permission.
+4. which permissions may use which scope values.
+5. which permissions require reason, MFA/recent authentication, exact version, approval or separation of duty.
+6. which permissions are Team-only, Client-only, self-service or system-only.
+7. which permissions require field-level policies.
+8. which permissions are future-domain keys that can be registered now but must not authorize unimplemented R6+ behavior.
+9. exact normalization for the four slash-shorthand client capabilities.
 
 ## 8. Effect semantics
 
