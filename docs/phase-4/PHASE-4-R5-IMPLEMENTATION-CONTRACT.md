@@ -128,7 +128,15 @@ At runtime the authoritative scope for a grant is `MembershipRole.scope`, furthe
 
 If a MembershipRole row is missing a valid scope or the scope is incompatible with the permission registry, the grant is inapplicable and therefore denies.
 
-### 5.5 Membership-role lifecycle
+### 5.5 Role combination and inheritance
+
+R5 has **no implicit role hierarchy or inheritance**.
+
+A membership may hold multiple active roles. Each role grant is evaluated as an independent complete authority path. Multiple roles may provide multiple valid ALLOW paths, but authority fragments may not be combined to create a stronger synthetic path.
+
+Future role inheritance, if ever required, needs a separate explicit contract and cycle/precedence tests.
+
+### 5.6 Membership-role lifecycle
 
 An eligible grant requires:
 
@@ -161,7 +169,27 @@ R5 implementation must materialize one validated registry and identify for each 
 - obligations;
 - whether assignable to custom roles.
 
-### 6.2 Permission does not equal authorization
+### 6.2 Exact-match permission keys
+
+Permission keys are exact registry identifiers.
+
+- wildcard/glob permissions such as `*`, `domain.*` or prefix matching are prohibited in R5;
+- aliases require an explicit compatibility map and may not silently widen authority;
+- unknown keys fail closed;
+- custom roles may only reference registered assignable permissions.
+
+### 6.3 Permission risk classification
+
+Every registered permission has one frozen risk level:
+
+- `LOW`
+- `MEDIUM`
+- `HIGH`
+- `CRITICAL`
+
+Unknown risk values are invalid. Risk level does not grant authority; it drives stronger administration, testing, audit and obligation requirements.
+
+### 6.4 Permission does not equal authorization
 
 ```text
 permission alone -> insufficient
@@ -169,11 +197,11 @@ permission alone -> insufficient
 
 A valid decision additionally requires tenant, scope, resource, fields, lifecycle and obligations.
 
-### 6.3 Unknown permissions
+### 6.5 Unknown permissions
 
 Unknown/unregistered permission keys fail closed.
 
-### 6.4 Role vs permission administration
+### 6.6 Role vs permission administration
 
 `role.manage` and `permission.manage` are not aliases.
 
@@ -182,7 +210,7 @@ Unknown/unregistered permission keys fail closed.
 - an operation that changes both role metadata and permission edges must satisfy both applicable policies.
 - neither permission permits self-escalation or delegation beyond the actor's delegation ceiling.
 
-### 6.5 Workflow authority
+### 6.7 Workflow authority
 
 High-risk business transitions use explicit command permissions rather than generic edit capability.
 
@@ -478,6 +506,19 @@ R17/client authority does not imply Team permissions.
 
 Internal notes, margins, internal comments, employee data, hidden versions and unrelated client metadata remain inaccessible.
 
+Phase-2C freezes the following classes as **always excluded from client output** unless a later accepted contract explicitly replaces that rule:
+
+- lead-source/enrichment data;
+- internal sales notes;
+- forecast and margin;
+- staff performance/capacity;
+- internal editorial/QA comments;
+- unshared versions;
+- processor/provider secrets;
+- raw security/audit data;
+- other clients;
+- private automation metadata.
+
 ## 19. Sensitive action policy
 
 R5 must support policy obligations beyond permission presence.
@@ -550,7 +591,18 @@ For consequential mutations:
 
 Workers act on committed authorized commands/system policy, not on browser-supplied role claims.
 
-## 23. List/search/count/pagination policy
+## 23. System / worker actor separation
+
+Human RBAC and system execution are separate authority classes.
+
+- background workers do not impersonate R01/R02 or any human role;
+- a worker may execute only a committed command/event that was authorized at creation, or an explicit system policy operation;
+- worker/system actor identity is recorded separately in audit evidence;
+- provider/webhook identity does not become a user membership;
+- browser-supplied actor/system flags are ignored/rejected;
+- consequential worker side effects re-load canonical tenant/resource state when the operation can become stale.
+
+## 44. List/search/count/pagination policy
 
 Authorization filters must be applied before:
 
