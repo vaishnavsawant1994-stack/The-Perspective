@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AuthPage } from "@/components/auth/auth-page";
 import { SearchResultsPage } from "@/components/search/search-results-page";
 import { filterSearchResults, getSearchCounts, searchSite } from "@/lib/search";
-import { sanitizeProtectedReturnPath } from "@/modules/foundation/routing/access-policy";
+import { sanitizeAuthenticationReturnPath } from "@/modules/foundation/routing/access-policy";
 
 export const metadata: Metadata = {
   title: "Sign In",
