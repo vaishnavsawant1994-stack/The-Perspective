@@ -13,7 +13,7 @@ export default async function Page({
 }) {
   const { next } = await searchParams;
   const returnPath = next
-    ? sanitizeProtectedReturnPath(next, "CLIENT")
+    ? sanitizeAuthenticationReturnPath(next, "CLIENT")
     : undefined;
 
   return <ClientSignIn returnPath={returnPath} />;
