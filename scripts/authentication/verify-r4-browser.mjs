@@ -87,7 +87,7 @@ try {
   });
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.waitForURL((url) => url.pathname === "/client");
-  await page.waitForLoadState("networkidle");
+  await page.getByRole("heading", { name: "Good morning, Michael! 👋" }).waitFor();
 
   const selectedSession = await page.evaluate(async () => {
     const response = await fetch("/api/v1/auth/session", { cache: "no-store" });
