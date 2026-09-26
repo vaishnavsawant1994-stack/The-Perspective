@@ -4,6 +4,7 @@ import {
   buildSignInLocation,
   classifyRouteAccess,
   isPublicClientAuthPath,
+  sanitizeProtectedReturnPath,
   sanitizeRelativeReturnPath,
 } from "./access-policy";
 
@@ -53,6 +54,21 @@ describe("route access policy", () => {
     expect(sanitizeRelativeReturnPath("https://attacker.example/steal")).toBeUndefined();
     expect(sanitizeRelativeReturnPath("//attacker.example/steal")).toBeUndefined();
     expect(sanitizeRelativeReturnPath("javascript:alert(1)")).toBeUndefined();
+  });
+
+  it("accepts only protected return paths for the requested surface", () => {
+    expect(sanitizeProtectedReturnPath("/app/reports?range=30d", "TEAM")).toBe(
+      "/app/reports?range=30d",
+    );
+    expect(
+      sanitizeProtectedReturnPath("/client/contracts/ctr-1?tab=files", "CLIENT"),
+    ).toBe("/client/contracts/ctr-1?tab=files");
+    expect(sanitizeProtectedReturnPath("/client/contracts/ctr-1", "TEAM")).toBeUndefined();
+    expect(sanitizeProtectedReturnPath("/app/reports", "CLIENT")).toBeUndefined();
+    expect(sanitizeProtectedReturnPath("/client/login", "CLIENT")).toBeUndefined();
+    expect(
+      sanitizeProtectedReturnPath("/client/activate/example-token", "CLIENT"),
+    ).toBeUndefined();
   });
 
   it("encodes a safe return path into the surface-specific sign-in URL", () => {
