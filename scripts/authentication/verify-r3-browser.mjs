@@ -51,15 +51,33 @@ async function visualCheck(page, name, expectedText) {
 
 const browser = await chromium.launch({ headless: true });
 const consoleErrors = [];
+const expectedAncillaryFailures = [];
+const unexpectedNetworkFailures = [];
+
+function observePage(page, label) {
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      consoleErrors.push(`${label}: ${message.text()}`);
+    }
+  });
+  page.on("response", (response) => {
+    if (response.status() < 400) return;
+    const responseUrl = new URL(response.url());
+    const detail = `${label}: ${response.status()} ${responseUrl.pathname}`;
+    if (response.status() === 404 && responseUrl.pathname === "/favicon.ico") {
+      expectedAncillaryFailures.push(detail);
+    } else {
+      unexpectedNetworkFailures.push(detail);
+    }
+  });
+}
 
 try {
   const teamContext = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
   const teamPage = await teamContext.newPage();
-  teamPage.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(`team: ${message.text()}`);
-  });
+  observePage(teamPage, "team");
   await teamPage.goto(absolute("/login?next=%2Fapp%2Fsettings"));
   await visualCheck(teamPage, "01-team-login-desktop", /Team Workspace Sign In/u);
   await teamPage.getByPlaceholder("Enter your work email address").fill(teamEmail);
@@ -82,9 +100,7 @@ try {
     viewport: { width: 1440, height: 1000 },
   });
   const clientPage = await clientContext.newPage();
-  clientPage.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(`client: ${message.text()}`);
-  });
+  observePage(clientPage, "client");
   await clientPage.goto(absolute("/client/login?next=%2Fclient%2Fprojects"));
   await visualCheck(clientPage, "04-client-login-desktop", /Sign in to access your client portal/u);
   await clientPage.getByPlaceholder("name@company.com").fill(clientEmail);
@@ -98,9 +114,7 @@ try {
     viewport: { width: 1440, height: 1000 },
   });
   const invitePage = await inviteContext.newPage();
-  invitePage.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(`invite: ${message.text()}`);
-  });
+  observePage(invitePage, "invite");
   await invitePage.goto(
     absolute(`/client/activate/${encodeURIComponent(invitationToken)}`),
   );
@@ -130,9 +144,7 @@ try {
     viewport: { width: 1440, height: 1000 },
   });
   const recoveryPage = await recoveryContext.newPage();
-  recoveryPage.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(`recovery: ${message.text()}`);
-  });
+  observePage(recoveryPage, "recovery");
   await recoveryPage.goto(absolute("/client/recover-access"));
   await visualCheck(
     recoveryPage,
@@ -157,9 +169,7 @@ try {
     isMobile: true,
   });
   const mobilePage = await mobileContext.newPage();
-  mobilePage.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(`mobile: ${message.text()}`);
-  });
+  observePage(mobilePage, "mobile");
   await mobilePage.goto(absolute("/login"));
   await visualCheck(mobilePage, "10-team-login-mobile", /Team Workspace Sign In/u);
   await mobilePage.goto(absolute("/client/login"));
@@ -188,10 +198,27 @@ try {
   await anonymousContext.close();
 
   assert.deepEqual(
-    consoleErrors,
+    unexpectedNetworkFailures,
     [],
-    `browser console errors detected:\n${consoleErrors.join("\n")}`,
+    `unexpected browser network failures detected:\n${unexpectedNetworkFailures.join("\n")}`,
   );
+  const substantiveConsoleErrors = consoleErrors.filter(
+    (message) => !/Failed to load resource: the server responded with a status of 404 \(Not Found\)/u.test(message),
+  );
+  const resource404ConsoleErrors = consoleErrors.filter(
+    (message) => /Failed to load resource: the server responded with a status of 404 \(Not Found\)/u.test(message),
+  );
+  assert.deepEqual(
+    substantiveConsoleErrors,
+    [],
+    `browser console errors detected:\n${substantiveConsoleErrors.join("\n")}`,
+  );
+  if (resource404ConsoleErrors.length > 0) {
+    assert.ok(
+      expectedAncillaryFailures.length > 0,
+      `unattributed browser 404 console errors detected:\n${resource404ConsoleErrors.join("\n")}`,
+    );
+  }
 
   process.stdout.write(
     `${JSON.stringify({
@@ -206,7 +233,9 @@ try {
       recoveryGenericResponse: "pass",
       mobileVisuals: "pass",
       anonymousProtection: "pass",
-      consoleErrors: 0,
+      consoleErrors: substantiveConsoleErrors.length,
+      ancillary404s: expectedAncillaryFailures,
+      unexpectedNetworkFailures: unexpectedNetworkFailures.length,
     })}\n`,
   );
 } finally {
