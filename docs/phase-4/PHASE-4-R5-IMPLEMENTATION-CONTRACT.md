@@ -63,7 +63,7 @@ The V1 Master Completion Bible remains program authority.
 
 The following must be closed before this document may become `1.0-frozen`:
 
-1. explicit owner approval or amendment of the Gate-A governance package (P4-R5-GOV-01 / P4-R5-GATE-A-01), including the R01–R17 registry, 170-key permission metadata, R17 model and delegation matrix;
+1. Gate-A owner governance approval — **CLOSED** at `99bb2ba1f94a9007314f208f7830553c231db700`;
 2. independent contract review by a reviewer who is not the authoring engineering agent;
 3. closure of all blocking/high contract findings;
 4. exact frozen contract SHA recorded;
@@ -1058,9 +1058,8 @@ R1 accepted
  -> authoring-agent adversarial audit complete
  -> authority matrix prepared
  -> Gate-A governance package prepared and mechanically consistent
- -> OWNER GATE-A DECISION REQUIRED
+ -> OWNER GATE-A DECISION APPROVED at 99bb2ba1f94a9007314f208f7830553c231db700
  -> independent contract audit REQUIRED
- -> role registry owner decision REQUIRED
  -> findings closure REQUIRED
  -> freeze REQUIRED
  -> explicit implementation authorization REQUIRED
