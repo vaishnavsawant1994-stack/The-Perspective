@@ -118,6 +118,8 @@ R5 can prove policy behavior with R5-owned fixtures/normalized ResourceContext. 
 
 ### C01/C02 — role provenance
 
+**Gate-A proposal status:** a controlled V1 decision package now proposes R05 Researcher, R08 Editor, R09 Writer, R10 Designer, R11 Podcast Producer, R12 Video Producer and R13 Events Manager. Mechanical consistency is clean. These remain OPEN until explicit owner approval.
+
 The 17-role count is frozen historical input, but the primary Phase-2B document is missing.
 
 Nine code/name relationships are high-confidence downstream recoveries; seven code/name assignments are provisional reconstructions.
@@ -132,6 +134,8 @@ Implementation cannot be authorized before one option is recorded.
 
 ### C04 — slash-shorthand permissions
 
+**Gate-A proposal status:** normalize to `client.task.complete`, `client.asset.view`, `client.media.review`, and reuse existing `approval.client.decide`; proposed canonical registry size 170. This remains OPEN until owner approval.
+
 The following Phase-2E strings prove multiple capabilities but not their exact historical normalized second key:
 
 - client.task.view/complete
@@ -145,6 +149,8 @@ No inferred key should be represented as recovered historical fact.
 
 ### C15 — delegation ceiling
 
+**Gate-A proposal status:** P4-R5-ROLE-02 now defines R01/R02 ceilings, protects R01-equivalent authority, and denies role/permission administration to R03–R17. This remains OPEN until owner approval.
+
 Anti-self-escalation is designed, but an administrator's exact maximum delegable permissions/roles depends on the approved launch matrix.
 
 The final matrix must define:
@@ -157,6 +163,8 @@ The final matrix must define:
 
 ### C16 — R17 model
 
+**Gate-A proposal status:** R17 remains the base Client User launch role; client-approver, client-signer, client-billing and client-admin are proposed organization-local CLIENT-scoped capability roles outside the R01–R17 numbering. This remains OPEN until owner approval.
+
 Downstream documents use R17 as the client role family, while the Client Portal needs distinct capabilities such as approver, signer, billing user and limited client admin.
 
 The owner-approved contract must decide whether V1 uses:
@@ -167,6 +175,8 @@ The owner-approved contract must decide whether V1 uses:
 Either way, browser flags are prohibited and Client authority remains same-org/client-safe.
 
 ### C17 — permission metadata matrix
+
+**Gate-A proposal status:** P4-R5-PERM-02 now contains 170 canonical keys with surface, risk, assignability, scope, field/workflow requirements, obligations and activation stage. Machine validation reports zero hard consistency failures. This remains OPEN until owner approval.
 
 The explicit key inventory exists, but contract freeze still requires per-key metadata for production authorization:
 
