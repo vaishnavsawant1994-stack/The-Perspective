@@ -1,0 +1,41 @@
+name: Dependency Lock Refresh
+
+on:
+  push:
+    branches:
+      - review/r3-auth-contract-repair-20260926
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Generate patched dependency manifest and lockfile
+        run: |
+          npm pkg set dependencies.next=16.3.6
+          npm pkg set overrides.mysql2=3.24.4
+          npm pkg set overrides.sharp=0.35.4
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Verify patched production dependency graph
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Upload generated dependency files
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-dependency-files
+          path: |
+            package.json
+            package-lock.json
+          if-no-files-found: error
+          retention-days: 1
