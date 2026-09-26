@@ -315,6 +315,83 @@ describe("R3 PostgreSQL authentication boundary", () => {
       ),
     ).resolves.toBeNull();
 
+    const foreignUser = await createPasswordUser(
+      "TEAM",
+      "R4 Foreign Context Passphrase 2026!",
+    );
+    await expect(
+      selectSessionContext(
+        login.token,
+        foreignUser.membershipId,
+        metadata("foreign-account-context"),
+        database,
+      ),
+    ).resolves.toBeNull();
+
+    const clientOrganization = await createOrganization("CLIENT");
+    const wrongSurfaceMembership = await database.organizationMembership.create({
+      data: {
+        id: randomUUID(),
+        organizationId: clientOrganization.id,
+        userAccountId: user.userAccountId,
+        membershipType: MembershipType.CLIENT,
+        status: MembershipStatus.ACTIVE,
+        joinedAt: new Date(),
+      },
+    });
+    await expect(
+      selectSessionContext(
+        login.token,
+        wrongSurfaceMembership.id,
+        metadata("wrong-surface-context"),
+        database,
+      ),
+    ).resolves.toBeNull();
+
+    const suspendedOrganization = await createOrganization("TEAM");
+    const suspendedMembership = await database.organizationMembership.create({
+      data: {
+        id: randomUUID(),
+        organizationId: suspendedOrganization.id,
+        userAccountId: user.userAccountId,
+        membershipType: MembershipType.STAFF,
+        status: MembershipStatus.SUSPENDED,
+        joinedAt: new Date(),
+      },
+    });
+    await expect(
+      selectSessionContext(
+        login.token,
+        suspendedMembership.id,
+        metadata("suspended-context"),
+        database,
+      ),
+    ).resolves.toBeNull();
+
+    const endedOrganization = await createOrganization("TEAM");
+    const endedMembership = await database.organizationMembership.create({
+      data: {
+        id: randomUUID(),
+        organizationId: endedOrganization.id,
+        userAccountId: user.userAccountId,
+        membershipType: MembershipType.STAFF,
+        status: MembershipStatus.ENDED,
+        joinedAt: new Date(Date.now() - 60_000),
+        endedAt: new Date(),
+      },
+    });
+    await expect(
+      selectSessionContext(
+        login.token,
+        endedMembership.id,
+        metadata("ended-context"),
+        database,
+      ),
+    ).resolves.toBeNull();
+
+    const refreshedAvailable = await listSessionContexts(login.token, database);
+    expect(refreshedAvailable?.contexts).toHaveLength(2);
+
     await expect(
       selectSessionContext(
         login.token,
