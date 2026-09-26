@@ -3,9 +3,9 @@
 **Date:** September 26, 2026  
 **Branch:** `review/r3-auth-contract-repair-20260926`  
 **Baseline:** `8cb1792a8e5575c4b8f03a04684dda65288ddae1`  
-**Status:** REMEDIATION UNDER REVIEW  
-**R3 acceptance:** NOT YET GRANTED  
-**R4 status:** NOT AUTHORIZED
+**Status:** REVIEWED AND ACCEPTED  
+**R3 acceptance:** GRANTED — P4-R3-C1 CLOSED  
+**R4 status:** AUTHORIZED — R4 ONLY
 
 ## Review findings
 
@@ -37,7 +37,15 @@ A GitHub Actions workflow, `.github/workflows/r3-review-qualification.yml`, was 
 
 The first run applied both R2 and R3 migrations and passed database verification, but drift checking failed because `prisma.config.ts` intentionally defaults `SHADOW_DATABASE_URL` to an unreachable fail-closed placeholder when no shadow database is supplied. The workflow was repaired to provision an isolated `perspective_shadow` database and explicitly set `SHADOW_DATABASE_URL`.
 
-The current review must not be marked accepted until the repaired qualification run is green and the remaining interactive/browser review requirement is resolved or explicitly reviewed as a documented environment limitation.
+The repaired qualification and browser review are now complete on exact head `c03c4eb97675a189837ca31cebeafb0fef79eb13`.
+
+Final GitHub evidence:
+
+- **R3 Review Qualification** — run ID `36256956008`: PASS on the exact head. Dependency install, Prisma validation/generation, isolated shadow database, migration deploy/status/database verification/drift, unit tests, deterministic seed/assertion, live PostgreSQL tests, ESLint, strict TypeScript, production build, and high/critical production dependency audit all passed.
+- **R3 Browser Qualification** — run ID `36256955997`: PASS on the exact head against a production `next start` server, PostgreSQL 16, and real Chromium.
+- Browser evidence contains 13 full-page screenshots and verifies Team and Client login-return behavior, cross-surface denial, invitation metadata and acceptance, recovery enumeration resistance, mobile layouts, anonymous protected-route redirect behavior, no framework error overlays, no horizontal overflow, zero substantive console errors, and zero unexpected network failures.
+- The browser review found and repaired an invitation terms-layout defect before acceptance.
+- Chromium also recorded a speculative Next.js prefetch 404 for `/app/projects`. Direct review and repository history confirm that the workspace shell references this path while no root `src/app/app/projects/page.tsx` has ever existed. This is a pre-existing workspace route-completeness gap outside the locked R3 authentication scope. It is recorded as a follow-up and was not hidden or converted into an invented R3 page.
 
 ## Scope guard
 
@@ -48,8 +56,8 @@ P4-R2-C1 accepted
   → R3 implemented
   → P4-R3-C1 review found defects
   → R3 remediation branch
-  → automated requalification
-  → interactive/browser review
-  → independent acceptance decision
-  → only then may R4 be authorized
+  → automated requalification PASS
+  → Chromium browser review PASS
+  → P4-R3-C1 reviewed and accepted
+  → R4 authorized — R4 only
 ```
