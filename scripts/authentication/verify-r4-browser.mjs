@@ -146,16 +146,16 @@ try {
     fullPage: true,
   });
 
+  // Chromium's generic "Failed to load resource" console line omits the URL.
+  // Network response assertions below retain the exact URL/status and are the
+  // authoritative resource-failure gate.
   const filteredConsoleErrors = substantiveConsoleErrors.filter(
-    (message) =>
-      !/Failed to load resource: the server responded with a status of 404 \(Not Found\)/u.test(
-        message,
-      ),
+    (message) => !/Failed to load resource:/u.test(message),
   );
   const filteredResponses = unexpectedResponses.filter(
     (entry) =>
-      !entry.endsWith(" /app/projects") &&
-      !entry.endsWith(" /api/v1/auth/context"),
+      entry !== "404 /app/projects" &&
+      entry !== "403 /api/v1/auth/context",
   );
 
   assert.deepEqual(filteredConsoleErrors, []);
