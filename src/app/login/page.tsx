@@ -17,7 +17,7 @@ export default async function Page({
 }) {
   const { next } = await searchParams;
   const returnPath = next
-    ? sanitizeProtectedReturnPath(next, "TEAM")
+    ? sanitizeAuthenticationReturnPath(next, "TEAM")
     : undefined;
   const q = "membership";
   const a = searchSite(q);
