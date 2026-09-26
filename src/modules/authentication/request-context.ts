@@ -7,7 +7,7 @@ import type {
   SessionId,
   UserId,
 } from "@/modules/foundation/request-context";
-import { verifySessionToken } from "./service";
+import { verifyIdentitySessionToken } from "./service";
 import type { AuthenticationSurface } from "./types";
 
 export async function resolveAuthenticationRequestContext(
@@ -15,12 +15,11 @@ export async function resolveAuthenticationRequestContext(
   token: string | undefined,
   surface: AuthenticationSurface,
 ): Promise<RequestContext> {
-  const verified = await verifySessionToken(token, surface);
+  const verified = await verifyIdentitySessionToken(token, surface);
   if (!verified) return { authentication: "anonymous", requestId };
 
-  return {
-    authentication: "authenticated",
-    scope: "identity-only",
+  const base = {
+    authentication: "authenticated" as const,
     requestId,
     identity: { userId: verified.userAccountId as UserId },
     session: {
@@ -29,11 +28,26 @@ export async function resolveAuthenticationRequestContext(
       expiresAt: verified.expiresAt,
       authenticationMethod: verified.authenticationMethod,
     },
-    membership: {
-      membershipId: verified.membershipId as MembershipId,
-      organizationId: verified.organizationId as OrganizationId,
-      surface: verified.surface,
-    },
+  };
+
+  if (verified.contextState === "selection-required") {
+    return {
+      ...base,
+      scope: "identity-only",
+    };
+  }
+
+  const membership = {
+    membershipId: verified.membershipId as MembershipId,
+    organizationId: verified.organizationId as OrganizationId,
+    surface: verified.surface,
+  };
+
+  return {
+    ...base,
+    scope: "tenant",
+    membership,
+    tenant: membership,
   };
 }
 

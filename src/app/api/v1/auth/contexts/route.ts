@@ -1,26 +1,24 @@
 import { NextResponse } from "next/server";
 import { readSessionCookie } from "@/modules/authentication/http/session-cookie";
-import { verifyIdentitySessionToken } from "@/modules/authentication/service";
+import { listSessionContexts } from "@/modules/authentication/service";
 
 export async function GET(request: Request) {
-  const token = readSessionCookie(request);
   try {
-    const session =
-      (await verifyIdentitySessionToken(token, "TEAM")) ??
-      (await verifyIdentitySessionToken(token, "CLIENT"));
-    if (!session) {
+    const result = await listSessionContexts(readSessionCookie(request));
+    if (!result) {
       return NextResponse.json(
         { authenticated: false },
         { status: 401, headers: { "Cache-Control": "no-store" } },
       );
     }
+
     return NextResponse.json(
       {
         authenticated: true,
-        surface: session.surface,
-        contextSelected: session.contextState === "selected",
-        expiresAt: session.expiresAt,
-        mfaVerified: Boolean(session.mfaVerifiedAt),
+        surface: result.session.surface,
+        contextSelected: result.session.contextState === "selected",
+        currentMembershipId: result.currentMembershipId,
+        contexts: result.contexts,
       },
       { headers: { "Cache-Control": "no-store" } },
     );
@@ -31,4 +29,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

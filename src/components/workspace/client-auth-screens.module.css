@@ -307,13 +307,17 @@
   padding: 0 13px;
   color: #69718a;
 }
-.field input {
+.field input,
+.field select {
   min-width: 0;
   flex: 1;
   border: 0;
   outline: 0;
   background: none;
   color: #151b38;
+}
+.field select {
+  width: 100%;
 }
 .remember {
   display: flex;

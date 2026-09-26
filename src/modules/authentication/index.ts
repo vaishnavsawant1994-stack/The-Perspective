@@ -8,8 +8,11 @@ export {
   completeRecovery,
   confirmTotpEnrollment,
   inspectInvitation,
+  listSessionContexts,
   requestRecovery,
   revokeSession,
+  selectSessionContext,
+  verifyIdentitySessionToken,
   verifyMfaLogin,
   verifySessionToken,
 } from "./service";

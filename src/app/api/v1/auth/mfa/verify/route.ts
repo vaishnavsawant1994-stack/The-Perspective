@@ -24,6 +24,18 @@ export async function POST(request: Request) {
       input.code,
       getAuthenticationRequestMetadata(request),
     );
+    if (result.kind === "context-selection-required") {
+      const response = NextResponse.json(
+        {
+          status: "context_selection_required",
+          surface: result.session.surface,
+          contexts: result.contexts,
+        },
+        { status: 202, headers: { "Cache-Control": "no-store" } },
+      );
+      setSessionCookie(response, result.token, result.session.expiresAt);
+      return response;
+    }
     if (result.kind !== "authenticated") {
       return authenticationProblem(401, "Unable to verify code.", "AUTH_MFA_INVALID");
     }

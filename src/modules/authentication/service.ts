@@ -46,6 +46,8 @@ import type {
   AuthenticationSurface,
   LoginResult,
   VerifiedAuthenticationSession,
+  VerifiedIdentitySession,
+  VerifiedUnselectedAuthenticationSession,
 } from "./types";
 
 const LOGIN_WINDOW_MS = 15 * 60_000;
@@ -59,6 +61,10 @@ type DatabaseClient = PrismaClient | Prisma.TransactionClient;
 
 function membershipTypeFor(surface: AuthenticationSurface) {
   return surface === "TEAM" ? MembershipType.STAFF : MembershipType.CLIENT;
+}
+
+function organizationTypeFor(surface: AuthenticationSurface) {
+  return surface === "TEAM" ? OrganizationType.PLATFORM : OrganizationType.CLIENT;
 }
 
 function toPrismaSurface(surface: AuthenticationSurface) {
@@ -147,12 +153,36 @@ async function resolveEligibleMemberships(
       membershipType: membershipTypeFor(surface),
       status: MembershipStatus.ACTIVE,
       endedAt: null,
-      organization: { status: "ACTIVE" },
+      organization: {
+        status: "ACTIVE",
+        organizationType: organizationTypeFor(surface),
+      },
     },
-    orderBy: { id: "asc" },
-    select: { id: true, organizationId: true },
-    take: 2,
+    orderBy: [{ organization: { displayName: "asc" } }, { id: "asc" }],
+    select: {
+      id: true,
+      organizationId: true,
+      organization: {
+        select: {
+          displayName: true,
+          organizationType: true,
+        },
+      },
+    },
+    take: 50,
   });
+}
+
+function toContextOptions(
+  memberships: Awaited<ReturnType<typeof resolveEligibleMemberships>>,
+  surface: AuthenticationSurface,
+) {
+  return memberships.map((membership) => ({
+    membershipId: membership.id,
+    organizationId: membership.organizationId,
+    organizationName: membership.organization.displayName,
+    surface,
+  }));
 }
 
 async function isThrottled(
@@ -238,6 +268,7 @@ async function createSession(
     session: {
       sessionId: session.id,
       userAccountId: session.userAccountId,
+      contextState: "selected",
       membershipId: input.membershipId,
       organizationId: input.organizationId,
       surface: input.surface,
@@ -246,6 +277,55 @@ async function createSession(
       authenticationMethod: session.authenticationMethod,
       mfaVerifiedAt: session.mfaVerifiedAt ?? undefined,
     } satisfies VerifiedAuthenticationSession,
+  };
+}
+
+async function createUnselectedSession(
+  database: DatabaseClient,
+  input: {
+    userAccountId: string;
+    surface: AuthenticationSurface;
+    remember: boolean;
+    authenticationMethod: string;
+    mfaVerifiedAt?: Date;
+    metadata: AuthenticationRequestMetadata;
+    ipHash?: string;
+  },
+) {
+  const token = createOpaqueToken();
+  const issuedAt = new Date();
+  const expiresAt = new Date(
+    issuedAt.getTime() +
+      (input.remember ? REMEMBERED_SESSION_MS : STANDARD_SESSION_MS),
+  );
+  const session = await database.session.create({
+    data: {
+      id: randomUUID(),
+      userAccountId: input.userAccountId,
+      activeMembershipId: null,
+      tokenHash: hashOpaqueToken(token),
+      surface: toPrismaSurface(input.surface),
+      authenticationMethod: input.authenticationMethod,
+      mfaVerifiedAt: input.mfaVerifiedAt,
+      deviceId: input.metadata.deviceId,
+      ipHash: input.ipHash,
+      issuedAt,
+      expiresAt,
+    },
+  });
+
+  return {
+    token,
+    session: {
+      sessionId: session.id,
+      userAccountId: session.userAccountId,
+      contextState: "selection-required",
+      surface: input.surface,
+      issuedAt: session.issuedAt,
+      expiresAt: session.expiresAt,
+      authenticationMethod: session.authenticationMethod,
+      mfaVerifiedAt: session.mfaVerifiedAt ?? undefined,
+    } satisfies VerifiedUnselectedAuthenticationSession,
   };
 }
 
@@ -321,7 +401,7 @@ export async function authenticatePassword(
     return { kind: "throttled" };
   }
 
-  if (!passwordValid || !accountEligible || memberships.length !== 1) {
+  if (!passwordValid || !accountEligible || memberships.length === 0) {
     await recordAttempt(database, {
       surface: input.surface,
       kind: "LOGIN",
@@ -329,16 +409,13 @@ export async function authenticatePassword(
       ...signals,
       userAccountId: identity?.userAccountId,
       metadata,
-      evidence: {
-        reasonClass:
-          memberships.length > 1 ? "context_selection_required" : "invalid",
-      },
+      evidence: { reasonClass: "invalid" },
     });
     return { kind: "invalid" };
   }
 
   const membership = memberships[0];
-  const mfaMethod = identity.userAccount.mfaMethods[0];
+  const mfaMethod = identity!.userAccount.mfaMethods[0];
 
   if (mfaMethod) {
     const challengeToken = createOpaqueToken();
@@ -369,22 +446,40 @@ export async function authenticatePassword(
   }
 
   return database.$transaction(async (transaction) => {
-    const created = await createSession(transaction, {
-      userAccountId: identity.userAccountId,
-      membershipId: membership.id,
-      organizationId: membership.organizationId,
-      surface: input.surface,
-      remember: input.remember ?? false,
-      authenticationMethod: "password",
-      metadata,
-      ipHash: signals.ipHash,
-    });
+    let result: LoginResult;
+    if (memberships.length === 1) {
+      const created = await createSession(transaction, {
+        userAccountId: identity!.userAccountId,
+        membershipId: membership.id,
+        organizationId: membership.organizationId,
+        surface: input.surface,
+        remember: input.remember ?? false,
+        authenticationMethod: "password",
+        metadata,
+        ipHash: signals.ipHash,
+      });
+      result = { kind: "authenticated", ...created };
+    } else {
+      const created = await createUnselectedSession(transaction, {
+        userAccountId: identity!.userAccountId,
+        surface: input.surface,
+        remember: input.remember ?? false,
+        authenticationMethod: "password",
+        metadata,
+        ipHash: signals.ipHash,
+      });
+      result = {
+        kind: "context-selection-required",
+        ...created,
+        contexts: toContextOptions(memberships, input.surface),
+      };
+    }
     await transaction.userAccount.update({
-      where: { id: identity.userAccountId },
+      where: { id: identity!.userAccountId },
       data: { lastLoginAt: now },
     });
     await transaction.userIdentity.update({
-      where: { id: identity.id },
+      where: { id: identity!.id },
       data: { lastUsedAt: now },
     });
     await recordAttempt(transaction, {
@@ -392,18 +487,20 @@ export async function authenticatePassword(
       kind: "LOGIN",
       outcome: "SUCCEEDED",
       ...signals,
-      userAccountId: identity.userAccountId,
+      userAccountId: identity!.userAccountId,
       metadata,
+      evidence:
+        memberships.length > 1 ? { contextSelectionRequired: true } : {},
     });
-    return { kind: "authenticated", ...created } as const;
+    return result;
   });
 }
 
-export async function verifySessionToken(
+export async function verifyIdentitySessionToken(
   token: string | undefined,
   surface: AuthenticationSurface,
   database = getPrismaClient(),
-) {
+): Promise<VerifiedIdentitySession | null> {
   const configuration = getAuthenticationConfiguration(process.env);
   if (configuration.mode !== "sessions" || !token) return null;
 
@@ -423,28 +520,142 @@ export async function verifySessionToken(
     session.revokedAt ||
     session.expiresAt <= now ||
     session.userAccount.accountState !== AccountState.ACTIVE ||
-    (session.userAccount.lockedUntil && session.userAccount.lockedUntil > now) ||
-    !membership ||
-    membership.userAccountId !== session.userAccountId ||
-    membership.membershipType !== membershipTypeFor(surface) ||
-    membership.status !== MembershipStatus.ACTIVE ||
-    membership.endedAt ||
-    membership.organization.status !== "ACTIVE"
+    (session.userAccount.lockedUntil && session.userAccount.lockedUntil > now)
   ) {
     return null;
   }
 
-  return {
+  const base = {
     sessionId: session.id,
     userAccountId: session.userAccountId,
-    membershipId: membership.id,
-    organizationId: membership.organizationId,
     surface,
     issuedAt: session.issuedAt,
     expiresAt: session.expiresAt,
     authenticationMethod: session.authenticationMethod,
     mfaVerifiedAt: session.mfaVerifiedAt ?? undefined,
+  };
+
+  if (!membership) {
+    return {
+      ...base,
+      contextState: "selection-required",
+    } satisfies VerifiedUnselectedAuthenticationSession;
+  }
+
+  if (
+    membership.userAccountId !== session.userAccountId ||
+    membership.membershipType !== membershipTypeFor(surface) ||
+    membership.status !== MembershipStatus.ACTIVE ||
+    membership.endedAt ||
+    membership.organization.status !== "ACTIVE" ||
+    membership.organization.organizationType !== organizationTypeFor(surface)
+  ) {
+    return null;
+  }
+
+  return {
+    ...base,
+    contextState: "selected",
+    membershipId: membership.id,
+    organizationId: membership.organizationId,
   } satisfies VerifiedAuthenticationSession;
+}
+
+export async function verifySessionToken(
+  token: string | undefined,
+  surface: AuthenticationSurface,
+  database = getPrismaClient(),
+) {
+  const verified = await verifyIdentitySessionToken(token, surface, database);
+  return verified?.contextState === "selected" ? verified : null;
+}
+
+export async function listSessionContexts(
+  token: string | undefined,
+  database = getPrismaClient(),
+) {
+  const verified =
+    (await verifyIdentitySessionToken(token, "TEAM", database)) ??
+    (await verifyIdentitySessionToken(token, "CLIENT", database));
+  if (!verified) return null;
+
+  const memberships = await resolveEligibleMemberships(
+    database,
+    verified.userAccountId,
+    verified.surface,
+  );
+
+  return {
+    currentMembershipId:
+      verified.contextState === "selected" ? verified.membershipId : null,
+    contexts: toContextOptions(memberships, verified.surface),
+    session: verified,
+  };
+}
+
+export async function selectSessionContext(
+  token: string | undefined,
+  membershipId: string,
+  metadata: AuthenticationRequestMetadata,
+  database = getPrismaClient(),
+) {
+  const verified =
+    (await verifyIdentitySessionToken(token, "TEAM", database)) ??
+    (await verifyIdentitySessionToken(token, "CLIENT", database));
+  if (!verified) return null;
+
+  const membership = await database.organizationMembership.findFirst({
+    where: {
+      id: membershipId,
+      userAccountId: verified.userAccountId,
+      membershipType: membershipTypeFor(verified.surface),
+      status: MembershipStatus.ACTIVE,
+      endedAt: null,
+      organization: {
+        status: "ACTIVE",
+        organizationType: organizationTypeFor(verified.surface),
+      },
+    },
+    include: { organization: true },
+  });
+  if (!membership) return null;
+
+  const previousMembershipId =
+    verified.contextState === "selected" ? verified.membershipId : null;
+
+  return database.$transaction(async (transaction) => {
+    const updated = await transaction.session.updateMany({
+      where: {
+        id: verified.sessionId,
+        userAccountId: verified.userAccountId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { activeMembershipId: membership.id },
+    });
+    if (updated.count !== 1) return null;
+
+    await recordUserAudit(transaction, {
+      organizationId: membership.organizationId,
+      userAccountId: verified.userAccountId,
+      membershipId: membership.id,
+      action:
+        previousMembershipId && previousMembershipId !== membership.id
+          ? "tenant.context.switched"
+          : "tenant.context.selected",
+      metadata,
+      reason: previousMembershipId
+        ? `previous_membership:${previousMembershipId}`
+        : undefined,
+    });
+
+    return {
+      membershipId: membership.id,
+      organizationId: membership.organizationId,
+      organizationName: membership.organization.displayName,
+      surface: verified.surface,
+    };
+  });
 }
 
 export async function revokeSession(
@@ -552,7 +763,7 @@ export async function verifyMfaLogin(
     challenge.userAccountId,
     surface,
   );
-  if (memberships.length !== 1) return { kind: "invalid" };
+  if (memberships.length === 0) return { kind: "invalid" };
   const membership = memberships[0];
   const verifiedAt = new Date();
 
@@ -571,17 +782,36 @@ export async function verifyMfaLogin(
       where: { id: method!.id },
       data: { lastUsedAt: verifiedAt },
     });
-    const created = await createSession(transaction, {
-      userAccountId: challenge.userAccountId,
-      membershipId: membership.id,
-      organizationId: membership.organizationId,
-      surface,
-      remember: challenge.rememberSession,
-      authenticationMethod: "password+totp",
-      mfaVerifiedAt: verifiedAt,
-      metadata,
-      ipHash: signals.ipHash,
-    });
+    let result: LoginResult;
+    if (memberships.length === 1) {
+      const created = await createSession(transaction, {
+        userAccountId: challenge.userAccountId,
+        membershipId: membership.id,
+        organizationId: membership.organizationId,
+        surface,
+        remember: challenge.rememberSession,
+        authenticationMethod: "password+totp",
+        mfaVerifiedAt: verifiedAt,
+        metadata,
+        ipHash: signals.ipHash,
+      });
+      result = { kind: "authenticated", ...created };
+    } else {
+      const created = await createUnselectedSession(transaction, {
+        userAccountId: challenge.userAccountId,
+        surface,
+        remember: challenge.rememberSession,
+        authenticationMethod: "password+totp",
+        mfaVerifiedAt: verifiedAt,
+        metadata,
+        ipHash: signals.ipHash,
+      });
+      result = {
+        kind: "context-selection-required",
+        ...created,
+        contexts: toContextOptions(memberships, surface),
+      };
+    }
     await recordAttempt(transaction, {
       surface,
       kind: "MFA_VERIFY",
@@ -589,8 +819,10 @@ export async function verifyMfaLogin(
       ...signals,
       userAccountId: challenge.userAccountId,
       metadata,
+      evidence:
+        memberships.length > 1 ? { contextSelectionRequired: true } : {},
     });
-    return { kind: "authenticated", ...created } as const;
+    return result;
   });
 }
 

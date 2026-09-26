@@ -23,8 +23,11 @@ import {
   completeRecovery,
   confirmTotpEnrollment,
   inspectInvitation,
+  listSessionContexts,
   requestRecovery,
   revokeSession,
+  selectSessionContext,
+  verifyIdentitySessionToken,
   verifyMfaLogin,
   verifySessionToken,
 } from "./service";
@@ -227,7 +230,7 @@ describe("R3 PostgreSQL authentication boundary", () => {
     expect(await revokeSession(result.token, metadata("logout-replay"), database)).toBe(false);
   });
 
-  it("returns generic failures, throttles repeated attempts, and rejects ambiguous context", async () => {
+  it("returns generic failures, throttles repeated attempts, and requires explicit multi-organization context selection", async () => {
     const user = await createPasswordUser(
       "TEAM",
       "R3 Generic Failure Passphrase 2026!",
@@ -269,7 +272,7 @@ describe("R3 PostgreSQL authentication boundary", () => {
     ).resolves.toEqual({ kind: "throttled" });
 
     const secondOrganization = await createOrganization("TEAM");
-    await database.organizationMembership.create({
+    const secondMembership = await database.organizationMembership.create({
       data: {
         id: randomUUID(),
         organizationId: secondOrganization.id,
@@ -279,13 +282,157 @@ describe("R3 PostgreSQL authentication boundary", () => {
         joinedAt: new Date(),
       },
     });
+    const login = await authenticatePassword(
+      { email: user.email, password: user.password, surface: "TEAM" },
+      metadata("multi-context"),
+      database,
+    );
+    expect(login.kind).toBe("context-selection-required");
+    if (login.kind !== "context-selection-required") {
+      throw new Error("Expected explicit context selection.");
+    }
+
+    expect(await verifySessionToken(login.token, "TEAM", database)).toBeNull();
+    expect(await verifyIdentitySessionToken(login.token, "TEAM", database)).toMatchObject({
+      contextState: "selection-required",
+      userAccountId: user.userAccountId,
+      surface: "TEAM",
+    });
+
+    const available = await listSessionContexts(login.token, database);
+    expect(available?.currentMembershipId).toBeNull();
+    expect(available?.contexts).toHaveLength(2);
+    expect(available?.contexts.map((context) => context.membershipId)).toEqual(
+      expect.arrayContaining([user.membershipId, secondMembership.id]),
+    );
+
     await expect(
-      authenticatePassword(
-        { email: user.email, password: user.password, surface: "TEAM" },
-        metadata("ambiguous"),
+      selectSessionContext(
+        login.token,
+        randomUUID(),
+        metadata("fabricated-context"),
         database,
       ),
-    ).resolves.toEqual({ kind: "invalid" });
+    ).resolves.toBeNull();
+
+    const foreignUser = await createPasswordUser(
+      "TEAM",
+      "R4 Foreign Context Passphrase 2026!",
+    );
+    await expect(
+      selectSessionContext(
+        login.token,
+        foreignUser.membershipId,
+        metadata("foreign-account-context"),
+        database,
+      ),
+    ).resolves.toBeNull();
+
+    const clientOrganization = await createOrganization("CLIENT");
+    const wrongSurfaceMembership = await database.organizationMembership.create({
+      data: {
+        id: randomUUID(),
+        organizationId: clientOrganization.id,
+        userAccountId: user.userAccountId,
+        membershipType: MembershipType.CLIENT,
+        status: MembershipStatus.ACTIVE,
+        joinedAt: new Date(),
+      },
+    });
+    await expect(
+      selectSessionContext(
+        login.token,
+        wrongSurfaceMembership.id,
+        metadata("wrong-surface-context"),
+        database,
+      ),
+    ).resolves.toBeNull();
+
+    const suspendedOrganization = await createOrganization("TEAM");
+    const suspendedMembership = await database.organizationMembership.create({
+      data: {
+        id: randomUUID(),
+        organizationId: suspendedOrganization.id,
+        userAccountId: user.userAccountId,
+        membershipType: MembershipType.STAFF,
+        status: MembershipStatus.SUSPENDED,
+        joinedAt: new Date(),
+      },
+    });
+    await expect(
+      selectSessionContext(
+        login.token,
+        suspendedMembership.id,
+        metadata("suspended-context"),
+        database,
+      ),
+    ).resolves.toBeNull();
+
+    const endedOrganization = await createOrganization("TEAM");
+    const endedMembership = await database.organizationMembership.create({
+      data: {
+        id: randomUUID(),
+        organizationId: endedOrganization.id,
+        userAccountId: user.userAccountId,
+        membershipType: MembershipType.STAFF,
+        status: MembershipStatus.ENDED,
+        joinedAt: new Date(Date.now() - 60_000),
+        endedAt: new Date(),
+      },
+    });
+    await expect(
+      selectSessionContext(
+        login.token,
+        endedMembership.id,
+        metadata("ended-context"),
+        database,
+      ),
+    ).resolves.toBeNull();
+
+    const refreshedAvailable = await listSessionContexts(login.token, database);
+    expect(refreshedAvailable?.contexts).toHaveLength(2);
+
+    await expect(
+      selectSessionContext(
+        login.token,
+        secondMembership.id,
+        metadata("select-context"),
+        database,
+      ),
+    ).resolves.toMatchObject({
+      membershipId: secondMembership.id,
+      organizationId: secondOrganization.id,
+      surface: "TEAM",
+    });
+
+    expect(await verifySessionToken(login.token, "TEAM", database)).toMatchObject({
+      contextState: "selected",
+      membershipId: secondMembership.id,
+      organizationId: secondOrganization.id,
+      userAccountId: user.userAccountId,
+    });
+
+    await expect(
+      selectSessionContext(
+        login.token,
+        user.membershipId,
+        metadata("switch-context"),
+        database,
+      ),
+    ).resolves.toMatchObject({
+      membershipId: user.membershipId,
+      organizationId: user.organizationId,
+      surface: "TEAM",
+    });
+
+    expect(
+      await database.auditEvent.count({
+        where: {
+          actorUserId: user.userAccountId,
+          action: { in: ["tenant.context.selected", "tenant.context.switched"] },
+        },
+      }),
+    ).toBe(2);
   });
 
   it("accepts invitations explicitly, once, and does not consume them during login", async () => {
