@@ -20,6 +20,15 @@ The owner explicitly approved the following governance change:
 
 This record applies that owner-approved waiver specifically to R5 Gate B.
 
+Canonical waiver declaration:
+
+```text
+Independent external review: NOT PERFORMED
+Independent-review requirement: OWNER-WAIVED under GOV-REVIEW-01
+Replacement control: ENHANCED QUALIFICATION
+R5 implementation: NOT AUTHORIZED
+```
+
 ## 2. What is waived
 
 Only the dependency on a separate external reviewer for R5 contract Gate B is waived.
