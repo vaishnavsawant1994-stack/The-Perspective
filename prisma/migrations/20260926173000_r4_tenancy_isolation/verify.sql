@@ -64,4 +64,9 @@ SELECT
   (SELECT relrowsecurity FROM pg_class WHERE oid = 'platform.resources'::regclass) AS resource_rls_enabled,
   (SELECT relforcerowsecurity FROM pg_class WHERE oid = 'platform.resources'::regclass) AS resource_rls_forced,
   has_table_privilege('perspective_runtime', 'platform.resources', 'SELECT') AS runtime_resource_select,
-  has_table_privilege('perspective_runtime', 'platform.resources', 'INSERT,UPDATE,DELETE,TRUNCATE') AS runtime_resource_mutate;
+  (
+    has_table_privilege('perspective_runtime', 'platform.resources', 'INSERT')
+    OR has_table_privilege('perspective_runtime', 'platform.resources', 'UPDATE')
+    OR has_table_privilege('perspective_runtime', 'platform.resources', 'DELETE')
+    OR has_table_privilege('perspective_runtime', 'platform.resources', 'TRUNCATE')
+  ) AS runtime_resource_mutate;
