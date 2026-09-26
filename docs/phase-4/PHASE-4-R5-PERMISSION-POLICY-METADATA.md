@@ -87,7 +87,7 @@ Self-service permissions are not granted through RolePermission.
 | `client.task.complete` | CLIENT | MEDIUM | CLIENT_ROLE | CLIENT | YES | YES | client-safe-projection | R12 |
 | `client.task.view` | CLIENT | LOW | CLIENT_ROLE | CLIENT | YES | NO | client-safe-projection | R12 |
 | `client.view` | TEAM | LOW | TEAM_ROLE | ORG, DEPT, ASN, OWN, READ | YES | NO | none | R6 |
-| `commercial.exception.approve` | TEAM | CRITICAL | TEAM_ROLE | ORG | YES | YES | audit, reason, recent-auth, MFA, exact-version, SoD | R7 |
+| `commercial.exception.approve` | TEAM | CRITICAL | TEAM_ROLE | ORG, DEPT | YES | YES | audit, reason, recent-auth, MFA, exact-version, SoD | R7 |
 | `company.edit` | TEAM | MEDIUM | TEAM_ROLE | ORG, DEPT, ASN, OWN | YES | NO | none | R6 |
 | `company.view` | TEAM | LOW | TEAM_ROLE | ORG, DEPT, ASN, OWN, READ | YES | NO | none | R6 |
 | `contact.edit` | TEAM | MEDIUM | TEAM_ROLE | ORG, DEPT, ASN, OWN | YES | NO | none | R6 |
@@ -115,7 +115,7 @@ Self-service permissions are not granted through RolePermission.
 | `editorial.dashboard.view` | TEAM | LOW | TEAM_ROLE | ORG, DEPT, ASN, OWN, READ | YES | NO | none | R8 |
 | `editorial.review` | TEAM | MEDIUM | TEAM_ROLE | ORG, DEPT, ASN, OWN | YES | YES | none | R8 |
 | `editorial.view` | TEAM | LOW | TEAM_ROLE | ORG, DEPT, ASN, OWN, READ | YES | NO | none | R8 |
-| `emailaccount.manage` | TEAM | HIGH | TEAM_ROLE | ORG | YES | NO | audit | R6 |
+| `emailaccount.manage` | TEAM | HIGH | TEAM_ROLE | ORG, DEPT, ASN, OWN | YES | NO | audit | R6 |
 | `event.agenda.manage` | TEAM | HIGH | TEAM_ROLE | ORG, DEPT, ASN, OWN | YES | NO | audit | R8/R9 |
 | `event.dashboard.view` | TEAM | LOW | TEAM_ROLE | ORG, DEPT, ASN, OWN, READ | YES | NO | none | R8/R9 |
 | `event.manage` | TEAM | HIGH | TEAM_ROLE | ORG, DEPT, ASN, OWN | YES | NO | audit | R8/R9 |
