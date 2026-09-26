@@ -1,7 +1,6 @@
 export type UserId = string & { readonly __brand: "UserId" };
 export type SessionId = string & { readonly __brand: "SessionId" };
 export type OrganizationId = string & { readonly __brand: "OrganizationId" };
-export type WorkspaceId = string & { readonly __brand: "WorkspaceId" };
 export type MembershipId = string & { readonly __brand: "MembershipId" };
 export type PermissionKey = string & { readonly __brand: "PermissionKey" };
 
@@ -20,8 +19,8 @@ export interface RequestSession {
 
 export interface RequestTenant {
   readonly organizationId: OrganizationId;
-  readonly workspaceId: WorkspaceId;
   readonly membershipId: MembershipId;
+  readonly surface: "TEAM" | "CLIENT";
 }
 
 export interface EffectiveAuthorization {
@@ -46,7 +45,16 @@ export interface IdentityAuthenticatedRequestContext {
   readonly requestId: string;
   readonly identity: RequestIdentity;
   readonly session: RequestSession;
+}
+
+export interface TenantScopedRequestContext {
+  readonly authentication: "authenticated";
+  readonly scope: "tenant";
+  readonly requestId: string;
+  readonly identity: RequestIdentity;
+  readonly session: RequestSession;
   readonly membership: AuthenticationMembership;
+  readonly tenant: RequestTenant;
 }
 
 export interface AuthorizedRequestContext {
@@ -62,6 +70,7 @@ export interface AuthorizedRequestContext {
 
 export type AuthenticatedRequestContext =
   | IdentityAuthenticatedRequestContext
+  | TenantScopedRequestContext
   | AuthorizedRequestContext;
 
 export type RequestContext =
@@ -72,6 +81,12 @@ export function isAuthenticatedRequestContext(
   context: RequestContext,
 ): context is AuthenticatedRequestContext {
   return context.authentication === "authenticated";
+}
+
+export function isTenantScopedRequestContext(
+  context: RequestContext,
+): context is TenantScopedRequestContext | AuthorizedRequestContext {
+  return context.authentication === "authenticated" && context.scope !== "identity-only";
 }
 
 export function isAuthorizedRequestContext(
