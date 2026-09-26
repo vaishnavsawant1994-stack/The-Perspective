@@ -4,13 +4,13 @@
 
 **Checkpoint:** P4-R3-C1  
 **Date:** August 23, 2026  
-**Status:** IMPLEMENTATION COMPLETE — REVIEW REQUIRED  
+**Status:** REVIEWED AND ACCEPTED  
 **Authorized scope:** R3 only  
-**R4 status:** NOT AUTHORIZED
+**R4 status:** AUTHORIZED — R4 ONLY
 
 R3 replaces the protected Team Workspace and Client Portal authentication fixtures with a real server-side password, session, invitation, recovery, and TOTP boundary. It preserves the frozen Designs 001–153 and introduces no Design 154, tenant selector, RBAC evaluator, business workflow, or provider integration.
 
-P4-R3-C1 is established for review, but it is **not self-accepted**. Every engineering gate passes except interactive visual browser inspection: the installed browser skill was read and selected, but its required browser-control runtime was not exposed in this session. Production HTML, API, cookie, redirect, and authenticated-route behavior were verified independently. R4 remains locked until the reviewer either accepts that constraint or supplies the missing visual evidence.
+P4-R3-C1 has now been independently re-reviewed and accepted on September 26, 2026 after source-level remediation, repeatable GitHub qualification, and real Chromium inspection against the production build. The earlier browser-runtime limitation is resolved by a dedicated GitHub Actions Chromium harness with retained screenshots. R4 is now authorized as the next stage only; this checkpoint does not implement R4.
 
 ## 1. Acceptance summary
 
@@ -26,7 +26,7 @@ P4-R3-C1 is established for review, but it is **not self-accepted**. Every engin
 | 8 | Generic, expiring, single-use recovery with global revocation | PASS | Known/unknown public responses match; token is hash-stored and AES-GCM sealed in outbox; immutable credential version advances atomically; prior credential remains; sessions revoke; replay and old password fail. |
 | 9 | Encrypted TOTP enrollment and login challenge | PASS | RFC 6238 vector, secure seed generation, AES-256-GCM at rest, enrollment proof, short-lived single-use challenge, failed-attempt cap, replay denial, and MFA-bound session issuance are tested. |
 | 10 | Append-only/redacted security evidence and secret scan | PASS | Three new immutable triggers reject update/delete; raw values are absent from attempt/audit evidence; no environment file is tracked; targeted secret-logging scan is clean. |
-| 11 | Unit, database, HTTP, browser, regression, build, security, and backup checks | PARTIAL | All automated/database/HTTP/build/drift/backup/dependency checks pass. Production semantic rendering passes for all frozen auth surfaces. Interactive screenshot/browser inspection is tool-blocked and remains the sole pending evidence item. |
+| 11 | Unit, database, HTTP, browser, regression, build, security, and backup checks | PASS | Exact-head GitHub qualification run `36256956008` passes database/security/build/dependency gates. Chromium run `36256955997` passes 13 screenshot/interaction scenarios against production `next start`, with zero substantive console errors and zero unexpected network failures. |
 | 12 | Checkpoint records scope, evidence, risks, rollback, and stop | PASS | This document. R4 is explicitly not authorized. |
 
 ## 2. Implemented authentication boundary
@@ -184,7 +184,18 @@ The backup artifact and restore database were disposable validation resources, n
 | Native backup/restore | PASS — restored verification and row parity |
 | Targeted secret-logging scan | PASS — no raw credential/token/OTP logging pattern |
 | Tracked environment-file check | PASS — none |
-| Interactive browser screenshot/visual check | PENDING — required browser-control runtime unavailable |
+| Interactive browser screenshot/visual check | PASS — Chromium run `36256955997`, 13 retained screenshots, production `next start` |
+
+### September 26 review addendum
+
+- Exact accepted review head before closure-doc updates: `c03c4eb97675a189837ca31cebeafb0fef79eb13`.
+- GitHub R3 Review Qualification run: `36256956008` — PASS.
+- GitHub R3 Browser Qualification run: `36256955997` — PASS.
+- Browser artifact: `r3-browser-evidence`, artifact ID `10911062071`, SHA-256 digest `f20a15d8784bb829a80f8b3a77aea436aab3cd95e736d1513a8ee08315bb1952`.
+- 13 screenshots cover desktop/mobile Team login, Client login, invitation before/after acceptance, recovery, authenticated destinations, cross-surface denial, and anonymous protected-route redirect.
+- Review remediation also upgraded the accepted dependency graph to `next@16.3.6`, `mysql2@3.24.4` override, and `sharp@0.35.4` override after current advisories were detected.
+- Invitation terms layout was visually repaired before acceptance.
+- The speculative `/app/projects` prefetch gap is explicitly deferred outside R3.
 
 ## 10. Files changed by R3
 
@@ -254,7 +265,7 @@ The worktree also contains substantial pre-existing design, audit, R1, and R2 ch
 
 ## 11. Unresolved risks and deliberate deferrals
 
-1. **Interactive visual QA is pending.** Production semantic HTML and behavior pass, but no screenshot/viewport inspection was possible because the browser runtime required by the installed skill was unavailable.
+1. **Workspace route completeness remains broader than R3.** Chromium recorded a speculative prefetch 404 for `/app/projects`; the shell references that root but repository history contains no root page. Direct R3 navigation/API/asset checks have zero unexpected failures. The missing Projects index is a pre-existing workspace follow-up and must not be misrepresented as R3 authentication work.
 2. **R4 tenant/workspace selection is not implemented.** Multiple eligible memberships fail closed instead of being selected implicitly.
 3. **R5 authorization is not implemented.** An authenticated session is not evidence of role, permission, record, field, export, approval, or financial authority.
 4. **Provider delivery is not implemented.** Recovery produces a sealed outbox event; no email/SMS provider or worker was authorized.
@@ -295,10 +306,10 @@ If the R3 migration has reached a shared database, use an explicitly reviewed fo
 P4-R2-C1 accepted
   → P4-R3-G0 authorized
   → R3 implementation complete
-  → P4-R3-C1 established for review
-  → interactive visual QA pending/tool-blocked
-  → STOP
-  → R4 remains locked
+  → R3 remediation and requalification complete
+  → Chromium visual/browser qualification PASS
+  → P4-R3-C1 reviewed and accepted
+  → R4 authorized — R4 only
 ```
 
-No R4 tenancy work, R5 authorization work, business workflow, provider integration, or Design 154 is authorized by this checkpoint.
+This checkpoint authorizes **R4 tenancy/workspace isolation only** as the next stage. R5 authorization, business workflows, provider integrations, and Design 154 remain unauthorized.
