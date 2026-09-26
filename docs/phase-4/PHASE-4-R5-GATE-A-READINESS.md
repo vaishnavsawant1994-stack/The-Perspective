@@ -3,7 +3,7 @@
 **Document:** P4-R5-GATE-A-01
 **Date:** September 27, 2026
 **Planning baseline:** `main@3e9418deb42c449cf3ae97da85a076e51c9c9089`
-**Status:** OWNER-DECISION READY — NOT OWNER-APPROVED
+**Status:** OWNER-APPROVED — INDEPENDENT REVIEW NEXT
 **Implementation:** LOCKED
 
 ## 1. Gate A package
@@ -79,9 +79,9 @@ The audit corrected several proposal-level issues before owner approval:
 5. Sales commercial-exception authority can be DEPT-scoped for Sales Manager without becoming cross-organization authority.
 6. Sending-account management supports scoped Sales authority instead of being forced to an organization-global permission.
 
-## 6. What owner approval would close
+## 6. Owner approval effect
 
-Approval of the Gate-A package would close the current owner-governance blockers:
+Owner approval at `99bb2ba1f94a9007314f208f7830553c231db700` has closed these owner-governance blockers:
 
 - seven provisional launch-role identities;
 - shorthand permission normalization;
@@ -97,29 +97,22 @@ It would **not** close:
 - exact P4-R5-G0 freeze;
 - explicit R5 implementation authorization.
 
-## 7. Required owner approval form
+## 7. Owner approval record
 
-A valid owner decision should state substantially:
+The exact owner decision is recorded in `PHASE-4-R5-GATE-A-OWNER-APPROVAL.md`.
 
-```text
-I approve P4-R5-GOV-01 and the Gate-A package on the exact R5 contract
-candidate head identified in Draft PR #4, including the 17-role registry,
-170-key permission normalization/metadata, R17 capability-role model,
-launch role-permission matrix, and delegation ceilings.
+Approved package SHA: `99bb2ba1f94a9007314f208f7830553c231db700`.
 
-This approval resolves Gate A only. It does not authorize R5 implementation,
-merge PR #4, or authorize R6+.
-```
-
-Specific amendments may be listed instead.
+No amendments were attached to the approval.
 
 ## 8. Gate state
 
 ```text
 Gate A package prepared          ✅
 Mechanical consistency           ✅
-Owner approval                    ⏳
-Independent review                LOCKED UNTIL OWNER DECISION IS INCORPORATED
+Owner approval                    ✅
+Independent review                ← NEXT
+P4-R5-G0 freeze                   NOT AUTHORIZED
 R5 implementation                 LOCKED
 R6+                               LOCKED
 ```
