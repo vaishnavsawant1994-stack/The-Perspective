@@ -32,6 +32,7 @@ BEGIN
 END
 $$;
 
+GRANT perspective_runtime TO CURRENT_USER;
 GRANT USAGE ON SCHEMA platform TO perspective_runtime;
 GRANT SELECT ON TABLE platform.resources TO perspective_runtime;
 
