@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { readSessionCookie } from "@/modules/authentication/http/session-cookie";
-import { verifySessionToken } from "@/modules/authentication/service";
+import { verifyIdentitySessionToken } from "@/modules/authentication/service";
 
 export async function GET(request: Request) {
   const token = readSessionCookie(request);
   try {
     const session =
-      (await verifySessionToken(token, "TEAM")) ??
-      (await verifySessionToken(token, "CLIENT"));
+      (await verifyIdentitySessionToken(token, "TEAM")) ??
+      (await verifyIdentitySessionToken(token, "CLIENT"));
     if (!session) {
       return NextResponse.json(
         { authenticated: false },
@@ -18,6 +18,7 @@ export async function GET(request: Request) {
       {
         authenticated: true,
         surface: session.surface,
+        contextSelected: session.contextState === "selected",
         expiresAt: session.expiresAt,
         mfaVerified: Boolean(session.mfaVerifiedAt),
       },
