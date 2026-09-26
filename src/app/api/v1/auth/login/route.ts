@@ -45,6 +45,19 @@ export async function POST(request: Request) {
       );
     }
 
+    if (result.kind === "context-selection-required") {
+      const response = NextResponse.json(
+        {
+          status: "context_selection_required",
+          surface: result.session.surface,
+          contexts: result.contexts,
+        },
+        { status: 202, headers: { "Cache-Control": "no-store" } },
+      );
+      setSessionCookie(response, result.token, result.session.expiresAt);
+      return response;
+    }
+
     const response = NextResponse.json(
       { status: "authenticated", surface: result.session.surface },
       { headers: { "Cache-Control": "no-store" } },
