@@ -1,5 +1,9 @@
 # The Perspective
 
+> **V1 program source of truth:** [The Perspective V1.0 Master Completion Bible](./docs/THE-PERSPECTIVE-V1-MASTER-COMPLETION-BIBLE.md)
+>
+> Accepted engineering baseline: R1–R4. R5 and later stages require separate authorization and checkpointed qualification.
+
 The production foundation for a premium editorial publication, structured digital reader, and personal magazine platform. The planned public frontend V1 includes the permanent design system and responsive shell, editorial home and discovery routes, reusable Category and Topic architectures, contributor and Personal Magazine profiles, a URL-driven Personal Magazine collection, full editorial search, a long-form article reader, Magazine landing and category shelves, Premium and subscription positioning, a historical issue archive, and an accessible HTML magazine reader built on centralized data; database, authentication, CMS, CRM, real payments, and subscription enforcement are intentionally deferred.
 
 ## Requirements
