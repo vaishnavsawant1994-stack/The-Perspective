@@ -118,7 +118,9 @@ try {
   await invitePage.getByLabel("Full Name").fill("R3 Browser Invited User");
   await invitePage.getByLabel("Create Password").fill("R3 Browser Invitation Passphrase 2026!");
   await invitePage.getByLabel("Confirm Password").fill("R3 Browser Invitation Passphrase 2026!");
-  await invitePage.locator("label").filter({ hasText: "I agree to the" }).locator("input").check();
+  const termsLabel = invitePage.locator("label").filter({ hasText: "I agree to the" });
+  await termsLabel.click();
+  assert.equal(await termsLabel.locator("input").isChecked(), true);
   await invitePage.getByRole("button", { name: /Activate My Account/u }).click();
   await invitePage.waitForURL((url) => url.pathname === "/client");
   await visualCheck(invitePage, "07-client-invitation-accepted", /Client/i);
