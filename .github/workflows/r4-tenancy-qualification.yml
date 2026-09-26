@@ -1,0 +1,96 @@
+name: R4 Tenancy Qualification
+
+on:
+  push:
+    branches:
+      - phase4/r4-tenancy-isolation-20260926
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r4-tenancy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: perspective
+          POSTGRES_PASSWORD: perspective
+          POSTGRES_DB: perspective_r4
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U perspective -d perspective_r4"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://perspective:perspective@localhost:5432/perspective_r4
+      SHADOW_DATABASE_URL: postgresql://perspective:perspective@localhost:5432/perspective_r4_shadow
+      PERSPECTIVE_AUTH_BOUNDARY_MODE: sessions
+      PERSPECTIVE_PUBLIC_APP_ORIGIN: http://localhost:3100
+      PERSPECTIVE_AUTH_DATA_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      PERSPECTIVE_AUTH_KEY_VERSION: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate and generate Prisma
+        run: |
+          npm run db:validate
+          npm run db:generate
+
+      - name: Create isolated shadow database
+        run: psql postgresql://perspective:perspective@localhost:5432/postgres -c "CREATE DATABASE perspective_r4_shadow"
+
+      - name: Apply and verify R2-R4 migrations
+        run: |
+          npm run db:migrate:deploy
+          npm run db:migrate:status
+          npm run db:verify
+          npm run db:drift
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Seed deterministic fixtures
+        env:
+          PERSPECTIVE_ALLOW_DEMO_SEED: "true"
+        run: |
+          npm run db:seed
+          npm run db:seed:assert
+
+      - name: Run live PostgreSQL tests
+        run: npm run test:db
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
