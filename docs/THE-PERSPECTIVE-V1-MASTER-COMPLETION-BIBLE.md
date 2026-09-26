@@ -1353,6 +1353,19 @@ Never implement the next release because the current code “looks done.”
 
 Acceptance requires objective evidence on an exact commit.
 
+## 41.1 Review governance
+
+R1–R13 review gates may use either:
+
+1. a genuine independent review; or
+2. an **Owner-Approved Enhanced Qualification Waiver** under `docs/GOVERNANCE-REVIEW-POLICY.md`.
+
+A waiver never counts as an independent review and does not waive exact-head technical qualification, findings closure, checkpoint/freeze requirements, or separate owner authorization.
+
+When the waiver path is used, the stage must record the owner waiver, adversarial review, enhanced negative/security testing, exact-head qualification and final disposition.
+
+**R14/V1.0 production certification is excluded from the waiver path. Genuine external independent review remains mandatory for R14/V1.0.**
+
 ---
 
 # 42. V1.0 certification matrix
