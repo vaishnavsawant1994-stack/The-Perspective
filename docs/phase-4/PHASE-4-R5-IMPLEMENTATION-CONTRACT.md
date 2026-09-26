@@ -1,11 +1,11 @@
 # Phase 4 — R5 Authorization / RBAC / Resource Policy Implementation Contract
 
 **Contract:** P4-R5-G0  
-**Version:** 0.9-audit-candidate  
+**Version:** 0.9-enhanced-qualification-candidate  
 **Date:** September 26, 2026  
 **Planning baseline:** `main@3e9418deb42c449cf3ae97da85a076e51c9c9089`  
 **Branch:** `phase4/r5-authorization-contract-20260926`  
-**Status:** CONTRACT AUDIT CANDIDATE — IMPLEMENTATION NOT AUTHORIZED  
+**Status:** GATE-B ENHANCED QUALIFICATION CANDIDATE — IMPLEMENTATION NOT AUTHORIZED  
 **Depends on:** P4-R1-C1, P4-R2-C1, P4-R3-C1, P4-R4-C1, V1 Master Completion Bible  
 **R6+ status:** LOCKED
 
@@ -51,11 +51,15 @@ This contract incorporates:
 - `PHASE-4-R5-PERMISSION-INVENTORY.md`
 - `PHASE-4-R5-AUTHORIZATION-THREAT-MODEL.md`
 - `PHASE-4-R5-AUTHORITY-MATRIX.md`
-- `PHASE-4-R5-CONTRACT-ADVERSARIAL-AUDIT.md` (authoring-agent review only; does not satisfy independent-review gate)
+- `PHASE-4-R5-CONTRACT-ADVERSARIAL-AUDIT.md` (authoring-agent review; not independent)
 - `PHASE-4-R5-OWNER-GOVERNANCE-DECISIONS.md` (Gate-A proposal; owner approval required)
 - `PHASE-4-R5-PERMISSION-POLICY-METADATA.md` (170-key proposed metadata registry)
 - `PHASE-4-R5-LAUNCH-ROLE-PERMISSION-MATRIX.md` (proposed launch/delegation matrix)
 - `PHASE-4-R5-GATE-A-READINESS.md`
+- `PHASE-4-R5-GATE-A-OWNER-APPROVAL.md`
+- `PHASE-4-R5-GATE-B-ENHANCED-QUALIFICATION-WAIVER.md`
+- `PHASE-4-R5-GATE-B-ENHANCED-AUDIT.md`
+- `../GOVERNANCE-REVIEW-POLICY.md` (program-level GOV-REVIEW-01 on main@1d4e387a9f9a6d43274bd0b05e175f49b8bf0718)
 
 The V1 Master Completion Bible remains program authority.
 
@@ -64,10 +68,12 @@ The V1 Master Completion Bible remains program authority.
 The following must be closed before this document may become `1.0-frozen`:
 
 1. Gate-A owner governance approval — **CLOSED** at `99bb2ba1f94a9007314f208f7830553c231db700`;
-2. independent contract review by a reviewer who is not the authoring engineering agent;
-3. closure of all blocking/high contract findings;
-4. exact frozen contract SHA recorded;
-5. explicit owner authorization to begin R5 implementation.
+2. Gate-B independent-review dependency — **OWNER-WAIVED** under GOV-REVIEW-01; independent external review was **NOT PERFORMED**;
+3. R5 Gate-B enhanced qualification — REQUIRED and must be green on one exact contract candidate SHA;
+4. closure of all blocking/high contract findings;
+5. exact frozen contract SHA recorded;
+6. separate owner acceptance of the frozen P4-R5-G0 contract;
+7. explicit owner authorization to begin R5 implementation.
 
 Until then: **production R5 implementation is prohibited.**
 
@@ -1000,7 +1006,7 @@ R6–R14 remain locked.
 
 ## 42. Contract attack checklist
 
-Before freeze, reviewers must explicitly test the design against all cases in `PHASE-4-R5-AUTHORIZATION-THREAT-MODEL.md`, including:
+Before freeze, the Gate-B enhanced qualification must explicitly test the design against all cases in `PHASE-4-R5-AUTHORIZATION-THREAT-MODEL.md`, including:
 
 - cross-tenant IDOR;
 - browser-forged authority;
@@ -1036,10 +1042,14 @@ P4-R5-G0 may be frozen only when:
 11. freshness/revocation semantics are frozen;
 12. sensitive-action obligations are frozen;
 13. threat model has a control/test mapping;
-14. independent contract review is complete;
-15. all blocking/high review findings are closed;
-16. exact frozen contract SHA is recorded;
-17. owner explicitly authorizes implementation.
+14. R5 Gate-B review requirement is satisfied under GOV-REVIEW-01 by the owner-approved enhanced qualification waiver; the record must state that independent external review was NOT PERFORMED;
+15. second enhanced adversarial/falsification audit is complete;
+16. dedicated R5 contract machine-consistency qualification is green on the exact candidate SHA;
+17. inherited R3/R4 core/browser regressions are green on that same exact candidate SHA;
+18. all blocking/high contract findings are closed;
+19. exact frozen contract SHA is recorded;
+20. owner separately accepts the frozen P4-R5-G0 contract;
+21. owner explicitly authorizes implementation.
 
 ## 44. Current gate state
 
@@ -1059,7 +1069,10 @@ R1 accepted
  -> authority matrix prepared
  -> Gate-A governance package prepared and mechanically consistent
  -> OWNER GATE-A DECISION APPROVED at 99bb2ba1f94a9007314f208f7830553c231db700
- -> independent contract audit REQUIRED
+ -> GOV-REVIEW-01 merged on main@1d4e387a9f9a6d43274bd0b05e175f49b8bf0718
+ -> R5 Gate-B independent review OWNER-WAIVED (independent review NOT PERFORMED)
+ -> second enhanced adversarial audit complete
+ -> dedicated enhanced qualification REQUIRED
  -> findings closure REQUIRED
  -> freeze REQUIRED
  -> explicit implementation authorization REQUIRED
