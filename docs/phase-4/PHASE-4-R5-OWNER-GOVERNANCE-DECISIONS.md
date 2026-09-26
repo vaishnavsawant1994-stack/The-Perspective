@@ -95,13 +95,14 @@ Approved V1 client capability-role templates:
 | `client-approver` | approve/reject exact shared work | client review permissions + `approval.client.decide` |
 | `client-signer` | sign authorized contracts | `client.contract.sign` |
 | `client-billing` | perform authorized client payment actions | `client.billing.pay` |
-| `client-admin` | limited client-org administration | `client.org.manage`, `client.contact.manage` where client-safe |
+| `client-admin` | limited Client Portal organization administration | `client.org.manage` only unless a later accepted Client Portal contract adds another CLIENT_ROLE permission |
 
 Rules:
 
 - these are **not additional launch R01–R17 roles**;
 - they are organization-local roles constrained to `CLIENT` scope;
 - they can contain only permissions whose registry metadata marks them `CLIENT_ROLE` assignable;
+- Team-side keys such as `client.view`, `client.contact.manage`, `client.portal.manage`, and `client.portal.provision` are explicitly forbidden in Client capability roles even though their domain prefix is `client`;
 - they cannot contain Team permissions;
 - they cannot change tenant selection;
 - they cannot expose Team/internal fields;
