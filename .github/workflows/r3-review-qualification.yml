@@ -32,6 +32,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://perspective:perspective@localhost:5432/perspective_test
+      SHADOW_DATABASE_URL: postgresql://perspective:perspective@localhost:5432/perspective_shadow
       PERSPECTIVE_AUTH_BOUNDARY_MODE: sessions
       PERSPECTIVE_PUBLIC_APP_ORIGIN: http://localhost:3100
       PERSPECTIVE_AUTH_DATA_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
@@ -54,6 +55,9 @@ jobs:
         run: |
           npm run db:validate
           npm run db:generate
+
+      - name: Create isolated shadow database
+        run: psql postgresql://perspective:perspective@localhost:5432/postgres -c "CREATE DATABASE perspective_shadow"
 
       - name: Apply and verify migrations
         run: |
