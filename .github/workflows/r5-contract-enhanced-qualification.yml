@@ -1,0 +1,51 @@
+name: R5 Contract Enhanced Qualification
+
+on:
+  push:
+    branches:
+      - phase4/r5-authorization-contract-20260926
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r5-contract-enhanced-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Refresh main reference
+        run: git fetch origin main --no-tags
+
+      - name: Verify R5 contract consistency
+        run: node scripts/governance/verify-r5-contract.mjs
+
+      - name: Verify contract-only branch scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          unexpected="$(
+            git diff --name-only origin/main...HEAD               | grep -Ev '^(docs/phase-4/PHASE-4-R5-.*\.md|scripts/governance/verify-r5-contract\.mjs|\.github/workflows/r5-contract-enhanced-qualification\.yml)$'               || true
+          )"
+          if [[ -n "$unexpected" ]]; then
+            printf 'Unexpected out-of-scope files:\n%s\n' "$unexpected"
+            exit 1
+          fi
+          echo "R5 branch remains contract/qualification-only."
