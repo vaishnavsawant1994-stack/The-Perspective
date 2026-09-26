@@ -52,6 +52,10 @@ This contract incorporates:
 - `PHASE-4-R5-AUTHORIZATION-THREAT-MODEL.md`
 - `PHASE-4-R5-AUTHORITY-MATRIX.md`
 - `PHASE-4-R5-CONTRACT-ADVERSARIAL-AUDIT.md` (authoring-agent review only; does not satisfy independent-review gate)
+- `PHASE-4-R5-OWNER-GOVERNANCE-DECISIONS.md` (Gate-A proposal; owner approval required)
+- `PHASE-4-R5-PERMISSION-POLICY-METADATA.md` (170-key proposed metadata registry)
+- `PHASE-4-R5-LAUNCH-ROLE-PERMISSION-MATRIX.md` (proposed launch/delegation matrix)
+- `PHASE-4-R5-GATE-A-READINESS.md`
 
 The V1 Master Completion Bible remains program authority.
 
@@ -59,7 +63,7 @@ The V1 Master Completion Bible remains program authority.
 
 The following must be closed before this document may become `1.0-frozen`:
 
-1. explicit owner decision on the R01–R17 launch-role registry;
+1. explicit owner approval or amendment of the Gate-A governance package (P4-R5-GOV-01 / P4-R5-GATE-A-01), including the R01–R17 registry, 170-key permission metadata, R17 model and delegation matrix;
 2. independent contract review by a reviewer who is not the authoring engineering agent;
 3. closure of all blocking/high contract findings;
 4. exact frozen contract SHA recorded;
@@ -1053,6 +1057,8 @@ R1 accepted
  -> P4-R5-G0 audit candidate prepared
  -> authoring-agent adversarial audit complete
  -> authority matrix prepared
+ -> Gate-A governance package prepared and mechanically consistent
+ -> OWNER GATE-A DECISION REQUIRED
  -> independent contract audit REQUIRED
  -> role registry owner decision REQUIRED
  -> findings closure REQUIRED
