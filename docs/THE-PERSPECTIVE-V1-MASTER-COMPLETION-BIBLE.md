@@ -1,8 +1,9 @@
 # The Perspective V1.0 Master Completion Bible
 
 **Document ID:** TP-V1-MASTER-001  
-**Version:** 1.0-draft-control  
+**Version:** 1.0-controlled  
 **Date:** September 26, 2026  
+**Governance status:** PROGRAM SOURCE OF TRUTH  
 **Repository:** vaishnavsawant1994-stack/The-Perspective  
 **Frozen implementation baseline:** main@e50ac3eb1b131f8e77697c59f0b7ff63c5a489ad  
 **Current engineering checkpoint:** P4-R4-C1 ACCEPTED  
