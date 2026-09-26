@@ -761,7 +761,7 @@ export async function verifyMfaLogin(
     challenge.userAccountId,
     surface,
   );
-  if (memberships.length !== 1) return { kind: "invalid" };
+  if (memberships.length === 0) return { kind: "invalid" };
   const membership = memberships[0];
   const verifiedAt = new Date();
 
@@ -780,17 +780,28 @@ export async function verifyMfaLogin(
       where: { id: method!.id },
       data: { lastUsedAt: verifiedAt },
     });
-    const created = await createSession(transaction, {
-      userAccountId: challenge.userAccountId,
-      membershipId: membership.id,
-      organizationId: membership.organizationId,
-      surface,
-      remember: challenge.rememberSession,
-      authenticationMethod: "password+totp",
-      mfaVerifiedAt: verifiedAt,
-      metadata,
-      ipHash: signals.ipHash,
-    });
+    const created =
+      memberships.length === 1
+        ? await createSession(transaction, {
+            userAccountId: challenge.userAccountId,
+            membershipId: membership.id,
+            organizationId: membership.organizationId,
+            surface,
+            remember: challenge.rememberSession,
+            authenticationMethod: "password+totp",
+            mfaVerifiedAt: verifiedAt,
+            metadata,
+            ipHash: signals.ipHash,
+          })
+        : await createUnselectedSession(transaction, {
+            userAccountId: challenge.userAccountId,
+            surface,
+            remember: challenge.rememberSession,
+            authenticationMethod: "password+totp",
+            mfaVerifiedAt: verifiedAt,
+            metadata,
+            ipHash: signals.ipHash,
+          });
     await recordAttempt(transaction, {
       surface,
       kind: "MFA_VERIFY",
@@ -798,8 +809,16 @@ export async function verifyMfaLogin(
       ...signals,
       userAccountId: challenge.userAccountId,
       metadata,
+      evidence:
+        memberships.length > 1 ? { contextSelectionRequired: true } : {},
     });
-    return { kind: "authenticated", ...created } as const;
+    return memberships.length === 1
+      ? ({ kind: "authenticated", ...created } as const)
+      : ({
+          kind: "context-selection-required",
+          ...created,
+          contexts: toContextOptions(memberships, surface),
+        } as const);
   });
 }
 
