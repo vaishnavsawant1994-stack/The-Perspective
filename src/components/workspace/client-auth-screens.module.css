@@ -650,9 +650,19 @@
 }
 .terms {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin: 18px 0;
+  line-height: 1.5;
+}
+.terms input {
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.terms > span {
+  min-width: 0;
+  flex: 1;
 }
 .signInstead {
   text-align: center !important;
