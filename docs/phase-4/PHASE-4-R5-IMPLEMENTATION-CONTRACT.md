@@ -120,7 +120,15 @@ R5 policy must support:
 - no custom-role bypass of R5 policy;
 - no R01/R02 implicit cross-tenant bypass.
 
-### 5.4 Membership-role lifecycle
+### 5.4 Runtime scope precedence
+
+`Role.defaultScope` is a **grant-creation default**, not runtime authority.
+
+At runtime the authoritative scope for a grant is `MembershipRole.scope`, further narrowed by `RolePermission.constraints` and resource policy. Constraints may narrow but never widen that scope.
+
+If a MembershipRole row is missing a valid scope or the scope is incompatible with the permission registry, the grant is inapplicable and therefore denies.
+
+### 5.5 Membership-role lifecycle
 
 An eligible grant requires:
 
@@ -137,7 +145,7 @@ Expired/revoked grants confer no authority.
 
 ### 6.1 Registry
 
-The derived frozen-document inventory currently contains 166 permission candidates.
+The frozen downstream documents currently preserve **167 explicit permission keys** when Phase-2F `permission.manage` is included. Four Phase-2E client permission strings also contain slash shorthand proving additional capabilities whose exact normalized historical names are not recoverable from the retained source.
 
 R5 implementation must materialize one validated registry and identify for each production permission:
 
@@ -165,7 +173,16 @@ A valid decision additionally requires tenant, scope, resource, fields, lifecycl
 
 Unknown/unregistered permission keys fail closed.
 
-### 6.4 Workflow authority
+### 6.4 Role vs permission administration
+
+`role.manage` and `permission.manage` are not aliases.
+
+- `role.manage` governs access to role administration and role lifecycle/assignment operations according to the approved role matrix.
+- `permission.manage` governs mutation of role-permission edges, as frozen by Phase-2F.
+- an operation that changes both role metadata and permission edges must satisfy both applicable policies.
+- neither permission permits self-escalation or delegation beyond the actor's delegation ceiling.
+
+### 6.5 Workflow authority
 
 High-risk business transitions use explicit command permissions rather than generic edit capability.
 
@@ -351,7 +368,17 @@ Decision output must conceptually include:
 
 Caller-visible errors must avoid resource enumeration.
 
-## 13. Request authorization promotion
+## 13. EffectiveAuthorization representation
+
+The existing `EffectiveAuthorization.permissions` set must **not** become the resource authorization API by itself.
+
+R5 must retain server-only complete grant-path evidence for policy evaluation, including role, MembershipRole scope, RolePermission effect/constraints and permission metadata.
+
+A flattened permission set may be exposed inside server request context only as a coarse capability summary for navigation/query planning. It is never sufficient to authorize a resource/action/field.
+
+The implementation may extend or replace the current `EffectiveAuthorization` shape to preserve grant paths, but must keep the accepted `anonymous -> identity-only -> tenant -> authorized` state model.
+
+## 43. Request authorization promotion
 
 R4 currently returns a tenant-scoped request.
 
@@ -361,7 +388,7 @@ R5 may promote it to `AuthorizedRequestContext` only after effective authority i
 
 No browser/JWT/session cookie receives an authoritative mutable permission list.
 
-## 14. Effective-authority resolver
+## 43. Effective-authority resolver
 
 Initial R5 resolver behavior:
 
@@ -371,13 +398,14 @@ Initial R5 resolver behavior:
 4. load same-organization active roles;
 5. load role-permission edges + registered permissions;
 6. validate typed constraints;
-7. build request-local complete grant paths;
-8. do not persist/cache the result across requests in initial R5;
-9. expose only server-side structures.
+7. treat `MembershipRole.scope` as runtime scope; `Role.defaultScope` is not consulted to widen an existing grant;
+8. build request-local complete grant paths;
+9. do not persist/cache the result across requests in initial R5;
+10. expose only server-side structures.
 
 Role changes affect the next request.
 
-## 15. Resource policy evaluation
+## 43. Resource policy evaluation
 
 A generic protected operation follows:
 
@@ -398,7 +426,7 @@ authenticate
 
 Permission may not be checked after an unrestricted resource load that already leaked data.
 
-## 16. Field-level policy
+## 43. Field-level policy
 
 R5 explicitly separates:
 
@@ -431,7 +459,7 @@ Examples of server-owned authority fields include:
 
 Client serializers are separate explicit projections, not Team DTOs with CSS-hidden fields.
 
-## 17. Client Portal policy
+## 43. Client Portal policy
 
 Client authorization is a separate policy surface.
 
@@ -450,7 +478,7 @@ R17/client authority does not imply Team permissions.
 
 Internal notes, margins, internal comments, employee data, hidden versions and unrelated client metadata remain inaccessible.
 
-## 18. Sensitive action policy
+## 43. Sensitive action policy
 
 R5 must support policy obligations beyond permission presence.
 
@@ -480,12 +508,14 @@ Possible obligations:
 
 R5 implements generic obligation enforcement primitives only for the R5 authorization/admin scope. Future domain releases attach their business rules.
 
-## 19. Anti-self-escalation rules
+## 43. Anti-self-escalation rules
 
 Role administration must not allow an actor to:
 
 - grant themselves R01/R02-equivalent authority without explicit permitted governance;
 - grant a role containing permissions they are forbidden to delegate;
+- use `role.manage` as a substitute for `permission.manage` when changing RolePermission edges;
+- delegate a permission above the actor's explicit delegation ceiling;
 - edit a system role to bypass protected policy;
 - change a target's organization to escape tenancy;
 - use a custom role to bypass unassignable system permissions;
@@ -493,7 +523,7 @@ Role administration must not allow an actor to:
 
 The exact owner/admin delegation matrix depends on the approved 17-role decision.
 
-## 20. Freshness, cache and revocation
+## 43. Freshness, cache and revocation
 
 Initial R5:
 
@@ -508,7 +538,7 @@ Initial R5:
 
 Later caching requires a separate authority revision/invalidation contract and tests.
 
-## 21. TOCTOU / transactional policy
+## 43. TOCTOU / transactional policy
 
 For consequential mutations:
 
@@ -520,7 +550,7 @@ For consequential mutations:
 
 Workers act on committed authorized commands/system policy, not on browser-supplied role claims.
 
-## 22. List/search/count/pagination policy
+## 43. List/search/count/pagination policy
 
 Authorization filters must be applied before:
 
@@ -534,7 +564,7 @@ Authorization filters must be applied before:
 
 Post-filtering unauthorized rows after database retrieval is not an accepted security boundary for tenant-sensitive queries.
 
-## 23. Bulk command policy
+## 43. Bulk command policy
 
 Default behavior:
 
@@ -544,7 +574,7 @@ Default behavior:
 
 Endpoints may explicitly define per-item results only if their contract prevents enumeration and applies policy independently per item.
 
-## 24. Export policy
+## 43. Export policy
 
 Exports are protected commands.
 
@@ -559,7 +589,7 @@ They require:
 
 No “download all” bypass.
 
-## 25. Error contract
+## 43. Error contract
 
 Recommended internal reason families:
 
@@ -581,7 +611,7 @@ Recommended internal reason families:
 
 Caller response may intentionally collapse several cases to 404/403 to prevent enumeration.
 
-## 26. Audit and security evidence
+## 43. Audit and security evidence
 
 ### Mandatory immutable audit
 
@@ -605,7 +635,7 @@ High-risk escalation attempts should additionally create durable audit/security 
 
 Do not store secrets or full protected payloads in audit.
 
-## 27. Role/permission administration API design
+## 43. Role/permission administration API design
 
 R5 may implement only the authorization-admin endpoints necessary to administer/test R5 itself, aligned with Phase-2F:
 
@@ -619,7 +649,9 @@ Rules:
 
 - Team surface only;
 - selected organization only;
-- `role.manage` or stronger explicit policy;
+- `role.manage` for role lifecycle/assignment operations;
+- `permission.manage` for RolePermission mutation;
+- both where one command changes both classes of authority;
 - optimistic concurrency;
 - reason for sensitive changes;
 - anti-self-escalation;
@@ -628,7 +660,7 @@ Rules:
 
 This does not authorize R6 business APIs.
 
-## 28. Database rules
+## 43. Database rules
 
 R5 reuses existing IAM tables.
 
@@ -641,9 +673,11 @@ Likely implementation needs may include:
 - authority revision/invalidation support only if needed;
 - additional RLS/policies for R5-owned access-management records.
 
+R5 must **not** create R6 business-domain entities merely to demonstrate `ASN`, `OWN` or `DEPT`. Those scopes are frozen at the normalized ResourceContext/policy layer and may be proven with R5-owned fixtures; later domain releases bind their canonical assignment/ownership tables to that contract.
+
 R5 must not introduce a parallel authorization database.
 
-## 29. Database tenant enforcement
+## 43. Database tenant enforcement
 
 R4 tenant RLS remains mandatory.
 
@@ -666,7 +700,7 @@ R5 must prove:
 - role-admin queries are tenant-bound;
 - restricted domain/resource access uses the correct database boundary where applicable.
 
-## 30. Client-safe projection architecture
+## 43. Client-safe projection architecture
 
 Team and Client serializers/repositories remain separate policy projections.
 
@@ -686,7 +720,7 @@ authorized canonical record
 
 Nested relationships obey the same rule.
 
-## 31. Search and future indexes
+## 43. Search and future indexes
 
 Any search/index document later used by R6+ must carry sufficient policy metadata such as:
 
@@ -703,7 +737,7 @@ Server-derived authorization filters apply before results/counts/facets.
 
 R5 only freezes this requirement; R11 implements production search.
 
-## 32. File/media policy
+## 43. File/media policy
 
 R5 policy must be capable of authorizing:
 
@@ -718,7 +752,7 @@ Storage signing occurs only after authorization.
 
 R13 may implement the provider-backed storage operations.
 
-## 33. Authorization module boundaries
+## 43. Authorization module boundaries
 
 Expected implementation responsibility, subject to frozen contract:
 
@@ -740,12 +774,12 @@ Exact filenames are not frozen by this contract.
 
 The architecture must remain modular and server-only.
 
-## 34. Planned implementation slices after authorization
+## 43. Planned implementation slices after authorization
 
 Only after P4-R5-G0 is frozen and owner-authorized:
 
 1. authorization contracts/types;
-2. canonical permission registry;
+2. canonical permission registry, including explicit reconciliation of `permission.manage` and unresolved slash-shorthand client capabilities;
 3. approved launch-role seed/config;
 4. effective grant-path resolver;
 5. typed constraint parser;
@@ -762,11 +796,14 @@ Only after P4-R5-G0 is frozen and owner-authorized:
 
 No R6 feature implementation belongs in these slices.
 
-## 35. Required tests
+## 43. Required tests
 
 ### Unit
 
 - permission registry validation;
+- `role.manage` / `permission.manage` separation;
+- `Role.defaultScope` cannot widen `MembershipRole.scope`;
+- flattened permission summaries cannot authorize resources;
 - DENY precedence;
 - same-grant scope;
 - typed constraints;
@@ -826,7 +863,7 @@ No R6 feature implementation belongs in these slices.
 - lint/typecheck/build;
 - dependency/security audit.
 
-## 36. Qualification
+## 43. Qualification
 
 Final R5 implementation candidate requires one exact SHA.
 
@@ -853,7 +890,7 @@ dependency audit
 
 Any repair creates a new candidate SHA and affected gates rerun.
 
-## 37. R5 checkpoint
+## 43. R5 checkpoint
 
 P4-R5-C1 must record:
 
@@ -873,7 +910,7 @@ P4-R5-C1 must record:
 - rollback;
 - confirmation R6 work has not started.
 
-## 38. Rollback strategy
+## 43. Rollback strategy
 
 R5 changes must be reversible without weakening R1–R4:
 
@@ -883,7 +920,7 @@ R5 changes must be reversible without weakening R1–R4:
 - rollback must return protected business authorization to fail-closed behavior, not open access;
 - R4 tenant isolation remains intact.
 
-## 39. Explicit exclusions
+## 43. Explicit exclusions
 
 R5 does **not** authorize implementation of:
 
@@ -903,7 +940,7 @@ R5 does **not** authorize implementation of:
 
 R6–R14 remain locked.
 
-## 40. Contract attack checklist
+## 43. Contract attack checklist
 
 Before freeze, reviewers must explicitly test the design against all cases in `PHASE-4-R5-AUTHORIZATION-THREAT-MODEL.md`, including:
 
@@ -924,27 +961,29 @@ Before freeze, reviewers must explicitly test the design against all cases in `P
 - malformed constraints;
 - audit mutation.
 
-## 41. Acceptance criteria for contract freeze
+## 43. Acceptance criteria for contract freeze
 
 P4-R5-G0 may be frozen only when:
 
 1. baseline is `3e9418deb42c449cf3ae97da85a076e51c9c9089`;
 2. role provenance gap is resolved by explicit owner decision;
 3. canonical launch-role registry is recorded;
-4. permission inventory is reconciled/normalized;
-5. all seven scopes have frozen semantics;
-6. DENY precedence and same-grant rule are frozen;
-7. resource-context contract is frozen;
-8. field/client policy is frozen;
-9. freshness/revocation semantics are frozen;
-10. sensitive-action obligations are frozen;
-11. threat model has a control/test mapping;
-12. independent contract review is complete;
-13. all blocking/high review findings are closed;
-14. exact frozen contract SHA is recorded;
-15. owner explicitly authorizes implementation.
+4. permission inventory is reconciled/normalized, including `permission.manage` and the four slash-shorthand capabilities;
+5. runtime precedence of `MembershipRole.scope` over `Role.defaultScope` is frozen;
+6. effective authorization retains complete grant-path evidence and forbids flat-permission authorization;
+7. all seven scopes have frozen semantics;
+8. DENY precedence and same-grant rule are frozen;
+9. resource-context contract is frozen;
+10. field/client policy is frozen;
+11. freshness/revocation semantics are frozen;
+12. sensitive-action obligations are frozen;
+13. threat model has a control/test mapping;
+14. independent contract review is complete;
+15. all blocking/high review findings are closed;
+16. exact frozen contract SHA is recorded;
+17. owner explicitly authorizes implementation.
 
-## 42. Current gate state
+## 43. Current gate state
 
 ```text
 R1 accepted
