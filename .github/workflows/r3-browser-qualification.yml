@@ -1,0 +1,101 @@
+name: R3 Browser Qualification
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r3-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: perspective
+          POSTGRES_PASSWORD: perspective
+          POSTGRES_DB: perspective_browser
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U perspective -d perspective_browser"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://perspective:perspective@localhost:5432/perspective_browser
+      PERSPECTIVE_AUTH_BOUNDARY_MODE: sessions
+      PERSPECTIVE_PUBLIC_APP_ORIGIN: http://127.0.0.1:3100
+      PERSPECTIVE_AUTH_DATA_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      PERSPECTIVE_AUTH_KEY_VERSION: "1"
+      PERSPECTIVE_AUTH_TEST_BASE_URL: http://127.0.0.1:3100
+      PERSPECTIVE_BROWSER_TEAM_EMAIL: r3-browser-team@example.test
+      PERSPECTIVE_BROWSER_TEAM_PASSWORD: R3 Browser Team Passphrase 2026!
+      PERSPECTIVE_BROWSER_CLIENT_EMAIL: r3-browser-client@example.test
+      PERSPECTIVE_BROWSER_CLIENT_PASSWORD: R3 Browser Client Passphrase 2026!
+      PERSPECTIVE_BROWSER_INVITATION_EMAIL: r3-browser-invited@example.test
+      PERSPECTIVE_BROWSER_INVITATION_TOKEN: r3-browser-invitation-token-2026-09-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install Chromium browser harness
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Prepare database
+        run: |
+          npm run db:generate
+          npm run db:migrate:deploy
+          PERSPECTIVE_ALLOW_AUTH_FIXTURE=true npx tsx scripts/authentication/create-r3-browser-fixture.ts
+
+      - name: Build production app
+        run: npm run build
+
+      - name: Start production server
+        run: |
+          npm start -- -H 127.0.0.1 -p 3100 > /tmp/r3-browser-server.log 2>&1 &
+          echo $! > /tmp/r3-browser-server.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3100/login > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/r3-browser-server.log
+          exit 1
+
+      - name: Run Chromium authentication review
+        run: node scripts/authentication/verify-r3-browser.mjs
+
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r3-browser-evidence
+          path: |
+            artifacts/r3-browser
+            /tmp/r3-browser-server.log
+          if-no-files-found: warn
+          retention-days: 14

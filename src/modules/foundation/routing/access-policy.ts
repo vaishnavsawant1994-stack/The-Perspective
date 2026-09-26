@@ -60,11 +60,52 @@ export function sanitizeRelativeReturnPath(value: string) {
   }
 }
 
+export function sanitizeProtectedReturnPath(
+  value: string,
+  surface: "TEAM" | "CLIENT",
+) {
+  const safeReturnPath = sanitizeRelativeReturnPath(value);
+  if (!safeReturnPath) return undefined;
+
+  const parsed = new URL(safeReturnPath, "https://route-policy.invalid");
+  const root = surface === "TEAM" ? "/app" : "/client";
+
+  if (
+    parsed.pathname !== root &&
+    !parsed.pathname.startsWith(`${root}/`)
+  ) {
+    return undefined;
+  }
+
+  if (surface === "CLIENT" && isPublicClientAuthPath(parsed.pathname)) {
+    return undefined;
+  }
+
+  return safeReturnPath;
+}
+
+export function sanitizeAuthenticationReturnPath(
+  value: string,
+  surface: "TEAM" | "CLIENT",
+) {
+  const protectedPath = sanitizeProtectedReturnPath(value, surface);
+  if (protectedPath) return protectedPath;
+
+  const safeReturnPath = sanitizeRelativeReturnPath(value);
+  if (!safeReturnPath) return undefined;
+
+  const parsed = new URL(safeReturnPath, "https://route-policy.invalid");
+  return CLIENT_ACTIVATION_PATH.test(parsed.pathname)
+    ? safeReturnPath
+    : undefined;
+}
+
 export function buildSignInLocation(
   decision: Exclude<RouteAccessDecision, { readonly kind: "public" }>,
   returnPath: string,
 ) {
-  const safeReturnPath = sanitizeRelativeReturnPath(returnPath);
+  const surface = decision.kind === "protected-team" ? "TEAM" : "CLIENT";
+  const safeReturnPath = sanitizeProtectedReturnPath(returnPath, surface);
 
   if (!safeReturnPath) {
     return decision.signInPath;

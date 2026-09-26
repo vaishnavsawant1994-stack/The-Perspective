@@ -4,6 +4,8 @@ import {
   buildSignInLocation,
   classifyRouteAccess,
   isPublicClientAuthPath,
+  sanitizeAuthenticationReturnPath,
+  sanitizeProtectedReturnPath,
   sanitizeRelativeReturnPath,
 } from "./access-policy";
 
@@ -53,6 +55,32 @@ describe("route access policy", () => {
     expect(sanitizeRelativeReturnPath("https://attacker.example/steal")).toBeUndefined();
     expect(sanitizeRelativeReturnPath("//attacker.example/steal")).toBeUndefined();
     expect(sanitizeRelativeReturnPath("javascript:alert(1)")).toBeUndefined();
+  });
+
+  it("accepts only protected return paths for the requested surface", () => {
+    expect(sanitizeProtectedReturnPath("/app/reports?range=30d", "TEAM")).toBe(
+      "/app/reports?range=30d",
+    );
+    expect(
+      sanitizeProtectedReturnPath("/client/contracts/ctr-1?tab=files", "CLIENT"),
+    ).toBe("/client/contracts/ctr-1?tab=files");
+    expect(sanitizeProtectedReturnPath("/client/contracts/ctr-1", "TEAM")).toBeUndefined();
+    expect(sanitizeProtectedReturnPath("/app/reports", "CLIENT")).toBeUndefined();
+    expect(sanitizeProtectedReturnPath("/client/login", "CLIENT")).toBeUndefined();
+    expect(
+      sanitizeProtectedReturnPath("/client/activate/example-token", "CLIENT"),
+    ).toBeUndefined();
+  });
+
+  it("allows only the invitation activation auth route as a public post-auth return", () => {
+    expect(
+      sanitizeAuthenticationReturnPath("/client/activate/example-token", "TEAM"),
+    ).toBe("/client/activate/example-token");
+    expect(
+      sanitizeAuthenticationReturnPath("/client/activate/example-token", "CLIENT"),
+    ).toBe("/client/activate/example-token");
+    expect(sanitizeAuthenticationReturnPath("/client/login", "TEAM")).toBeUndefined();
+    expect(sanitizeAuthenticationReturnPath("/help", "CLIENT")).toBeUndefined();
   });
 
   it("encodes a safe return path into the surface-specific sign-in URL", () => {
