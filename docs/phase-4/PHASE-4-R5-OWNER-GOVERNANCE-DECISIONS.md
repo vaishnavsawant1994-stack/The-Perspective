@@ -4,7 +4,7 @@
 **Date:** September 27, 2026
 **Planning baseline:** `main@3e9418deb42c449cf3ae97da85a076e51c9c9089`
 **Contract branch:** `phase4/r5-authorization-contract-20260926`
-**Status:** PROPOSED CONTROLLED V1 DECISION — OWNER APPROVAL REQUIRED
+**Status:** APPROVED CONTROLLED V1 GOVERNANCE
 **Historical claim:** NONE. This document does not claim to recover the missing Phase-2B artifact.
 **Implementation status:** LOCKED
 
@@ -272,7 +272,7 @@ The next gate would remain genuine independent contract review.
 
 ## 12. Owner approval record
 
-**Current state:** PENDING.
+**Current state:** APPROVED at `99bb2ba1f94a9007314f208f7830553c231db700`.
 
 Valid approval should explicitly reference:
 
@@ -280,4 +280,4 @@ Valid approval should explicitly reference:
 - the exact branch/head being approved;
 - acceptance of Decisions A–J, or list specific amendments.
 
-Until that happens, this document remains a proposal and all corresponding governance blockers remain open.
+Owner approval is recorded in `PHASE-4-R5-GATE-A-OWNER-APPROVAL.md`. Decisions A–J are now the controlled V1 governance baseline. This approval does not satisfy independent review, freeze P4-R5-G0, authorize implementation, authorize merge, or authorize R6+.
