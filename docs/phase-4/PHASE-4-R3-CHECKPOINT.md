@@ -27,7 +27,7 @@ P4-R3-C1 has now been independently re-reviewed and accepted on September 26, 20
 | 9 | Encrypted TOTP enrollment and login challenge | PASS | RFC 6238 vector, secure seed generation, AES-256-GCM at rest, enrollment proof, short-lived single-use challenge, failed-attempt cap, replay denial, and MFA-bound session issuance are tested. |
 | 10 | Append-only/redacted security evidence and secret scan | PASS | Three new immutable triggers reject update/delete; raw values are absent from attempt/audit evidence; no environment file is tracked; targeted secret-logging scan is clean. |
 | 11 | Unit, database, HTTP, browser, regression, build, security, and backup checks | PASS | Exact-head GitHub qualification run `36256956008` passes database/security/build/dependency gates. Chromium run `36256955997` passes 13 screenshot/interaction scenarios against production `next start`, with zero substantive console errors and zero unexpected network failures. |
-| 12 | Checkpoint records scope, evidence, risks, rollback, and stop | PASS | This document. R4 is explicitly not authorized. |
+| 12 | Checkpoint records scope, evidence, risks, rollback, and stop | PASS | This document records reviewed R3 closure. R4 tenancy/workspace isolation is authorized as the next stage only; R5 and later scopes remain locked. |
 
 ## 2. Implemented authentication boundary
 
@@ -197,6 +197,35 @@ The backup artifact and restore database were disposable validation resources, n
 - Invitation terms layout was visually repaired before acceptance.
 - The speculative `/app/projects` prefetch gap is explicitly deferred outside R3.
 
+## 9A. September 26 independent review addendum
+
+The August implementation was re-reviewed from the accepted R2 boundary rather than assumed correct. The review found and repaired return-path, invitation-presentation, existing-account invitation-handoff, support-link, dependency-security, and invitation-terms layout defects before acceptance.
+
+Accepted code/evidence head before documentation-only closure commits:
+
+`c03c4eb97675a189837ca31cebeafb0fef79eb13`
+
+| Evidence | Result |
+| --- | --- |
+| GitHub R3 Review Qualification | PASS — run ID `36256956008` |
+| GitHub R3 Browser Qualification | PASS — run ID `36256955997` |
+| Browser evidence | 13 full-page Chromium screenshots |
+| Browser artifact | ID `10911062071`; digest `sha256:f20a15d8784bb829a80f8b3a77aea436aab3cd95e736d1513a8ee08315bb1952` |
+| Team login return | PASS |
+| Client login return | PASS |
+| Cross-surface denial | PASS |
+| Invitation metadata + acceptance | PASS |
+| Generic recovery result | PASS |
+| Mobile visual checks | PASS |
+| Anonymous protected-route redirect | PASS |
+| Substantive browser console errors | 0 |
+| Unexpected browser network failures | 0 |
+| Current high/critical production dependency audit | PASS |
+
+The accepted dependency graph now uses `next@16.3.6`, plus narrow `mysql2@3.24.4` and `sharp@0.35.4` overrides after current advisories were detected during review.
+
+The browser harness also records speculative framework prefetch failures separately from real navigations. It observed a pre-existing speculative 404 for `/app/projects`; repository history confirms that the workspace shell links to that root while no root page has ever existed. This is a workspace route-completeness follow-up, not evidence that an R3 authentication flow failed, and no new Projects design was invented to conceal it.
+
 ## 10. Files changed by R3
 
 ### Contract and checkpoint
@@ -260,6 +289,11 @@ The backup artifact and restore database were disposable validation resources, n
 - `vitest.database.config.mts`
 - `scripts/authentication/create-r3-http-fixture.ts`
 - `scripts/authentication/verify-r3-http.ts`
+- `scripts/authentication/create-r3-browser-fixture.ts`
+- `scripts/authentication/verify-r3-browser.mjs`
+- `.github/workflows/r3-review-qualification.yml`
+- `.github/workflows/r3-browser-qualification.yml`
+- `docs/phase-4/PHASE-4-R3-REVIEW-REMEDIATION.md`
 
 The worktree also contains substantial pre-existing design, audit, R1, and R2 changes. R3 did not reset, delete, or claim unrelated user work.
 
