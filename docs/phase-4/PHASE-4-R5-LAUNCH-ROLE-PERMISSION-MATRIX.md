@@ -98,6 +98,18 @@ The companion permission metadata document remains authoritative for each key's 
 
 ### B06 — Account / Client Management
 
+- `company.view`
+- `company.edit`
+- `contact.view`
+- `contact.edit`
+- `deal.view`
+- `deal.edit`
+- `deal.move`
+- `deal.manage`
+- `proposal.view`
+- `proposal.edit`
+- `proposal.send`
+- `meeting.edit`
 - `client.view`
 - `client.contact.manage`
 - `client.portal.manage`
@@ -231,7 +243,7 @@ The companion permission metadata document remains authoritative for each key's 
 - `audit.view`
 - `settings.manage`
 
-R16's `settings.manage` grant is constrained to approved operational settings. It does not imply security-secret, permission-edge or integration-credential administration.
+R16 is an ORG-scoped launch role. Its `settings.manage` grant is further constrained to approved operational settings and does not imply security-secret, permission-edge or integration-credential administration.
 
 ### B17 — Client User Base
 
@@ -277,10 +289,10 @@ Those require explicit client capability roles.
 |---|---|---|
 | R01 Super Admin | ORG | **ALL TEAM_ROLE permissions** in P4-R5-PERM-02, including `role.manage` and `permission.manage`, subject to R01 governance constraints |
 | R02 Admin | ORG | **ALL TEAM_ROLE permissions** in P4-R5-PERM-02, including `role.manage` and `permission.manage`, but protected from creating/modifying R01-equivalent authority |
-| R03 Sales Manager | ORG, DEPT | B01 + B02 + B03 + B04 + B05 + `source.manage` |
+| R03 Sales Manager | ORG, DEPT | B01 + B02 + B03 + B04 + B05 |
 | R04 Sales Executive | DEPT, ASN, OWN | B01 + B02 + B03 + B04 |
 | R05 Researcher | DEPT, ASN, OWN | B01 + B02 + B03 |
-| R06 Account Manager | DEPT, ASN, OWN | B01 + B02 + B04 + B06 + `dashboard.executive.view` |
+| R06 Account Manager | DEPT, ASN, OWN | B01 + B02 + B06 + `dashboard.executive.view` |
 | R07 Editor-in-Chief | ORG, DEPT | B01 + B02 + B07 + B08 + B09 + `project.manage` + `project.assign` + `report.view` |
 | R08 Editor | DEPT, ASN, OWN | B01 + B02 + B07 + B08 |
 | R09 Writer | ASN, OWN | B01 + B02 + B07 |
@@ -290,7 +302,7 @@ Those require explicit client capability roles.
 | R13 Events Manager | ORG, DEPT | B01 + B02 + B13 + `project.manage` + `project.assign` + `report.view` |
 | R14 Marketing & Distribution | ORG, DEPT | B01 + B02 + B14 |
 | R15 Finance Manager | ORG | B01 + B02 + B15 + `dashboard.executive.view` |
-| R16 Operations Manager | ORG, DEPT | B01 + B02 + B16 |
+| R16 Operations Manager | ORG | B01 + B02 + B16 |
 | R17 Client User | CLIENT | B17 only |
 
 ## 5. R01/R02 broad-role rule
