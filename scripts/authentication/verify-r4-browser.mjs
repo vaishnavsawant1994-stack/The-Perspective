@@ -59,11 +59,21 @@ try {
   assert.equal(unselectedSession.body.authenticated, true);
   assert.equal(unselectedSession.body.contextSelected, false);
 
-  const protectedBeforeSelection = await context.request.get(absolute("/client"), {
-    maxRedirects: 0,
+  await page.goto(absolute("/client"));
+  await page.waitForURL((url) => {
+    return (
+      url.pathname === "/client/login" &&
+      url.searchParams.get("next") === "/client"
+    );
   });
-  assert.equal(protectedBeforeSelection.status(), 307);
-  assert.match(protectedBeforeSelection.headers().location ?? "", /\/client\/login\?next=%2Fclient/u);
+  await page.getByRole("heading", { name: "Welcome Back" }).waitFor();
+
+  // Re-prove identity after the deliberate protected-route denial so the
+  // browser returns to the explicit organization chooser.
+  await page.getByPlaceholder("name@company.com").fill(email);
+  await page.getByPlaceholder("Enter your password").fill(password);
+  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+  await page.getByRole("heading", { name: "Choose Organization" }).waitFor();
 
   const invalidSelection = await page.evaluate(async () => {
     const response = await fetch("/api/v1/auth/context", {
@@ -136,10 +146,9 @@ try {
   assert.equal(afterSwitch.status, 200);
   assert.equal(afterSwitch.body.currentMembershipId, alpha.membershipId);
 
-  const protectedAfterSelection = await context.request.get(absolute("/client"), {
-    maxRedirects: 0,
-  });
-  assert.equal(protectedAfterSelection.status(), 200);
+  await page.reload();
+  await page.waitForURL((url) => url.pathname === "/client");
+  await page.getByRole("heading", { name: "Good morning, Michael! 👋" }).waitFor();
 
   await page.screenshot({
     path: `${evidenceDir}/03-alpha-context-switched.png`,
