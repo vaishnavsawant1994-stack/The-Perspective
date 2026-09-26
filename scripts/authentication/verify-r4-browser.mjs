@@ -66,7 +66,10 @@ try {
       url.searchParams.get("next") === "/client"
     );
   });
-  await page.getByRole("heading", { name: "Welcome Back" }).waitFor();
+  await page
+    .locator("form")
+    .getByRole("heading", { name: "Welcome Back", exact: true })
+    .waitFor();
 
   // Re-prove identity after the deliberate protected-route denial so the
   // browser returns to the explicit organization chooser.
