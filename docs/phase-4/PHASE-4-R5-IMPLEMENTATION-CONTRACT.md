@@ -50,6 +50,8 @@ This contract incorporates:
 - `PHASE-4-R5-ROLE-PROVENANCE.md`
 - `PHASE-4-R5-PERMISSION-INVENTORY.md`
 - `PHASE-4-R5-AUTHORIZATION-THREAT-MODEL.md`
+- `PHASE-4-R5-AUTHORITY-MATRIX.md`
+- `PHASE-4-R5-CONTRACT-ADVERSARIAL-AUDIT.md` (authoring-agent review only; does not satisfy independent-review gate)
 
 The V1 Master Completion Bible remains program authority.
 
@@ -1049,6 +1051,8 @@ R1 accepted
  -> permission inventory prepared
  -> threat model prepared
  -> P4-R5-G0 audit candidate prepared
+ -> authoring-agent adversarial audit complete
+ -> authority matrix prepared
  -> independent contract audit REQUIRED
  -> role registry owner decision REQUIRED
  -> findings closure REQUIRED
