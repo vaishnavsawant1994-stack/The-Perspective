@@ -222,6 +222,34 @@ describe("R5 resource policy", () => {
     });
   });
 
+  it("does not let READ authority prove export without an explicit export permission", () => {
+    const context = authorizedContext([
+      grant("team.view", { scope: "READ" }),
+    ]);
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "membership",
+          ownerOrganizationId: "org-1",
+        },
+        {
+          action: "export",
+          requestedFields: ["id"],
+          fieldPolicy: {
+            readableFields: ["id"],
+            mutableFields: [],
+          },
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "WORKFLOW_DENIED",
+    });
+  });
+
   it("requires trusted department equality for DEPT scope", () => {
     const context = authorizedContext(
       [grant("workspace.search", { scope: "DEPT" })],
