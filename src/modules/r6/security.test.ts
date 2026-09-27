@@ -49,7 +49,7 @@ describe("R6 execution security evidence", () => {
         signature: `sha256=${signature}`,
         rawBody: body,
         now,
-        env: { PERSPECTIVE_R6_PROVIDER_CALLBACK_KEYS: JSON.stringify({ "mail-provider": secret }) },
+        env: { NODE_ENV: "test", PERSPECTIVE_R6_PROVIDER_CALLBACK_KEYS: JSON.stringify({ "mail-provider": secret }) },
       }),
     ).toMatchObject({ provider: "mail-provider", externalEventId: "evt-1" });
 
@@ -61,7 +61,7 @@ describe("R6 execution security evidence", () => {
         signature: `sha256=${signature}`,
         rawBody: body,
         now: new Date(now.getTime() + 6 * 60 * 1000),
-        env: { PERSPECTIVE_R6_PROVIDER_CALLBACK_KEYS: JSON.stringify({ "mail-provider": secret }) },
+        env: { NODE_ENV: "test", PERSPECTIVE_R6_PROVIDER_CALLBACK_KEYS: JSON.stringify({ "mail-provider": secret }) },
       }),
     ).toBeUndefined();
   });
