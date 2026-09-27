@@ -301,11 +301,26 @@ function fieldPolicyAllows(
   const requestedFields = command.requestedFields ?? [];
   if (requestedFields.length === 0) return true;
 
-  const allowedFields = READ_ACTIONS.has(command.action)
-    ? command.fieldPolicy.readableFields
-    : command.fieldPolicy.mutableFields;
+  const serverOwnedFields = new Set(command.fieldPolicy.serverOwnedFields ?? []);
+  if (requestedFields.some((field) => serverOwnedFields.has(field))) {
+    return false;
+  }
 
-  return requestedFields.every((field) => allowedFields.includes(field));
+  if (READ_ACTIONS.has(command.action)) {
+    return requestedFields.every((field) =>
+      command.fieldPolicy?.readableFields.includes(field),
+    );
+  }
+
+  const allowedFields =
+    command.action === "create"
+      ? new Set([
+          ...command.fieldPolicy.mutableFields,
+          ...(command.fieldPolicy.createOnlyFields ?? []),
+        ])
+      : new Set(command.fieldPolicy.mutableFields);
+
+  return requestedFields.every((field) => allowedFields.has(field));
 }
 
 function fieldGroupConstraintsAllow(
