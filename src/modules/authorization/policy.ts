@@ -12,6 +12,11 @@ import {
   isCanonicalPermissionKey,
   type CanonicalPermissionKey,
 } from "./registry";
+import {
+  getR6FieldPolicy,
+  getR6PermissionBinding,
+  isR6ActivePermissionKey,
+} from "./r6-policy";
 import type {
   AuthorizationCommandContext,
   AuthorizationDecision,
@@ -22,7 +27,7 @@ import type {
   SensitivityLevel,
 } from "./types";
 
-const DEFAULT_ACTIVE_STAGES = new Set(["R5"]);
+const DEFAULT_ACTIVE_STAGES = new Set(["R5", "R6"]);
 const READ_ACTIONS = new Set([
   "read",
   "view",
@@ -377,18 +382,63 @@ export function evaluateAuthorization(
     return deny(permissionKey, "WORKFLOW_DENIED");
   }
 
+  let policyCommand = command;
+
+  if (definition.activationStage === "R6") {
+    if (!isR6ActivePermissionKey(permissionKey)) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
+
+    if (
+      definition.surface !== "TEAM" ||
+      definition.assignability !== "TEAM_ROLE" ||
+      context.membership.surface !== "TEAM" ||
+      context.tenant.surface !== "TEAM"
+    ) {
+      return deny(permissionKey, "POLICY_INVALID");
+    }
+
+    const binding = getR6PermissionBinding(permissionKey);
+    if (!(binding.actions as readonly string[]).includes(command.action)) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
+
+    if (
+      !resource ||
+      !(binding.resourceTypes as readonly string[]).includes(resource.resourceType)
+    ) {
+      return deny(permissionKey, "RESOURCE_DENIED");
+    }
+
+    const trustedFieldPolicy = getR6FieldPolicy(resource.resourceType);
+    if (!trustedFieldPolicy) {
+      return deny(permissionKey, "FIELD_DENIED");
+    }
+
+    policyCommand = {
+      ...command,
+      fieldPolicy: trustedFieldPolicy,
+    };
+
+    if (
+      binding.workflowActions?.includes(command.action as never) &&
+      command.workflowSatisfied !== true
+    ) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
+  }
+
   const permittedActions = R5_PERMISSION_ACTIONS[permissionKey];
   if (
     definition.activationStage === "R5" &&
-    (!permittedActions || !permittedActions.has(command.action))
+    (!permittedActions || !permittedActions.has(policyCommand.action))
   ) {
     return deny(permissionKey, "WORKFLOW_DENIED");
   }
 
-  // P4-R5-G0 requires export to have separate explicit authority. The frozen
-  // R5 registry defines no export permission, so generic read/view grants must
-  // fail closed instead of treating export as an ordinary read action.
-  if (command.action === "export") {
+  // Export remains separately authorized. Neither R5 nor frozen R6 defines a
+  // generic export permission, so read/view authority cannot be laundered.
+  if (policyCommand.action === "export") {
     return deny(permissionKey, "WORKFLOW_DENIED");
   }
 
@@ -407,11 +457,20 @@ export function evaluateAuthorization(
     );
   }
 
+  if (
+    definition.activationStage === "R6" &&
+    grants.some(
+      (grant) => !definition.permittedScopes.includes(grant.scope),
+    )
+  ) {
+    return deny(permissionKey, "POLICY_INVALID");
+  }
+
   for (const grant of grants) {
     if (
       grant.effect === "DENY" &&
-      scopeMatches(context, grant.scope, resource, command.action) &&
-      constraintsMatch(context, resource, grant.constraints, command)
+      scopeMatches(context, grant.scope, resource, policyCommand.action) &&
+      constraintsMatch(context, resource, grant.constraints, policyCommand)
     ) {
       return deny(permissionKey, "PERMISSION_DENIED");
     }
@@ -420,9 +479,9 @@ export function evaluateAuthorization(
   const applicableAllows = grants.filter(
     (grant) =>
       grant.effect === "ALLOW" &&
-      scopeMatches(context, grant.scope, resource, command.action) &&
-      constraintsMatch(context, resource, grant.constraints, command) &&
-      fieldGroupConstraintsAllow(grant.constraints, command),
+      scopeMatches(context, grant.scope, resource, policyCommand.action) &&
+      constraintsMatch(context, resource, grant.constraints, policyCommand) &&
+      fieldGroupConstraintsAllow(grant.constraints, policyCommand),
   );
 
   if (applicableAllows.length === 0) {
@@ -432,11 +491,14 @@ export function evaluateAuthorization(
     );
   }
 
-  if (definition.requiresWorkflowPolicy && command.workflowSatisfied !== true) {
+  if (
+    definition.requiresWorkflowPolicy &&
+    policyCommand.workflowSatisfied !== true
+  ) {
     return deny(permissionKey, "WORKFLOW_DENIED");
   }
 
-  if (definition.requiresFieldPolicy && !fieldPolicyAllows(command)) {
+  if (definition.requiresFieldPolicy && !fieldPolicyAllows(policyCommand)) {
     return deny(permissionKey, "FIELD_DENIED");
   }
 
@@ -448,7 +510,7 @@ export function evaluateAuthorization(
     const unmetReason = unmetObligationReason(
       context,
       resource,
-      command,
+      policyCommand,
       obligations,
     );
 
@@ -460,8 +522,8 @@ export function evaluateAuthorization(
         matchedGrant: grant,
         effectiveScope: grant.scope,
         obligations,
-        readableFields: command.fieldPolicy?.readableFields,
-        mutableFields: command.fieldPolicy?.mutableFields,
+        readableFields: policyCommand.fieldPolicy?.readableFields,
+        mutableFields: policyCommand.fieldPolicy?.mutableFields,
       };
     }
   }
@@ -471,7 +533,7 @@ export function evaluateAuthorization(
     applicableAllows[0].constraints,
   );
   const reasonCode =
-    unmetObligationReason(context, resource, command, obligations) ??
+    unmetObligationReason(context, resource, policyCommand, obligations) ??
     "OBLIGATION_REQUIRED";
 
   return deny(permissionKey, reasonCode, obligations);
