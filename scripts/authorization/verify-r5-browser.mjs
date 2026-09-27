@@ -75,21 +75,43 @@ async function api(page, path, init = {}) {
   );
 }
 
-async function contextFor(browser, token) {
+async function contextFor(browser, credentials) {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
   });
-  await context.addCookies([
-    {
-      name: "__Host-perspective-session",
-      value: token,
-      url: baseUrl,
-      httpOnly: true,
-      secure: true,
-      sameSite: "Lax",
-    },
-  ]);
   const page = await context.newPage();
+  await page.goto(absolute("/login"));
+  await page.waitForLoadState("networkidle");
+
+  const login = await api(page, "/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email: credentials.email,
+      password: credentials.password,
+      surface: "TEAM",
+      remember: false,
+    }),
+  });
+  assert.equal(login.status, 202);
+  assert.equal(login.body?.status, "mfa_required");
+  assert.equal(typeof login.body?.challengeToken, "string");
+
+  const verified = await api(page, "/api/v1/auth/mfa/verify", {
+    method: "POST",
+    body: JSON.stringify({
+      challengeToken: login.body.challengeToken,
+      code: generateTotpCode(credentials.totpSeed),
+    }),
+  });
+  assert.equal(verified.status, 200);
+  assert.equal(verified.body?.status, "authenticated");
+
+  const cookies = await context.cookies(baseUrl);
+  assert.ok(
+    cookies.some((cookie) => cookie.name === "__Host-perspective-session"),
+    "production session cookie was not issued after MFA",
+  );
+
   await page.goto(absolute("/app/settings"));
   await page.waitForLoadState("networkidle");
   return { context, page };
