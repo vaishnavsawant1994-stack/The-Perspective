@@ -4,7 +4,7 @@
 **Date:** September 27, 2026  
 **Planning baseline:** `main@2372418d80fa07f633a0e4adc99a21b1f7d8300a`  
 **Planning branch:** `phase4/r6-crm-commercial-g0-20260927`  
-**Status:** GATE-A OWNER-APPROVED — G0 FALSIFICATION / QUALIFICATION IN PROGRESS — NOT FROZEN  
+**Status:** P4-R6-G0 OWNER-FREEZE CANDIDATE — NOT FROZEN  
 **R6 production implementation:** NOT AUTHORIZED
 
 ## 1. Gate-A authority state
@@ -90,7 +90,22 @@ At the authorized baseline:
 
 Gate A is complete.
 
-## 6. Remaining G0 work
+## 6. Qualification state
+
+A pre-final exact-head qualification checkpoint passed on:
+
+- SHA: `730d2280fafe29c756ba7e0b09ff7e8e5c9496a6`
+- workflow: R6 Contract Enhanced Qualification #35
+- run: `36310947241`
+- job: `108596615497`
+- verifier: SUCCESS
+- planning-only branch scope: SUCCESS
+
+That SHA is a pre-final checkpoint because this readiness/candidate record is being added afterward.
+
+The final owner-freeze candidate is valid only if the exact branch head carrying the completed candidate record and current verifier also passes the same enhanced qualification workflow.
+
+## 7. Remaining control before owner freeze
 
 Before one exact SHA can be classified **P4-R6-G0 READY FOR OWNER FREEZE**:
 
@@ -107,7 +122,7 @@ Even after those steps, P4-R6-G0 remains unfrozen until the owner explicitly fre
 
 After freeze, R6 implementation remains locked until the owner separately authorizes implementation.
 
-## 7. Current control state
+## 8. Current control state
 
 ~~~text
 R1–R5                         ACCEPTED
@@ -119,7 +134,7 @@ D15 Template ownership        CLOSED — Resolution A / R6+ dormant
 D16 action binding            REQUIRED G0 TECHNICAL CONTROL
 R6 threat model               120/120 PLANNED
 R6 threat qualification map   120/120 PLANNED
-P4-R6-G0 candidate            DRAFT / FALSIFICATION+QUALIFICATION IN PROGRESS
+P4-R6-G0 candidate            OWNER-FREEZE CANDIDATE / FINAL EXACT-HEAD REQUALIFICATION REQUIRED
 P4-R6-G0                      NOT FROZEN
 R6 production implementation NOT AUTHORIZED
 R7+                           LOCKED
