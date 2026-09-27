@@ -62,7 +62,8 @@ assert(gateText.includes("GATE-A OWNER-APPROVED"), "Gate A is not recorded as ow
 assert(gateText.includes("The owner explicitly approved D01–D15"), "Gate-A owner approval scope is missing");
 assert(gateText.includes("### D01 approved resolution"), "D01 approved Resolution A is missing");
 assert(gateText.includes("### D15 approved resolution"), "D15 approved Resolution A is missing");
-assert(!gateText.includes("## D16"), "Unapproved D16 must not exist as a Gate-A decision");
+assert(gateText.includes("## D16 — R6 action-family enforcement"), "D16 technical action-binding control is missing");
+assert(gateText.includes("REQUIRED G0 SECURITY CONTROL"), "D16 must remain a technical G0 control, not inferred implementation authority");
 assert(!gateText.includes("OPEN — BLOCKS P4-R6-G0 FREEZE"), "Gate A still contains an open blocking decision");
 assert(readinessText.includes("GATE-A OWNER-APPROVED"), "Gate-A readiness does not reflect owner approval");
 assert(readinessText.includes("P4-R6-G0"), "Gate-A readiness does not track the G0 gate");
@@ -99,6 +100,9 @@ for (const block of blocks) {
 }
 r6Permissions.sort();
 assert(r6Permissions.length === 41, `Expected exactly 41 historical R6 permission keys, found ${r6Permissions.length}`);
+const proposalKeys = new Set(["proposal.view", "proposal.edit", "proposal.send", "proposal.approve"]);
+const activeR6Permissions = r6Permissions.filter((key) => !proposalKeys.has(key));
+assert(activeR6Permissions.length === 37, `Expected exactly 37 active R6 keys after D01, found ${activeR6Permissions.length}`);
 for (const key of r6Permissions) {
   assert(actionText.includes("| `" + key + "` |"), `R6 action matrix is missing permission ${key}`);
 }
@@ -146,7 +150,7 @@ for (const table of [
 ]) {
   assert(tenancyText.includes("`" + table + "`"), `Database tenancy matrix missing ${table}`);
 }
-for (const marker of ["DIRECT RLS", "PARENT RLS + FK", "ENABLE + FORCE", "read/reference boundary"]) {
+for (const marker of ["DIRECT RLS", "PARENT RLS + FK", "ENABLE + FORCE", "read-only reference/catalog storage"]) {
   assert(tenancyText.includes(marker), `Database tenancy matrix missing marker: ${marker}`);
 }
 for (const excluded of ["commercial.proposals", "commercial.contracts", "commercial.invoices", "commercial.payments"]) {
@@ -186,6 +190,8 @@ for (const marker of [
   "R6-G01 Proposal scope: CLOSED",
   "R6-G02 Template permission stage ownership: CLOSED",
   "R6 production implementation: NOT AUTHORIZED",
+  "Until item 13: **production R6 implementation is prohibited**.",
+  "immutable seed/import manifest",
 ]) {
   assert(contractText.includes(marker), `R6 implementation contract missing marker: ${marker}`);
 }
@@ -235,7 +241,7 @@ process.stdout.write(JSON.stringify({
   planningBaseline: BASELINE,
   requiredPlanningDocuments: requiredDocs.length,
   historicalR6PermissionCount: r6Permissions.length,
-  activeR6PermissionSubset: 37,
+  activeR6PermissionSubset: activeR6Permissions.length,
   threatCaseCount: modelThreatIds.length,
   mappedThreatCaseCount: mappedThreatIds.length,
   gateAOwnerApproved: true,
