@@ -95,3 +95,15 @@ export {
   type AuthorizationHttpDependencies,
   type AuthorizedHttpRequestResult,
 } from "./http";
+
+export {
+  approvedClientCapabilityRoleKeys,
+  assessClientCapabilityAssignment,
+  assessLaunchRoleAssignment,
+  assessRolePermissionSetMutation,
+  DELEGATION_DENIAL_REASONS,
+  frozenLaunchRolePermissionSet,
+  isR01EquivalentPermissionSet,
+  type DelegationAssessment,
+  type DelegationDenialReason,
+} from "./administration-policy";
