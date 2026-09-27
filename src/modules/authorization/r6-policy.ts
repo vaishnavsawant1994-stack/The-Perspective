@@ -304,12 +304,14 @@ const policy = (
   fieldLifecycle: {
     readonly createOnlyFields?: readonly string[];
     readonly serverOwnedFields?: readonly string[];
+    readonly actionFields?: Readonly<Record<string, readonly string[]>>;
   } = {},
 ): AuthorizationFieldPolicy => ({
   readableFields,
   mutableFields,
   createOnlyFields: fieldLifecycle.createOnlyFields ?? [],
   serverOwnedFields: fieldLifecycle.serverOwnedFields ?? [],
+  actionFields: fieldLifecycle.actionFields ?? {},
   fieldGroups,
 });
 
@@ -381,10 +383,15 @@ export const R6_FIELD_POLICIES: Record<
     ["companyId", "contactId", "leadSourceId"],
     groups({
       publicBusiness: ["id", "resourceId", "companyId", "contactId", "lifecycleState", "lastActivityAt"],
-      internal: ["leadSourceId", "fitScore", "qualificationState", "ownerMembershipId", "departmentId"],
+      internal: ["leadSourceId", "fitScore", "qualificationState", "ownerMembershipId", "departmentId", "to", "expectedRowVersion", "reason"],
     }),
     {
       serverOwnedFields: ["id", "resourceId", "sourceRecordKey", "lifecycleState", "fitScore", "qualificationState", "lastActivityAt", "ownerMembershipId", "departmentId"],
+      actionFields: {
+        qualify: ["to", "expectedRowVersion", "reason"],
+        nurture: ["to", "expectedRowVersion", "reason"],
+        disqualify: ["to", "expectedRowVersion", "reason"],
+      },
     },
   ),
   "duplicate-candidate": policy(
@@ -402,11 +409,15 @@ export const R6_FIELD_POLICIES: Record<
     ["name", "filterDefinition"],
     groups({
       publicBusiness: ["id", "resourceId", "name", "listType", "memberCount"],
-      internal: ["filterDefinition", "ownerMembershipId", "archivedAt"],
+      internal: ["filterDefinition", "ownerMembershipId", "archivedAt", "leadId"],
     }),
     {
       createOnlyFields: ["listType"],
       serverOwnedFields: ["id", "resourceId", "memberCount", "ownerMembershipId", "archivedAt"],
+      actionFields: {
+        add: ["leadId"],
+        remove: ["leadId"],
+      },
     },
   ),
   company: policy(
