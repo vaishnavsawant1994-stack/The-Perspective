@@ -55,8 +55,22 @@ function error(code: CrmCoreErrorCode): CrmCoreResult<never> {
 }
 
 function databaseCode(value: unknown) {
-  if (!value || typeof value !== "object" || !("code" in value)) return undefined;
-  return String((value as { code?: unknown }).code ?? "");
+  if (!value || typeof value !== "object") return undefined;
+
+  const direct = "code" in value
+    ? String((value as { code?: unknown }).code ?? "")
+    : "";
+  const nested = (
+    value as {
+      meta?: {
+        driverAdapterError?: {
+          cause?: { originalCode?: unknown };
+        };
+      };
+    }
+  ).meta?.driverAdapterError?.cause?.originalCode;
+
+  return nested ? String(nested) : direct || undefined;
 }
 
 function mapKnownFailure(value: unknown): CrmCoreResult<never> | undefined {
