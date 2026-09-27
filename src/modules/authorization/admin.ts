@@ -306,12 +306,15 @@ async function authorizeInTransaction(
   originalContext: AuthorizedRequestContext,
   permissionKey: CanonicalPermissionKey,
   resource: AuthorizationResourceContext,
-  command: AuthorizationCommandContext,
+  buildCommand: (
+    freshContext: AuthorizedRequestContext,
+  ) => AuthorizationCommandContext,
   now: Date,
 ): Promise<
   | {
       readonly kind: "allowed";
       readonly context: AuthorizedRequestContext;
+      readonly command: AuthorizationCommandContext;
       readonly decision: AuthorizationDecision<CanonicalPermissionKey> & {
         readonly decision: "ALLOW";
       };
@@ -337,6 +340,7 @@ async function authorizeInTransaction(
     return { kind: "denied", decision };
   }
 
+  const command = buildCommand(refreshed.context);
   const decision = evaluateAuthorization(
     refreshed.context,
     permissionKey,
@@ -358,6 +362,7 @@ async function authorizeInTransaction(
   return {
     kind: "allowed",
     context: refreshed.context,
+    command,
     decision: decision as AuthorizationDecision<CanonicalPermissionKey> & {
       readonly decision: "ALLOW";
     },
