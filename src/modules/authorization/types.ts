@@ -128,6 +128,11 @@ export interface AuthorizationResourceContext {
 export interface AuthorizationFieldPolicy {
   readonly readableFields: readonly string[];
   readonly mutableFields: readonly string[];
+  /**
+   * Trusted server-owned mapping from policy group names to concrete fields.
+   * Constraint-supplied group names never define this mapping.
+   */
+  readonly fieldGroups?: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface AuthorizationCommandContext {

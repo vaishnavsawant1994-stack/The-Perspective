@@ -264,15 +264,12 @@ describe("R5 resource policy", () => {
     });
   });
 
-  it("fails closed on reserved field-group constraints that have no R5 enforcement mapping", () => {
-    const context = authorizedContext(
-      [
-        grant("team.view", {
-          constraints: { deniedFieldGroups: ["internal"] },
-        }),
-      ],
-      { blocked: ["team.view"] },
-    );
+  it("fails closed when a field-group constraint has no trusted field mapping", () => {
+    const context = authorizedContext([
+      grant("team.view", {
+        constraints: { deniedFieldGroups: ["internal"] },
+      }),
+    ]);
 
     expect(
       evaluateAuthorization(
@@ -293,7 +290,49 @@ describe("R5 resource policy", () => {
       ),
     ).toMatchObject({
       decision: "DENY",
-      reasonCode: "POLICY_INVALID",
+      reasonCode: "SCOPE_DENIED",
+    });
+  });
+
+  it("enforces allowed and denied field groups from a trusted field policy", () => {
+    const context = authorizedContext([
+      grant("team.view", {
+        constraints: {
+          allowedFieldGroups: ["public"],
+          deniedFieldGroups: ["internal"],
+        },
+      }),
+    ]);
+    const resource = {
+      resourceType: "membership",
+      ownerOrganizationId: "org-1",
+    };
+    const fieldPolicy = {
+      readableFields: ["id", "secret"],
+      mutableFields: [],
+      fieldGroups: {
+        public: ["id"],
+        internal: ["secret"],
+      },
+    };
+
+    expect(
+      evaluateAuthorization(context, "team.view", resource, {
+        action: "view",
+        requestedFields: ["id"],
+        fieldPolicy,
+      }).decision,
+    ).toBe("ALLOW");
+
+    expect(
+      evaluateAuthorization(context, "team.view", resource, {
+        action: "view",
+        requestedFields: ["secret"],
+        fieldPolicy,
+      }),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "SCOPE_DENIED",
     });
   });
 

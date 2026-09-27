@@ -303,6 +303,46 @@ function fieldPolicyAllows(
   return requestedFields.every((field) => allowedFields.includes(field));
 }
 
+function fieldGroupConstraintsAllow(
+  constraints: RolePermissionConstraints,
+  command: AuthorizationCommandContext,
+) {
+  const allowedGroups = constraints.allowedFieldGroups ?? [];
+  const deniedGroups = constraints.deniedFieldGroups ?? [];
+
+  if (allowedGroups.length === 0 && deniedGroups.length === 0) return true;
+
+  const fieldGroups = command.fieldPolicy?.fieldGroups;
+  const requestedFields = command.requestedFields ?? [];
+
+  // Constraint names are untrusted persisted data. They may only reference a
+  // server-owned field-group map, and an empty/unknown mapping fails closed.
+  if (!fieldGroups || requestedFields.length === 0) return false;
+
+  const referencedGroups = [...allowedGroups, ...deniedGroups];
+  if (
+    referencedGroups.some(
+      (group) => !Object.prototype.hasOwnProperty.call(fieldGroups, group),
+    )
+  ) {
+    return false;
+  }
+
+  if (allowedGroups.length > 0) {
+    const allowedFields = new Set(
+      allowedGroups.flatMap((group) => fieldGroups[group] ?? []),
+    );
+    if (!requestedFields.every((field) => allowedFields.has(field))) {
+      return false;
+    }
+  }
+
+  const deniedFields = new Set(
+    deniedGroups.flatMap((group) => fieldGroups[group] ?? []),
+  );
+  return !requestedFields.some((field) => deniedFields.has(field));
+}
+
 function typedGrant(
   grant: EffectiveAuthorizationGrant,
   permissionKey: CanonicalPermissionKey,
@@ -381,7 +421,8 @@ export function evaluateAuthorization(
     (grant) =>
       grant.effect === "ALLOW" &&
       scopeMatches(context, grant.scope, resource, command.action) &&
-      constraintsMatch(context, resource, grant.constraints, command),
+      constraintsMatch(context, resource, grant.constraints, command) &&
+      fieldGroupConstraintsAllow(grant.constraints, command),
   );
 
   if (applicableAllows.length === 0) {
