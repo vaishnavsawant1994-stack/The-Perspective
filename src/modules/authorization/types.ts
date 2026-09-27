@@ -142,6 +142,12 @@ export interface AuthorizationFieldPolicy {
    */
   readonly serverOwnedFields?: readonly string[];
   /**
+   * Submitted command parameters that are authorized for a specific action but
+   * are not ordinary mutable resource columns (for example lifecycle targets,
+   * concurrency versions, reasons, or relationship member IDs).
+   */
+  readonly actionFields?: Readonly<Record<string, readonly string[]>>;
+  /**
    * Trusted server-owned mapping from policy group names to concrete fields.
    * Constraint-supplied group names never define this mapping.
    */
