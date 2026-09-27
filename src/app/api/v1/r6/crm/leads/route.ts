@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     permissionKey: "lead.edit",
     resourceType: "lead",
     action: "create",
-    requestedFields: ["companyId", "contactId", "leadSourceId"],
+    requestedFields: Object.keys(input),
   });
   if (authorization.kind === "response") return authorization.response;
 
