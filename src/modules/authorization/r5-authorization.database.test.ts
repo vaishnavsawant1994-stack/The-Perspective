@@ -251,7 +251,10 @@ describe("R5 database-backed authority attack tests", () => {
           resourceType: "team",
           ownerOrganizationId: seedIds.organization.platform,
         },
-        { action: "view" },
+        {
+          action: "view",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
+        },
       ),
     ).toMatchObject({
       decision: "ALLOW",
@@ -324,7 +327,10 @@ describe("R5 database-backed authority attack tests", () => {
           resourceType: "team",
           ownerOrganizationId: seedIds.organization.platform,
         },
-        { action: "view" },
+        {
+          action: "view",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
+        },
       ).decision,
     ).toBe("ALLOW");
 
@@ -399,6 +405,7 @@ describe("R5 database-backed authority attack tests", () => {
         },
         {
           action: "view",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
           clientSafeProjection: true,
         },
         { activeStages: new Set(["R12"]) },
