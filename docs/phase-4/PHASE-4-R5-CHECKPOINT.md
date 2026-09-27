@@ -4,7 +4,7 @@
 
 **Checkpoint:** P4-R5-C1  
 **Date:** September 27, 2026  
-**Status:** OWNER-ACCEPTED — MERGE AUTHORIZED — MERGE PENDING  
+**Status:** OWNER-ACCEPTED — IMPLEMENTATION MERGED — CLOSURE DOCS PENDING  
 **Frozen substantive contract:** `2914e76b22468137630a4d444adb5431209fb5aa`  
 **Accepted implementation SHA:** `8823c63c1a03281d91d5085bba07206186380f6c`  
 **Historical pre-falsification checkpoint:** `ccfdf61897106661439f2bee4626f8d065e718f3`  
@@ -13,7 +13,7 @@
 **Independent-review requirement:** OWNER-WAIVED under GOV-REVIEW-01  
 **Replacement control:** ENHANCED QUALIFICATION  
 **Owner acceptance:** EXPLICITLY GRANTED  
-**Merge authorization:** GRANTED FOR R5 ONLY  
+**Merge authorization:** EXECUTED FOR R5 IMPLEMENTATION  
 **R6+:** NOT AUTHORIZED  
 **Design 154:** NOT AUTHORIZED  
 **V1.0 production certification:** NOT AUTHORIZED
@@ -161,6 +161,33 @@ R14/V1.0 production certification still requires genuine external independent re
 
 ## 8. Merge control
 
+The owner-authorized implementation merge has completed.
+
+- Implementation PR: #6 — `feat(r5): accepted authorization RBAC and resource policy implementation`
+- Accepted PR head: `8823c63c1a03281d91d5085bba07206186380f6c`
+- Merge method: merge commit
+- Main merge SHA: `748f6af4ce4c9868c2441125cd0480cf8abc34d4`
+- Merge parents:
+  - prior main: `1d4e387a9f9a6d43274bd0b05e175f49b8bf0718`
+  - accepted implementation: `8823c63c1a03281d91d5085bba07206186380f6c`
+
+The merge therefore preserves the exact accepted implementation SHA as a direct parent in repository history.
+
+PR #6 prospective-merge qualification completed successfully for all applicable implementation/regression workflows:
+
+- R5 Implementation Qualification #105 — SUCCESS;
+- R5 Browser Qualification #34 — SUCCESS;
+- R4 Tenancy Qualification #40 — SUCCESS;
+- R4 Browser Qualification #68 — SUCCESS;
+- R3 Review Qualification #69 — SUCCESS;
+- R3 Browser Qualification #70 — SUCCESS.
+
+`R5 Contract Enhanced Qualification #7` also triggered on PR #6 but is non-applicable to an implementation PR. Its log failed because the contract verifier intentionally rejects implementation files as out-of-scope for a contract-only branch. The frozen contract had already completed its own exact-head contract qualification before implementation authorization.
+
+Closure/evidence documents are being integrated separately as documentation-only changes. R6 remains locked until the final merged R5 handoff is recorded and separately authorized.
+
+## 8A. Controlled implementation merge result
+
 The owner has authorized a controlled merge of exact implementation SHA `8823c63c1a03281d91d5085bba07206186380f6c`.
 
 Required merge discipline:
@@ -184,7 +211,8 @@ accepted implementation: 8823c63c1a03281d91d5085bba07206186380f6c
 Q01-Q07: CLOSED
 exact-head qualification: 4/4 SUCCESS
 blocking/high R5 findings: NONE OPEN
-controlled R5 merge: AUTHORIZED / PENDING
+controlled R5 implementation merge: COMPLETE at 748f6af4ce4c9868c2441125cd0480cf8abc34d4
+closure/evidence documentation merge: PENDING
 R6+: LOCKED
 Design 154: LOCKED
 V1.0 production certification: NOT AUTHORIZED
