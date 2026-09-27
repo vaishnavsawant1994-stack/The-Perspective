@@ -312,13 +312,13 @@ function fieldPolicyAllows(
     return false;
   }
 
-  const allowedFields =
-    command.action === "create"
-      ? new Set([
-          ...command.fieldPolicy.mutableFields,
-          ...(command.fieldPolicy.createOnlyFields ?? []),
-        ])
-      : new Set(command.fieldPolicy.mutableFields);
+  const allowedFields = new Set([
+    ...command.fieldPolicy.mutableFields,
+    ...(command.action === "create"
+      ? command.fieldPolicy.createOnlyFields ?? []
+      : []),
+    ...(command.fieldPolicy.actionFields?.[command.action] ?? []),
+  ]);
 
   return requestedFields.every((field) => allowedFields.has(field));
 }
