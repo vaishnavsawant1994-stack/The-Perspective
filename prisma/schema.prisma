@@ -344,6 +344,7 @@ model Department {
   members           OrganizationMembership[] @relation("MembershipDepartment")
 
   @@unique([organizationId, slug])
+  @@unique([id, organizationId], map: "departments_id_organization_id_key")
   @@index([organizationId, status])
   @@map("departments")
   @@schema("iam")
@@ -375,6 +376,7 @@ model OrganizationMembership {
   incidentEvents     IncidentEvent[]
   auditEvents        AuditEvent[]
 
+  @@unique([id, organizationId], map: "organization_memberships_id_organization_id_key")
   @@index([organizationId, status])
   @@index([userAccountId, status])
   @@index([departmentId, status])
@@ -632,6 +634,7 @@ model Resource {
   reconciliationFindings ReconciliationFinding[]
   auditEvents            AuditEvent[]
 
+  @@unique([id, ownerOrganizationId], map: "resources_id_owner_organization_id_key")
   @@index([ownerOrganizationId, resourceType, archivedAt])
   @@index([clientOrganizationId, visibility, createdAt(sort: Desc)])
   @@index([projectId, resourceType])
