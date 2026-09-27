@@ -328,9 +328,15 @@ It must not create project, contract, invoice or payment truth.
 
 ### 8.1 Existing R6 vocabulary
 
-R5 already freezes 41 R6-stage permission keys.
+R5 freezes 41 permission keys with historical `activationStage: "R6"`.
 
-R6 planning must reuse them; do not create aliases merely for convenience.
+Gate-A D01 Resolution A narrows four proposal permissions to R7 production ownership without rewriting accepted R5 history.
+
+Therefore the R6 candidate active subset is exactly **37** keys:
+
+`41 historical R6-stage keys - proposal.view - proposal.edit - proposal.send - proposal.approve`.
+
+R6 planning must reuse the accepted keys; do not create aliases merely for convenience.
 
 ### 8.2 Stage activation
 
@@ -338,7 +344,12 @@ Current default active stage is exactly `R5`.
 
 Planning changes must not change that.
 
-During separately authorized R6 implementation, stage activation must be server-owned and scoped to completed R6 application/domain entrypoints.
+During separately authorized R6 implementation, activation must be server-owned and require both:
+
+- `activeStages` contains R6; and
+- the permission key appears in an explicit approved R6 active-permission allowlist.
+
+The active allowlist is the 37-key subset defined above. Historical proposal keys do not activate in R6 even though their frozen metadata says R6.
 
 R7+ remains inactive.
 
@@ -352,7 +363,7 @@ activationStage === "R5"
 
 Therefore R6 implementation must extend authorization policy with an explicit R6 permission→allowed-action map before any R6 permission can become active.
 
-No R6 permission may be activated if its action family is undeclared.
+No R6 permission may be activated if its action family is undeclared or if it is absent from the approved 37-key active-permission allowlist.
 
 This is a G0 security requirement.
 
@@ -676,6 +687,7 @@ R6 planning: AUTHORIZED
 R6 G0 candidate: DRAFT — GATE-A APPROVED
 R6-G01 Proposal scope: CLOSED — D01 Resolution A
 R6-G02 Template permission stage ownership: CLOSED — D15 Resolution A
+R6 active-permission allowlist: 37 KEYS REQUIRED BEFORE ACTIVATION
 R6 action-family binding: REQUIRED BEFORE ACTIVATION
 R6 production implementation: NOT AUTHORIZED
 R7+: LOCKED
