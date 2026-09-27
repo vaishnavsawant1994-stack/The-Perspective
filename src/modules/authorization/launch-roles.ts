@@ -103,7 +103,7 @@ export const PERMISSION_BUNDLES = {
   B17: {
     key: "B17",
     name: "Client User Base",
-    permissions: ["client.dashboard.view", "client.project.view", "client.project.activity.view", "client.message.view", "client.message.send", "client.notification.view", "client.task.view", "client.task.complete", "client.support.manage", "client.questionnaire.view", "client.questionnaire.edit", "client.draft.view", "client.design.view", "client.asset.upload", "client.asset.view", "client.approval.view", "client.media.view", "client.contract.view", "client.billing.view", "client.publication.view", "client.distribution.view", "client.report.view", "client.renewal.view", "approval.client.decide", "client.draft.review", "client.design.review", "client.media.review", "client.contract.sign", "client.billing.pay", "client.org.manage"],
+    permissions: ["client.dashboard.view", "client.project.view", "client.project.activity.view", "client.message.view", "client.message.send", "client.notification.view", "client.task.view", "client.task.complete", "client.support.manage", "client.questionnaire.view", "client.questionnaire.edit", "client.draft.view", "client.design.view", "client.asset.upload", "client.asset.view", "client.approval.view", "client.media.view", "client.contract.view", "client.billing.view", "client.publication.view", "client.distribution.view", "client.report.view", "client.renewal.view"],
   }
 } as const satisfies Record<string, PermissionBundle>;
 
@@ -351,7 +351,7 @@ export const LAUNCH_ROLES = [
     code: "R17",
     name: "Client User",
     scopes: ["CLIENT"],
-    permissions: ["approval.client.decide", "client.approval.view", "client.asset.upload", "client.asset.view", "client.billing.pay", "client.billing.view", "client.contract.sign", "client.contract.view", "client.dashboard.view", "client.design.review", "client.design.view", "client.distribution.view", "client.draft.review", "client.draft.view", "client.media.review", "client.media.view", "client.message.send", "client.message.view", "client.notification.view", "client.org.manage", "client.project.activity.view", "client.project.view", "client.publication.view", "client.questionnaire.edit", "client.questionnaire.view", "client.renewal.view", "client.report.view", "client.support.manage", "client.task.complete", "client.task.view"],
+    permissions: PERMISSION_BUNDLES.B17.permissions,
   }
 ] as const satisfies readonly LaunchRoleDefinition[];
 
