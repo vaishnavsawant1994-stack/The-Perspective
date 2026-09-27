@@ -330,9 +330,9 @@ The next control sequence is:
 7. obtain separate R6 implementation authorization.
 
 
-## D16 — R6 action-family enforcement
+## Post-Gate security prerequisite — R6 action-family enforcement
 
-**Status:** REQUIRED G0 SECURITY CONTROL — NO SEPARATE SCOPE AMENDMENT
+**Status:** REQUIRED G0 SECURITY CONTROL — NOT A GATE-A SCOPE DECISION
 
 Accepted R5 policy action binding currently applies only when `activationStage === "R5"`.
 
