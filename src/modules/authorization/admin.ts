@@ -5,6 +5,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   AuditActorType,
   MembershipStatus,
+  MembershipType,
   PermissionEffect,
   Prisma,
   type PrismaClient,
@@ -892,6 +893,7 @@ export async function assignMembershipAuthorizationRole(
             id: input.membershipId,
             organizationId: context.tenant.organizationId,
             status: MembershipStatus.ACTIVE,
+            membershipType: MembershipType.STAFF,
             endedAt: null,
           },
           select: { id: true, updatedAt: true },
@@ -924,8 +926,14 @@ export async function assignMembershipAuthorizationRole(
       let ceiling = false;
 
       if (actorRole && role.systemRole && isLaunchRoleCode(role.key)) {
-        ceiling = canAdministerLaunchRole(context, role.key);
-      } else if (actorRole && !role.systemRole) {
+        ceiling =
+          role.key !== "R17" &&
+          canAdministerLaunchRole(context, role.key);
+      } else if (
+        actorRole &&
+        !role.systemRole &&
+        String(role.defaultScope) !== "CLIENT"
+      ) {
         const customPermissionKeys = role.rolePermissions
           .map((edge) => edge.permission.key)
           .filter(isCanonicalPermissionKey);
