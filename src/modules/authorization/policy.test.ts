@@ -222,6 +222,39 @@ describe("R5 resource policy", () => {
     });
   });
 
+  it("fails closed on reserved field-group constraints that have no R5 enforcement mapping", () => {
+    const context = authorizedContext(
+      [
+        grant("team.view", {
+          constraints: { deniedFieldGroups: ["internal"] },
+        }),
+      ],
+      { blocked: ["team.view"] },
+    );
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "membership",
+          ownerOrganizationId: "org-1",
+        },
+        {
+          action: "view",
+          requestedFields: ["id"],
+          fieldPolicy: {
+            readableFields: ["id"],
+            mutableFields: [],
+          },
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "POLICY_INVALID",
+    });
+  });
+
   it("does not let READ authority prove export without an explicit export permission", () => {
     const context = authorizedContext([
       grant("team.view", { scope: "READ" }),
