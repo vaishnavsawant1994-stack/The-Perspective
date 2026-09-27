@@ -994,42 +994,9 @@ export async function assignMembershipAuthorizationRole(
       const concurrencyMatches =
         membership.updatedAt.getTime() ===
         input.expectedMembershipUpdatedAt.getTime();
-      const actorRole = actorAdminRole(context);
-      let ceiling = false;
-
-      if (actorRole && role.systemRole && isLaunchRoleCode(role.key)) {
-        ceiling =
-          role.key !== "R17" &&
-          canAdministerLaunchRole(context, role.key);
-      } else if (
-        actorRole &&
-        !role.systemRole &&
-        String(role.defaultScope) !== "CLIENT"
-      ) {
-        const customPermissionKeys = role.rolePermissions
-          .map((edge) => edge.permission.key)
-          .filter(isCanonicalPermissionKey);
-        ceiling =
-          ROLE_DELEGATION_CEILINGS[actorRole].mayCreateCustomTeamRoles &&
-          canMutateCustomPermissions(context, customPermissionKeys);
-      }
-
-      const requestedScopeAllowed = role.systemRole && isLaunchRoleCode(role.key)
-        ? (() => {
-            const definition = ROLE_DELEGATION_CEILINGS[actorRole ?? "R02"];
-            void definition;
-            return true;
-          })()
-        : String(role.defaultScope) === input.scope;
-
-      if (role.systemRole && isLaunchRoleCode(role.key)) {
-        const definition = getLaunchRoleDefinition(role.key);
-        if (!definition.scopes.includes(input.scope as never)) {
-          ceiling = false;
-        }
-      } else if (!requestedScopeAllowed) {
-        ceiling = false;
-      }
+      const rolePermissionKeys = role.rolePermissions.map(
+        (edge) => edge.permission.key,
+      );
 
       if (input.validUntil && input.validUntil <= now) {
         return { kind: "error" as const, code: "INVALID" as const };
@@ -1040,18 +1007,28 @@ export async function assignMembershipAuthorizationRole(
         "new-membership-role",
         membership.id,
       );
-      const command = adminCommand(context, now, "assign", input.reason, {
-        fieldPolicyResource: "membership-role",
-        requestedFields: ["roleId", "scope", "validUntil"],
-        delegationCeilingSatisfied: ceiling,
-        optimisticConcurrencySatisfied: concurrencyMatches,
-      });
       const authorization = await authorizeInTransaction(
         transaction,
         context,
         "role.manage",
         resource,
-        command,
+        (freshContext) =>
+          adminCommand(freshContext, now, "assign", input.reason, {
+            fieldPolicyResource: "membership-role",
+            requestedFields: ["roleId", "scope", "validUntil"],
+            delegationCeilingSatisfied: freshMembershipRoleAssignmentCeiling(
+              freshContext,
+              {
+                targetMembershipId: membership.id,
+                roleKey: role.key,
+                systemRole: role.systemRole,
+                defaultScope: String(role.defaultScope),
+                permissionKeys: rolePermissionKeys,
+                scope: input.scope,
+              },
+            ),
+            optimisticConcurrencySatisfied: concurrencyMatches,
+          }),
         now,
       );
       if (authorization.kind === "denied") {
@@ -1059,12 +1036,6 @@ export async function assignMembershipAuthorizationRole(
           kind: "denied" as const,
           code: "DENIED" as const,
           decision: authorization.decision,
-        };
-      }
-      if (!ceiling) {
-        return {
-          kind: "error" as const,
-          code: "DELEGATION_CEILING" as const,
         };
       }
       if (!concurrencyMatches) {
