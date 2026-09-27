@@ -1127,7 +1127,16 @@ export async function revokeMembershipAuthorizationRole(
           validFrom: true,
           validUntil: true,
           createdAt: true,
-          role: { select: { key: true, systemRole: true } },
+          role: {
+            select: {
+              key: true,
+              systemRole: true,
+              defaultScope: true,
+              rolePermissions: {
+                select: { permission: { select: { key: true } } },
+              },
+            },
+          },
         },
       });
       if (!grant) return { kind: "error" as const, code: "NOT_FOUND" as const };
@@ -1135,28 +1144,37 @@ export async function revokeMembershipAuthorizationRole(
       const concurrencyMatches =
         grant.createdAt.getTime() === input.expectedCreatedAt.getTime() &&
         (!grant.validUntil || grant.validUntil > now);
-      const ceiling =
-        grant.role.systemRole && isLaunchRoleCode(grant.role.key)
-          ? canAdministerLaunchRole(context, grant.role.key)
-          : Boolean(actorAdminRole(context));
+      const rolePermissionKeys = grant.role.rolePermissions.map(
+        (edge) => edge.permission.key,
+      );
 
       const resource = membershipRoleResource(
         context.tenant.organizationId,
         grant.id,
         grant.membershipId,
       );
-      const command = adminCommand(context, now, "revoke", input.reason, {
-        fieldPolicyResource: "membership-role",
-        requestedFields: ["validUntil"],
-        delegationCeilingSatisfied: ceiling,
-        optimisticConcurrencySatisfied: concurrencyMatches,
-      });
       const authorization = await authorizeInTransaction(
         transaction,
         context,
         "role.manage",
         resource,
-        command,
+        (freshContext) =>
+          adminCommand(freshContext, now, "revoke", input.reason, {
+            fieldPolicyResource: "membership-role",
+            requestedFields: ["validUntil"],
+            delegationCeilingSatisfied: freshMembershipRoleAssignmentCeiling(
+              freshContext,
+              {
+                targetMembershipId: grant.membershipId,
+                roleKey: grant.role.key,
+                systemRole: grant.role.systemRole,
+                defaultScope: String(grant.role.defaultScope),
+                permissionKeys: rolePermissionKeys,
+                scope: String(grant.scope) as AuthorizationScope,
+              },
+            ),
+            optimisticConcurrencySatisfied: concurrencyMatches,
+          }),
         now,
       );
       if (authorization.kind === "denied") {
@@ -1164,12 +1182,6 @@ export async function revokeMembershipAuthorizationRole(
           kind: "denied" as const,
           code: "DENIED" as const,
           decision: authorization.decision,
-        };
-      }
-      if (!ceiling) {
-        return {
-          kind: "error" as const,
-          code: "DELEGATION_CEILING" as const,
         };
       }
       if (!concurrencyMatches) {
