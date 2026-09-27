@@ -2,7 +2,7 @@ import type { LeadLifecycleState } from "./types";
 
 const TERMINAL_STATES = new Set<LeadLifecycleState>([
   "DISQUALIFIED",
-  "DO_NOT_CONTACT",
+  "SUPPRESSED",
   "CONVERTED",
 ]);
 
@@ -19,7 +19,7 @@ const FORWARD_TRANSITIONS: Readonly<Record<LeadLifecycleState, readonly LeadLife
   INTERESTED: ["NURTURE", "CONVERTED"],
   NURTURE: ["QUALIFICATION_PENDING"],
   DISQUALIFIED: [],
-  DO_NOT_CONTACT: [],
+  SUPPRESSED: [],
   CONVERTED: [],
 };
 
@@ -34,7 +34,7 @@ export function canTransitionLeadLifecycle(
   to: LeadLifecycleState,
 ) {
   if (from === to || TERMINAL_STATES.has(from)) return false;
-  if (to === "DO_NOT_CONTACT") return DNC_ELIGIBLE.has(from);
+  if (to === "SUPPRESSED") return DNC_ELIGIBLE.has(from);
   return FORWARD_TRANSITIONS[from].includes(to);
 }
 
