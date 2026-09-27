@@ -65,6 +65,7 @@ function mapKnownFailure(value: unknown): CrmCoreResult<never> | undefined {
 
   switch (databaseCode(value)) {
     case "P2002":
+    case "P2034":
     case "23505":
       return error("CONFLICT");
     case "P2025":
