@@ -9,6 +9,8 @@ import {
   authorizationProblem,
 } from "@/modules/authorization/http";
 import { transitionLeadLifecycle } from "@/modules/crm/core";
+import { canTransitionLeadLifecycle } from "@/modules/crm/lifecycle";
+import type { LeadLifecycleState } from "@/modules/crm/types";
 import {
   invalidR6Request,
   r6CommandError,
@@ -53,8 +55,11 @@ export async function POST(
     resource,
     command: {
       action: actionByTarget[input.to],
-      requestedFields: [],
-      workflowSatisfied: true,
+      requestedFields: Object.keys(input),
+      workflowSatisfied: canTransitionLeadLifecycle(
+        resource.lifecycleState as LeadLifecycleState,
+        input.to,
+      ),
     },
     concealResource: true,
   });
