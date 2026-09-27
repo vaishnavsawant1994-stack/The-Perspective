@@ -33,9 +33,14 @@ import type {
   RecordQualificationInput,
   RemoveLeadListMemberInput,
   RequestEnrichmentInput,
+  ReviewEnrichmentFactInput,
+  ReviewStagedRecordInput,
   StageExtractedRecordInput,
   SuppressLeadInput,
   TransitionLeadLifecycleInput,
+  UpdateCompanyInput,
+  UpdateContactInput,
+  UpdateLeadInput,
 } from "./types";
 
 type CrmContext = TenantScopedRequestContext | AuthorizedRequestContext;
@@ -899,6 +904,239 @@ export async function suppressLead(
         to: "DO_NOT_CONTACT" as const,
         rowVersion: input.expectedRowVersion + 1,
       };
+    },
+    database,
+  );
+}
+
+
+function optionalTrimmed(value: string | null | undefined) {
+  if (value === undefined) return undefined;
+  return value?.trim() || null;
+}
+
+export async function reviewStagedRecord(
+  context: CrmContext,
+  input: ReviewStagedRecordInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(
+    context,
+    async (transaction) => {
+      const current = await transaction.crmStagedRecord.findFirst({
+        where: {
+          id: input.stagedRecordId,
+          ownerOrganizationId: context.tenant.organizationId,
+        },
+        select: { validationState: true, rowVersion: true },
+      });
+      if (!current) throw new CrmCommandError("NOT_FOUND");
+      if (current.rowVersion !== input.expectedRowVersion) throw new CrmCommandError("STALE_WRITE");
+      if (current.validationState !== "PENDING") throw new CrmCommandError("TRANSITION_DENIED");
+
+      const reviewedAt = new Date();
+      const updated = await transaction.crmStagedRecord.updateMany({
+        where: {
+          id: input.stagedRecordId,
+          ownerOrganizationId: context.tenant.organizationId,
+          rowVersion: input.expectedRowVersion,
+          validationState: "PENDING",
+        },
+        data: {
+          validationState: input.decision,
+          reviewedByMembershipId: context.membership.membershipId,
+          reviewedAt,
+          rowVersion: { increment: 1 },
+        },
+      });
+      if (updated.count !== 1) throw new CrmCommandError("STALE_WRITE");
+
+      return {
+        stagedRecordId: input.stagedRecordId,
+        decision: input.decision,
+        rowVersion: input.expectedRowVersion + 1,
+      };
+    },
+    database,
+  );
+}
+
+export async function reviewEnrichmentFact(
+  context: CrmContext,
+  input: ReviewEnrichmentFactInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(
+    context,
+    async (transaction) => {
+      const current = await transaction.crmEnrichmentFact.findFirst({
+        where: {
+          id: input.enrichmentFactId,
+          ownerOrganizationId: context.tenant.organizationId,
+        },
+        select: { acceptedAt: true, rejectedAt: true, rowVersion: true },
+      });
+      if (!current) throw new CrmCommandError("NOT_FOUND");
+      if (current.rowVersion !== input.expectedRowVersion) throw new CrmCommandError("STALE_WRITE");
+      if (current.acceptedAt || current.rejectedAt) throw new CrmCommandError("TRANSITION_DENIED");
+
+      const reviewedAt = new Date();
+      const updated = await transaction.crmEnrichmentFact.updateMany({
+        where: {
+          id: input.enrichmentFactId,
+          ownerOrganizationId: context.tenant.organizationId,
+          rowVersion: input.expectedRowVersion,
+          acceptedAt: null,
+          rejectedAt: null,
+        },
+        data: input.decision === "ACCEPTED"
+          ? {
+              acceptedAt: reviewedAt,
+              acceptedByMembershipId: context.membership.membershipId,
+              rowVersion: { increment: 1 },
+            }
+          : {
+              rejectedAt: reviewedAt,
+              rejectedByMembershipId: context.membership.membershipId,
+              rowVersion: { increment: 1 },
+            },
+      });
+      if (updated.count !== 1) throw new CrmCommandError("STALE_WRITE");
+
+      return {
+        enrichmentFactId: input.enrichmentFactId,
+        decision: input.decision,
+        rowVersion: input.expectedRowVersion + 1,
+      };
+    },
+    database,
+  );
+}
+
+export async function updateCompany(
+  context: CrmContext,
+  input: UpdateCompanyInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const hasMutation = ["name", "legalName", "domain", "website", "industry", "sizeBand", "revenueBand", "country"]
+    .some((field) => Object.prototype.hasOwnProperty.call(input, field));
+  if (!hasMutation || (input.name !== undefined && !input.name.trim())) return error("INVALID");
+
+  return run(
+    context,
+    async (transaction) => {
+      const current = await transaction.crmCompany.findFirst({
+        where: { id: input.companyId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+        select: { rowVersion: true },
+      });
+      if (!current) throw new CrmCommandError("NOT_FOUND");
+      if (current.rowVersion !== input.expectedRowVersion) throw new CrmCommandError("STALE_WRITE");
+
+      const updated = await transaction.crmCompany.updateMany({
+        where: {
+          id: input.companyId,
+          ownerOrganizationId: context.tenant.organizationId,
+          archivedAt: null,
+          rowVersion: input.expectedRowVersion,
+        },
+        data: {
+          ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+          ...(input.legalName !== undefined ? { legalName: optionalTrimmed(input.legalName) } : {}),
+          ...(input.domain !== undefined ? { domain: optionalTrimmed(input.domain)?.toLowerCase() ?? null } : {}),
+          ...(input.website !== undefined ? { website: optionalTrimmed(input.website) } : {}),
+          ...(input.industry !== undefined ? { industry: optionalTrimmed(input.industry) } : {}),
+          ...(input.sizeBand !== undefined ? { sizeBand: optionalTrimmed(input.sizeBand) } : {}),
+          ...(input.revenueBand !== undefined ? { revenueBand: optionalTrimmed(input.revenueBand) } : {}),
+          ...(input.country !== undefined ? { country: optionalTrimmed(input.country) } : {}),
+          rowVersion: { increment: 1 },
+          updatedByMembershipId: context.membership.membershipId,
+        },
+      });
+      if (updated.count !== 1) throw new CrmCommandError("STALE_WRITE");
+      return { companyId: input.companyId, rowVersion: input.expectedRowVersion + 1 };
+    },
+    database,
+  );
+}
+
+export async function updateContact(
+  context: CrmContext,
+  input: UpdateContactInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const hasMutation = ["companyId", "title", "relationshipState", "preferredChannel"]
+    .some((field) => Object.prototype.hasOwnProperty.call(input, field));
+  if (!hasMutation) return error("INVALID");
+
+  return run(
+    context,
+    async (transaction) => {
+      const current = await transaction.crmContact.findFirst({
+        where: { id: input.contactId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+        select: { rowVersion: true },
+      });
+      if (!current) throw new CrmCommandError("NOT_FOUND");
+      if (current.rowVersion !== input.expectedRowVersion) throw new CrmCommandError("STALE_WRITE");
+
+      const updated = await transaction.crmContact.updateMany({
+        where: {
+          id: input.contactId,
+          ownerOrganizationId: context.tenant.organizationId,
+          archivedAt: null,
+          rowVersion: input.expectedRowVersion,
+        },
+        data: {
+          ...(input.companyId !== undefined ? { companyId: input.companyId } : {}),
+          ...(input.title !== undefined ? { title: optionalTrimmed(input.title) } : {}),
+          ...(input.relationshipState !== undefined ? { relationshipState: optionalTrimmed(input.relationshipState) } : {}),
+          ...(input.preferredChannel !== undefined ? { preferredChannel: optionalTrimmed(input.preferredChannel) } : {}),
+          rowVersion: { increment: 1 },
+          updatedByMembershipId: context.membership.membershipId,
+        },
+      });
+      if (updated.count !== 1) throw new CrmCommandError("STALE_WRITE");
+      return { contactId: input.contactId, rowVersion: input.expectedRowVersion + 1 };
+    },
+    database,
+  );
+}
+
+export async function updateLead(
+  context: CrmContext,
+  input: UpdateLeadInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const hasMutation = ["companyId", "contactId", "leadSourceId"]
+    .some((field) => Object.prototype.hasOwnProperty.call(input, field));
+  if (!hasMutation) return error("INVALID");
+
+  return run(
+    context,
+    async (transaction) => {
+      const current = await transaction.crmLead.findFirst({
+        where: { id: input.leadId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+        select: { rowVersion: true },
+      });
+      if (!current) throw new CrmCommandError("NOT_FOUND");
+      if (current.rowVersion !== input.expectedRowVersion) throw new CrmCommandError("STALE_WRITE");
+
+      const updated = await transaction.crmLead.updateMany({
+        where: {
+          id: input.leadId,
+          ownerOrganizationId: context.tenant.organizationId,
+          archivedAt: null,
+          rowVersion: input.expectedRowVersion,
+        },
+        data: {
+          ...(input.companyId !== undefined ? { companyId: input.companyId } : {}),
+          ...(input.contactId !== undefined ? { contactId: input.contactId } : {}),
+          ...(input.leadSourceId !== undefined ? { leadSourceId: input.leadSourceId } : {}),
+          rowVersion: { increment: 1 },
+          updatedByMembershipId: context.membership.membershipId,
+        },
+      });
+      if (updated.count !== 1) throw new CrmCommandError("STALE_WRITE");
+      return { leadId: input.leadId, rowVersion: input.expectedRowVersion + 1 };
     },
     database,
   );
