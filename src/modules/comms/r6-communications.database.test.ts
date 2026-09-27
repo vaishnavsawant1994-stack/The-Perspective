@@ -501,11 +501,7 @@ describe("R6 communications command-layer falsification", () => {
   it("performs dispatch-time sender and suppression checks", async () => {
     const safe = await evaluateDispatchSafety(
       platform,
-      {
-        campaignRecipientId: fixture.ownRecipientId,
-        channel: "EMAIL",
-        normalizedDestinationHash: "sha256:comms-safe",
-      },
+      { campaignRecipientId: fixture.ownRecipientId },
       database,
     );
     expect(safe.kind).toBe("ok");
@@ -515,7 +511,7 @@ describe("R6 communications command-layer falsification", () => {
         platform,
         {
           channel: "EMAIL",
-          normalizedDestinationHash: "sha256:comms-blocked",
+          normalizedDestinationHash: hashNormalizedDestination("EMAIL", "comms-own@example.invalid"),
           reason: "unsubscribe",
           source: "recipient",
         },
@@ -525,11 +521,7 @@ describe("R6 communications command-layer falsification", () => {
 
     const blocked = await evaluateDispatchSafety(
       platform,
-      {
-        campaignRecipientId: fixture.ownRecipientId,
-        channel: "EMAIL",
-        normalizedDestinationHash: "sha256:comms-blocked",
-      },
+      { campaignRecipientId: fixture.ownRecipientId },
       database,
     );
     expect(blocked).toEqual({ kind: "error", code: "CONTACT_BLOCKED" });
@@ -540,11 +532,7 @@ describe("R6 communications command-layer falsification", () => {
     });
     const unhealthy = await evaluateDispatchSafety(
       platform,
-      {
-        campaignRecipientId: fixture.ownRecipientId,
-        channel: "EMAIL",
-        normalizedDestinationHash: "sha256:comms-safe",
-      },
+      { campaignRecipientId: fixture.ownRecipientId },
       database,
     );
     expect(unhealthy).toEqual({ kind: "error", code: "SENDER_NOT_READY" });
@@ -554,21 +542,75 @@ describe("R6 communications command-layer falsification", () => {
     });
   });
 
-  it("stops dispatch after lead DNC even without a matching suppression hash", async () => {
+  it("stops dispatch after lead DNC using server-owned recipient context", async () => {
     const company = mustCrmOk(
       await createCompany(platform, { name: "COMMS DNC Company" }, database),
+    );
+    const contact = mustCrmOk(
+      await createContact(
+        platform,
+        {
+          companyId: company.id,
+          title: "COMMS DNC Contact",
+          emailOriginal: "comms-dnc@example.invalid",
+          emailNormalized: "comms-dnc@example.invalid",
+        },
+        database,
+      ),
     );
     const lead = mustCrmOk(
       await createLead(
         platform,
-        { companyId: company.id, sourceRecordKey: "comms-dnc-lead" },
+        {
+          companyId: company.id,
+          contactId: contact.id,
+          sourceRecordKey: "comms-dnc-lead",
+        },
+        database,
+      ),
+    );
+    const campaign = mustOk(
+      await createCampaign(
+        platform,
+        {
+          name: "COMMS DNC Campaign",
+          leadListId: fixture.ownLeadListId,
+          sequenceId: fixture.ownSequenceId,
+          sendingAccountId: fixture.ownSendingAccountId,
+        },
         database,
       ),
     );
     const recipient = mustOk(
       await addCampaignRecipient(
         platform,
-        { campaignId: fixture.ownCampaignId, leadId: lead.id },
+        { campaignId: campaign.id, leadId: lead.id },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        {
+          campaignId: campaign.id,
+          to: "READY",
+          expectedRowVersion: 1,
+          audienceSnapshotHash: "snapshot-dnc-v1",
+        },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "APPROVED", expectedRowVersion: 2 },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "SCHEDULED", expectedRowVersion: 3 },
         database,
       ),
     );
@@ -580,7 +622,10 @@ describe("R6 communications command-layer falsification", () => {
           leadId: lead.id,
           expectedRowVersion: 1,
           channel: "EMAIL",
-          normalizedDestinationHash: "sha256:different-dnc-hash",
+          normalizedDestinationHash: hashNormalizedDestination(
+            "EMAIL",
+            "comms-dnc@example.invalid",
+          ),
           reason: "legal",
           source: "system",
         },
@@ -590,11 +635,7 @@ describe("R6 communications command-layer falsification", () => {
 
     const result = await evaluateDispatchSafety(
       platform,
-      {
-        campaignRecipientId: recipient.id,
-        channel: "EMAIL",
-        normalizedDestinationHash: "sha256:not-the-suppression-row",
-      },
+      { campaignRecipientId: recipient.id },
       database,
     );
     expect(result).toEqual({ kind: "error", code: "CONTACT_BLOCKED" });
@@ -796,7 +837,7 @@ describe("R6 communications command-layer falsification", () => {
     expect(skip).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
   });
 
-  it("does not let a caller-supplied suppression hash bypass canonical destination normalization", async () => {
+  it("derives suppression identity from the canonical contact destination", async () => {
     const canonicalHash = hashNormalizedDestination(
       "EMAIL",
       "COMMS-OWN@EXAMPLE.INVALID",
@@ -816,11 +857,7 @@ describe("R6 communications command-layer falsification", () => {
 
     const result = await evaluateDispatchSafety(
       platform,
-      {
-        campaignRecipientId: fixture.ownRecipientId,
-        channel: "EMAIL",
-        normalizedDestinationHash: "attacker-controlled-nonmatching-hash",
-      },
+      { campaignRecipientId: fixture.ownRecipientId },
       database,
     );
 
@@ -871,11 +908,7 @@ describe("R6 communications command-layer falsification", () => {
 
     const result = await evaluateDispatchSafety(
       platform,
-      {
-        campaignRecipientId: fixture.ownRecipientId,
-        channel: "EMAIL",
-        normalizedDestinationHash: "sha256:paused-campaign",
-      },
+      { campaignRecipientId: fixture.ownRecipientId },
       database,
     );
     expect(result).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
