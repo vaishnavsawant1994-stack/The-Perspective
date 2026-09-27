@@ -71,3 +71,15 @@ export interface ConvertDealToClientInput {
   readonly expectedRowVersion: number;
   readonly idempotencyKey: string;
 }
+
+
+export interface ConvertLeadToDealInput {
+  readonly leadId: string;
+  readonly expectedLeadRowVersion: number;
+  readonly pipelineId: string;
+  readonly stageId: string;
+  readonly amountMinor?: bigint | null;
+  readonly currency?: string | null;
+  readonly probability?: number | null;
+  readonly expectedCloseDate?: Date | null;
+}
