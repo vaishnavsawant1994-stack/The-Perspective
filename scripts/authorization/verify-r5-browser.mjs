@@ -106,7 +106,7 @@ async function contextFor(browser, credentials) {
   assert.equal(verified.status, 200);
   assert.equal(verified.body?.status, "authenticated");
 
-  const cookies = await context.cookies(baseUrl);
+  const cookies = await context.cookies();
   assert.ok(
     cookies.some((cookie) => cookie.name === "__Host-perspective-session"),
     "production session cookie was not issued after MFA",
