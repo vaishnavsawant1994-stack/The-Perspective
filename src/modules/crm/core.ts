@@ -345,6 +345,15 @@ export async function requestEnrichment(
   input: RequestEnrichmentInput,
   database: PrismaClient = getPrismaClient(),
 ) {
+  if (
+    !input.provider.trim() ||
+    !input.requestHash.trim() ||
+    input.requestedFields.length === 0 ||
+    input.requestedFields.some((field) => !field.trim())
+  ) {
+    return error("INVALID");
+  }
+
   return run(
     context,
     async (transaction) => {
