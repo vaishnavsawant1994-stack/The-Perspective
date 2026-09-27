@@ -62,8 +62,8 @@ assert(gateText.includes("GATE-A OWNER-APPROVED"), "Gate A is not recorded as ow
 assert(gateText.includes("The owner explicitly approved D01–D15"), "Gate-A owner approval scope is missing");
 assert(gateText.includes("### D01 approved resolution"), "D01 approved Resolution A is missing");
 assert(gateText.includes("### D15 approved resolution"), "D15 approved Resolution A is missing");
-assert(gateText.includes("## D16 — R6 action-family enforcement"), "D16 technical action-binding control is missing");
-assert(gateText.includes("REQUIRED G0 SECURITY CONTROL"), "D16 must remain a technical G0 control, not inferred implementation authority");
+assert(gateText.includes("## Post-Gate security prerequisite — R6 action-family enforcement"), "Post-Gate R6 action-binding prerequisite is missing");
+assert(gateText.includes("REQUIRED G0 SECURITY CONTROL — NOT A GATE-A SCOPE DECISION"), "Action binding must remain a technical G0 control, not inferred owner scope approval");
 assert(!gateText.includes("OPEN — BLOCKS P4-R6-G0 FREEZE"), "Gate A still contains an open blocking decision");
 assert(readinessText.includes("GATE-A OWNER-APPROVED"), "Gate-A readiness does not reflect owner approval");
 assert(readinessText.includes("P4-R6-G0"), "Gate-A readiness does not track the G0 gate");
