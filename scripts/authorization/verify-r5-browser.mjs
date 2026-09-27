@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const baseUrl = process.env.PERSPECTIVE_AUTH_TEST_BASE_URL;
-const r01Token = process.env.PERSPECTIVE_R5_BROWSER_R01_TOKEN;
-const r02Token = process.env.PERSPECTIVE_R5_BROWSER_R02_TOKEN;
 const fixtureFile =
   process.env.PERSPECTIVE_R5_BROWSER_FIXTURE_FILE ??
   "/tmp/r5-browser-fixture.json";
 
-if (!baseUrl || !r01Token || !r02Token) {
-  throw new Error("R5 browser base URL and session tokens are required.");
+if (!baseUrl) {
+  throw new Error("R5 browser base URL is required.");
 }
 
 const fixture = JSON.parse(await readFile(fixtureFile, "utf8"));
