@@ -11,10 +11,13 @@ import {
 import { createCompany } from "@/modules/crm/core";
 import {
   invalidR6Request,
+  parseR6ListRequest,
   r6CommandError,
   r6Json,
   resolveR6TeamRequest,
+  unavailableR6Request,
 } from "@/modules/r6/http";
+import { listAuthorizedCompanies } from "@/modules/r6/queries";
 import { buildProspectiveR6Resource } from "@/modules/r6/resources";
 
 const schema = z.object({
@@ -27,6 +30,20 @@ const schema = z.object({
   revenueBand: z.string().trim().max(80).nullable().optional(),
   country: z.string().trim().max(120).nullable().optional(),
 }).strict();
+
+export async function GET(request: Request) {
+  const query = parseR6ListRequest(request);
+  if (!query) return invalidR6Request();
+
+  const resolved = await resolveR6TeamRequest(request);
+  if (resolved.kind === "response") return resolved.response;
+
+  try {
+    return r6Json(await listAuthorizedCompanies(resolved.context, query.limit));
+  } catch {
+    return unavailableR6Request();
+  }
+}
 
 export async function POST(request: Request) {
   if (!requireSameOrigin(request)) {
