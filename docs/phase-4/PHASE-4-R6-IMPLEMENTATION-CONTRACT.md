@@ -233,15 +233,6 @@ Required candidate tables:
 - `comms.sending_accounts`
 - `comms.message_templates`
 - `comms.message_template_versions`
-
-Under owner-approved D15 Resolution A these tables are **read-only reference/catalog infrastructure during R6**:
-
-- no R6 runtime create/edit/version/archive/publish command exists;
-- `template.manage` remains `R6+` and dormant;
-- R6 may select only an already-approved immutable version;
-- any production baseline template/version must come from an explicitly reviewed immutable seed/import manifest included in the future implementation qualification, not from browser authority or a hidden admin path;
-- if no approved immutable template version exists, campaign/sequence readiness fails closed;
-- later template mutation requires its separately authorized owning release.
 - `comms.outreach_campaigns`
 - `comms.sequences`
 - `comms.sequence_steps`
@@ -261,6 +252,8 @@ Under owner-approved D15 Resolution A these tables are **read-only reference/cat
 R6 runtime commands may not create/edit/version/approve/archive templates because `template.manage` remains `R6+`.
 
 If no approved immutable template version exists, campaign readiness fails closed. R6 must not synthesize placeholder content or silently activate `template.manage`.
+
+Any R6 production baseline template/version must come from an explicitly reviewed immutable seed/import manifest included in future implementation qualification; browser/admin runtime mutation is not a substitute.
 
 ### 6.3 Commercial — uncontested
 
