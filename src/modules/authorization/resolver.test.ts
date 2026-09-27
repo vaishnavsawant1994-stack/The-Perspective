@@ -148,6 +148,44 @@ describe("R5 effective authority resolution", () => {
     ]);
   });
 
+  it("rejects an inactive role even when its grant would otherwise be valid", () => {
+    const activeGrant = baseState().membershipRoles[0];
+    const state = baseState({
+      membershipRoles: [
+        {
+          ...activeGrant,
+          role: {
+            ...activeGrant.role,
+            status: "SUSPENDED",
+          },
+        },
+      ],
+    });
+
+    const result = resolveAuthorityFromState(
+      {
+        userAccountId: "user-1",
+        membershipId: "membership-1",
+        organizationId: "org-1",
+        surface: "TEAM",
+      },
+      state,
+      now,
+    );
+
+    expect(result.kind).toBe("resolved");
+    if (result.kind !== "resolved") throw new Error("Expected resolved authority");
+    expect([...result.authority.permissionKeys]).toEqual([]);
+    expect(result.authority.grantPaths).toEqual([]);
+    expect(result.authority.issues).toEqual([
+      expect.objectContaining({
+        code: "ROLE_NOT_ACTIVE",
+        membershipRoleId: "membership-role-1",
+        roleKey: "R04",
+      }),
+    ]);
+  });
+
   it("keeps a valid ALLOW usable when another edge for the same permission is malformed", () => {
     const goodRole = baseState().membershipRoles[0];
     const state = baseState({
