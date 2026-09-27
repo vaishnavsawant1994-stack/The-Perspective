@@ -362,7 +362,7 @@ export async function addCampaignRecipient(
   }, database);
 }
 
-async function buildCampaignApprovalSnapshot(
+export async function buildCampaignApprovalSnapshotInTransaction(
   transaction: CommsTransaction,
   context: CommsContext,
   campaignId: string,
@@ -474,7 +474,7 @@ export async function computeCampaignApprovalSnapshot(
 ) {
   return run(
     context,
-    (transaction) => buildCampaignApprovalSnapshot(transaction, context, campaignId),
+    (transaction) => buildCampaignApprovalSnapshotInTransaction(transaction, context, campaignId),
     database,
   );
 }
@@ -516,7 +516,7 @@ export async function transitionCampaign(
     };
 
     if (from === "DRAFT" && input.to === "READY") {
-      const snapshot = await buildCampaignApprovalSnapshot(
+      const snapshot = await buildCampaignApprovalSnapshotInTransaction(
         transaction,
         context,
         input.campaignId,
@@ -604,7 +604,7 @@ export async function evaluateDispatchSafety(
         ownerOrganizationId: context.tenant.organizationId,
         archivedAt: null,
       },
-      select: { health: true, syncState: true },
+      select: { provider: true, health: true, syncState: true },
     });
     if (!sender || sender.health !== "HEALTHY" || sender.syncState !== "CONNECTED") {
       throw new CommsCommandError("SENDER_NOT_READY");
@@ -702,6 +702,8 @@ export async function evaluateDispatchSafety(
       campaignRecipientId: recipient.id,
       allowed: true as const,
       channel,
+      provider: sender.provider.trim().toLowerCase(),
+      destination,
       normalizedDestinationHash: destinationHash,
     };
   }, database);
