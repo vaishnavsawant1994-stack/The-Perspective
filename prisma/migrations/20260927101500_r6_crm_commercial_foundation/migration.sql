@@ -1760,7 +1760,7 @@ CREATE TRIGGER "deal_stage_history_immutable"
 CREATE OR REPLACE FUNCTION "platform"."r6_reject_template_runtime_mutation"()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $
+AS $r6$
 BEGIN
   IF current_setting('app.r6_template_import', true) IS DISTINCT FROM 'on' THEN
     RAISE EXCEPTION 'R6 template catalog mutation requires reviewed import mode'
@@ -1769,7 +1769,7 @@ BEGIN
 
   RETURN COALESCE(NEW, OLD);
 END
-$;
+$r6$;
 
 CREATE TRIGGER "message_templates_reviewed_import_only"
   BEFORE INSERT OR UPDATE OR DELETE ON "comms"."message_templates"
