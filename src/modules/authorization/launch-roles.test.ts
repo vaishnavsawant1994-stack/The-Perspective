@@ -88,6 +88,48 @@ describe("R5 launch role matrix", () => {
     }
   });
 
+  it("matches every non-admin launch role to the exact frozen bundle composition", () => {
+    const combine = (
+      bundleKeys: readonly (keyof typeof PERMISSION_BUNDLES)[],
+      extras: readonly string[] = [],
+    ) =>
+      [
+        ...new Set([
+          ...bundleKeys.flatMap((key) => [...PERMISSION_BUNDLES[key].permissions]),
+          ...extras,
+        ]),
+      ].sort();
+
+    const expected = {
+      R03: combine(["B01", "B02", "B03", "B04", "B05"]),
+      R04: combine(["B01", "B02", "B03", "B04"]),
+      R05: combine(["B01", "B02", "B03"]),
+      R06: combine(["B01", "B02", "B06"], ["dashboard.executive.view"]),
+      R07: combine(
+        ["B01", "B02", "B07", "B08", "B09"],
+        ["project.manage", "project.assign", "report.view"],
+      ),
+      R08: combine(["B01", "B02", "B07", "B08"]),
+      R09: combine(["B01", "B02", "B07"]),
+      R10: combine(["B01", "B02", "B10"]),
+      R11: combine(["B01", "B02", "B11"], ["approval.view"]),
+      R12: combine(["B01", "B02", "B12"], ["approval.view"]),
+      R13: combine(
+        ["B01", "B02", "B13"],
+        ["project.manage", "project.assign", "report.view"],
+      ),
+      R14: combine(["B01", "B02", "B14"]),
+      R15: combine(["B01", "B02", "B15"], ["dashboard.executive.view"]),
+      R16: combine(["B01", "B02", "B16"]),
+      R17: combine(["B17"]),
+    } as const;
+
+    for (const [code, expectedPermissions] of Object.entries(expected)) {
+      const role = getLaunchRoleDefinition(code as keyof typeof expected);
+      expect([...role.permissions].sort(), code).toEqual(expectedPermissions);
+    }
+  });
+
   it("keeps R17 equal to the baseline B17 bundle and excludes elevated client capabilities", () => {
     const r17 = getLaunchRoleDefinition("R17");
     expect(r17.permissions).toEqual(PERMISSION_BUNDLES.B17.permissions);
