@@ -1574,9 +1574,16 @@ describe("R6 commercial deal falsification", () => {
     );
     expect(foreignContact).toEqual({ kind: "error", code: "NOT_FOUND" });
 
-    await database.commercialClientAccount.update({
-      where: { id: account.id },
-      data: { archivedAt: new Date() },
+    const archivedAt = new Date();
+    await database.$transaction(async (transaction) => {
+      await transaction.resource.update({
+        where: { id: account.resourceId },
+        data: { archivedAt },
+      });
+      await transaction.commercialClientAccount.update({
+        where: { id: account.id },
+        data: { archivedAt },
+      });
     });
     const archivedAccount = await addClientRelationship(
       platform,
