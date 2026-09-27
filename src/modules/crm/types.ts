@@ -167,3 +167,46 @@ export interface RemoveLeadListMemberInput {
   readonly leadListId: string;
   readonly leadId: string;
 }
+
+
+export interface ReviewStagedRecordInput {
+  readonly stagedRecordId: string;
+  readonly decision: "APPROVED" | "REJECTED";
+  readonly expectedRowVersion: number;
+}
+
+export interface ReviewEnrichmentFactInput {
+  readonly enrichmentFactId: string;
+  readonly decision: "ACCEPTED" | "REJECTED";
+  readonly expectedRowVersion: number;
+}
+
+export interface UpdateCompanyInput {
+  readonly companyId: string;
+  readonly expectedRowVersion: number;
+  readonly name?: string;
+  readonly legalName?: string | null;
+  readonly domain?: string | null;
+  readonly website?: string | null;
+  readonly industry?: string | null;
+  readonly sizeBand?: string | null;
+  readonly revenueBand?: string | null;
+  readonly country?: string | null;
+}
+
+export interface UpdateContactInput {
+  readonly contactId: string;
+  readonly expectedRowVersion: number;
+  readonly companyId?: string | null;
+  readonly title?: string | null;
+  readonly relationshipState?: string | null;
+  readonly preferredChannel?: string | null;
+}
+
+export interface UpdateLeadInput {
+  readonly leadId: string;
+  readonly expectedRowVersion: number;
+  readonly companyId?: string | null;
+  readonly contactId?: string | null;
+  readonly leadSourceId?: string | null;
+}
