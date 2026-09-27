@@ -341,6 +341,48 @@ describe("R6 PostgreSQL CRM/commercial foundation", () => {
     }
   });
 
+  it("persists canonical DO_NOT_CONTACT and rejects legacy SUPPRESSED lead state", async () => {
+    const resourceId = stableId("r6:resource:lead:dnc-vocabulary");
+    const leadId = stableId("r6:lead:dnc-vocabulary");
+
+    await beginRuntime(seedIds.organization.platform);
+
+    try {
+      await registerResource({
+        id: resourceId,
+        type: "lead",
+        title: "DNC vocabulary proof",
+      });
+      await insertLead({
+        id: leadId,
+        resourceId,
+        ownerOrganizationId: seedIds.organization.platform,
+      });
+
+      await client.query(
+        "UPDATE crm.leads SET lifecycle_state = 'DO_NOT_CONTACT', row_version = row_version + 1 WHERE id = $1",
+        [leadId],
+      );
+
+      const canonical = await client.query<{ lifecycle_state: string }>(
+        "SELECT lifecycle_state FROM crm.leads WHERE id = $1",
+        [leadId],
+      );
+      expect(canonical.rows).toEqual([{ lifecycle_state: "DO_NOT_CONTACT" }]);
+
+      await client.query("SAVEPOINT r6_legacy_suppressed_state");
+      await expect(
+        client.query(
+          "UPDATE crm.leads SET lifecycle_state = 'SUPPRESSED' WHERE id = $1",
+          [leadId],
+        ),
+      ).rejects.toMatchObject({ code: "23514" });
+      await client.query("ROLLBACK TO SAVEPOINT r6_legacy_suppressed_state");
+    } finally {
+      await rollback();
+    }
+  });
+
   it("keeps D15 message-template storage read-only for the runtime role", async () => {
     const resourceId = stableId("r6:resource:template:d15");
     const templateId = stableId("r6:template:d15");
