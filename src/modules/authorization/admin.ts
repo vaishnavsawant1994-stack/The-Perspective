@@ -397,6 +397,68 @@ function validCustomTeamScope(scope: AuthorizationScope) {
   return scope !== "CLIENT";
 }
 
+function freshRolePermissionCeiling(
+  context: AuthorizedRequestContext,
+  roleKey: string,
+  permissionKeys: readonly string[],
+) {
+  const policy = assessRolePermissionSetMutation({
+    actorRoleKeys: context.authorization.roleKeys,
+    targetRoleKey: roleKey,
+    targetSurface: "TEAM",
+    permissionKeys,
+  });
+  if (!policy.allowed) return false;
+
+  const canonical = permissionKeys.filter(isCanonicalPermissionKey);
+  return (
+    canonical.length === permissionKeys.length &&
+    canMutateCustomPermissions(context, canonical)
+  );
+}
+
+function freshMembershipRoleAssignmentCeiling(
+  context: AuthorizedRequestContext,
+  input: {
+    readonly targetMembershipId: string;
+    readonly roleKey: string;
+    readonly systemRole: boolean;
+    readonly defaultScope: string;
+    readonly permissionKeys: readonly string[];
+    readonly scope: AuthorizationScope;
+  },
+) {
+  if (context.membership.membershipId === input.targetMembershipId) {
+    return false;
+  }
+
+  if (input.systemRole && isLaunchRoleCode(input.roleKey)) {
+    if (input.roleKey === "R17") return false;
+
+    return assessLaunchRoleAssignment({
+      actorRoleKeys: context.authorization.roleKeys,
+      actorMembershipId: context.membership.membershipId,
+      targetMembershipId: input.targetMembershipId,
+      targetRoleCode: input.roleKey,
+      scope: input.scope,
+    }).allowed;
+  }
+
+  if (
+    input.systemRole ||
+    input.defaultScope === "CLIENT" ||
+    input.defaultScope !== input.scope
+  ) {
+    return false;
+  }
+
+  return freshRolePermissionCeiling(
+    context,
+    input.roleKey,
+    input.permissionKeys,
+  );
+}
+
 export async function listAuthorizationRoles(
   context: AuthorizedRequestContext,
   database: RootDatabase = getPrismaClient(),
