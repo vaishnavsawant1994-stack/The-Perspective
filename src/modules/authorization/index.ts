@@ -85,3 +85,13 @@ export {
   recordDeniedAuthorizationEvidence,
   type AuthorizationTelemetry,
 } from "./audit";
+
+export {
+  authorizationDecisionProblem,
+  authorizationProblem,
+  authorizeTrustedHttpOperation,
+  resolveAuthorizedHttpRequest,
+  type AuthorizationDecisionHttpOptions,
+  type AuthorizationHttpDependencies,
+  type AuthorizedHttpRequestResult,
+} from "./http";
