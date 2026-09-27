@@ -9,7 +9,7 @@
 **Independent external review:** NOT PERFORMED  
 **Independent-review requirement:** OWNER-WAIVED under GOV-REVIEW-01  
 **Replacement control:** ENHANCED QUALIFICATION  
-**P4-R5-C1:** READY FOR OWNER ACCEPTANCE — NOT ACCEPTED  
+**P4-R5-C1:** OWNER-ACCEPTED — IMPLEMENTATION MERGED  
 **R6+:** LOCKED
 
 ## 1. Classification rule
@@ -127,8 +127,8 @@ Current technical disposition:
 production authorization defect demonstrated by Q01-Q07: NO
 qualification / executable-proof gap remaining: NO
 blocking/high R5 finding remaining from this closure pass: NO
-P4-R5-C1: READY FOR OWNER ACCEPTANCE — NOT YET ACCEPTED
-merge authorization: NOT AUTHORIZED
+P4-R5-C1: OWNER-ACCEPTED — IMPLEMENTATION MERGED
+implementation merge: COMPLETE — 748f6af4ce4c9868c2441125cd0480cf8abc34d4
 R6+: LOCKED
 ```
 
