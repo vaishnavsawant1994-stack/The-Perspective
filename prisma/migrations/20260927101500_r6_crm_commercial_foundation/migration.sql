@@ -1872,3 +1872,253 @@ TO perspective_runtime;
 -- commercial.proposals, commercial.products, commercial.packages,
 -- commercial.contracts, commercial.invoices, commercial.payments,
 -- subscriptions and entitlements.
+
+
+-- ---------------------------------------------------------------------------
+-- R6 Commercial client-conversion helpers.
+--
+-- These SECURITY DEFINER functions preserve the R4/R5 rule that
+-- perspective_runtime cannot write IAM organizations or the generic
+-- idempotency ledger directly. Every helper derives the selected owner tenant
+-- from the transaction-local canonical tenant claim.
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION "platform"."claim_r6_client_conversion"(
+  p_receipt_id uuid,
+  p_idempotency_key text,
+  p_request_hash text,
+  p_expires_at timestamptz
+)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, platform
+AS $$
+DECLARE
+  owner_id uuid;
+  existing_hash text;
+  existing_state "platform"."IdempotencyState";
+BEGIN
+  owner_id := "platform"."current_organization_id"();
+
+  IF owner_id IS NULL
+     OR NULLIF(btrim(p_idempotency_key), '') IS NULL
+     OR NULLIF(btrim(p_request_hash), '') IS NULL
+     OR p_expires_at <= clock_timestamp()
+  THEN
+    RAISE EXCEPTION 'invalid R6 client conversion idempotency claim'
+      USING ERRCODE = '22023';
+  END IF;
+
+  SELECT request_hash, state
+    INTO existing_hash, existing_state
+    FROM "platform"."idempotency_receipts"
+   WHERE owner_organization_id = owner_id
+     AND scope = 'commercial.client-conversion'
+     AND idempotency_key = btrim(p_idempotency_key)
+   FOR UPDATE;
+
+  IF FOUND THEN
+    IF existing_hash IS DISTINCT FROM btrim(p_request_hash) THEN
+      RETURN 'MISMATCH';
+    END IF;
+
+    IF existing_state = 'COMPLETED' THEN
+      RETURN 'REPLAY';
+    END IF;
+
+    RETURN 'IN_PROGRESS';
+  END IF;
+
+  INSERT INTO "platform"."idempotency_receipts" (
+    id,
+    owner_organization_id,
+    scope,
+    idempotency_key,
+    request_hash,
+    state,
+    created_at,
+    expires_at
+  ) VALUES (
+    p_receipt_id,
+    owner_id,
+    'commercial.client-conversion',
+    btrim(p_idempotency_key),
+    btrim(p_request_hash),
+    'STARTED',
+    clock_timestamp(),
+    p_expires_at
+  );
+
+  RETURN 'CLAIMED';
+END
+$$;
+
+CREATE OR REPLACE FUNCTION "platform"."complete_r6_client_conversion"(
+  p_idempotency_key text,
+  p_request_hash text,
+  p_response_hash text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, platform
+AS $$
+DECLARE
+  owner_id uuid;
+  changed integer;
+BEGIN
+  owner_id := "platform"."current_organization_id"();
+
+  UPDATE "platform"."idempotency_receipts"
+     SET state = 'COMPLETED',
+         response_status = 200,
+         response_hash = NULLIF(btrim(p_response_hash), ''),
+         completed_at = clock_timestamp()
+   WHERE owner_organization_id = owner_id
+     AND scope = 'commercial.client-conversion'
+     AND idempotency_key = btrim(p_idempotency_key)
+     AND request_hash = btrim(p_request_hash)
+     AND state = 'STARTED';
+
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN
+    RAISE EXCEPTION 'R6 client conversion idempotency completion mismatch'
+      USING ERRCODE = '23514';
+  END IF;
+END
+$$;
+
+CREATE OR REPLACE FUNCTION "platform"."resolve_r6_client_organization"(
+  p_company_id uuid,
+  p_new_organization_id uuid
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, platform
+AS $$
+DECLARE
+  owner_id uuid;
+  company_name text;
+  company_legal_name text;
+  company_domain text;
+  linked_organization_id uuid;
+  linked_type "iam"."OrganizationType";
+  linked_status "iam"."RecordStatus";
+  matching_count bigint;
+  matching_organization_id uuid;
+  generated_slug text;
+BEGIN
+  owner_id := "platform"."current_organization_id"();
+
+  SELECT
+    name,
+    legal_name,
+    domain::text,
+    linked_organization_id
+  INTO
+    company_name,
+    company_legal_name,
+    company_domain,
+    linked_organization_id
+  FROM "crm"."companies"
+  WHERE id = p_company_id
+    AND owner_organization_id = owner_id
+    AND archived_at IS NULL
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'R6 client conversion company not found in selected tenant'
+      USING ERRCODE = '23503';
+  END IF;
+
+  IF linked_organization_id IS NOT NULL THEN
+    SELECT organization_type, status
+      INTO linked_type, linked_status
+      FROM "iam"."organizations"
+     WHERE id = linked_organization_id;
+
+    IF NOT FOUND
+       OR linked_type <> 'CLIENT'
+       OR linked_status <> 'ACTIVE'
+    THEN
+      RAISE EXCEPTION 'R6 linked client organization is invalid'
+        USING ERRCODE = '23514';
+    END IF;
+
+    RETURN linked_organization_id;
+  END IF;
+
+  IF NULLIF(btrim(company_domain), '') IS NOT NULL THEN
+    SELECT
+      count(*),
+      min(id::text)::uuid
+    INTO matching_count, matching_organization_id
+    FROM "iam"."organizations"
+    WHERE organization_type = 'CLIENT'
+      AND status = 'ACTIVE'
+      AND normalized_domain = btrim(company_domain);
+
+    IF matching_count > 1 THEN
+      RAISE EXCEPTION 'R6 client organization domain match is ambiguous'
+        USING ERRCODE = '23505';
+    ELSIF matching_count = 1 THEN
+      UPDATE "crm"."companies"
+         SET linked_organization_id = matching_organization_id,
+             updated_at = clock_timestamp()
+       WHERE id = p_company_id
+         AND owner_organization_id = owner_id;
+
+      RETURN matching_organization_id;
+    END IF;
+  END IF;
+
+  IF p_new_organization_id IS NULL THEN
+    RAISE EXCEPTION 'R6 client organization identifier is required'
+      USING ERRCODE = '22023';
+  END IF;
+
+  generated_slug := 'client-' || replace(p_new_organization_id::text, '-', '');
+
+  INSERT INTO "iam"."organizations" (
+    id,
+    organization_type,
+    legal_name,
+    display_name,
+    slug,
+    normalized_domain,
+    status,
+    settings,
+    created_at,
+    updated_at
+  ) VALUES (
+    p_new_organization_id,
+    'CLIENT',
+    COALESCE(NULLIF(btrim(company_legal_name), ''), company_name),
+    company_name,
+    generated_slug,
+    NULLIF(btrim(company_domain), ''),
+    'ACTIVE',
+    '{}'::jsonb,
+    clock_timestamp(),
+    clock_timestamp()
+  );
+
+  UPDATE "crm"."companies"
+     SET linked_organization_id = p_new_organization_id,
+         updated_at = clock_timestamp()
+   WHERE id = p_company_id
+     AND owner_organization_id = owner_id;
+
+  RETURN p_new_organization_id;
+END
+$$;
+
+REVOKE ALL ON FUNCTION "platform"."claim_r6_client_conversion"(uuid,text,text,timestamptz) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "platform"."complete_r6_client_conversion"(text,text,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "platform"."resolve_r6_client_organization"(uuid,uuid) FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION "platform"."claim_r6_client_conversion"(uuid,text,text,timestamptz) TO perspective_runtime;
+GRANT EXECUTE ON FUNCTION "platform"."complete_r6_client_conversion"(text,text,text) TO perspective_runtime;
+GRANT EXECUTE ON FUNCTION "platform"."resolve_r6_client_organization"(uuid,uuid) TO perspective_runtime;
