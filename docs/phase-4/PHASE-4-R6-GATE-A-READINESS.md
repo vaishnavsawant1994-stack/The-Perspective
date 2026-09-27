@@ -1,132 +1,127 @@
-# Phase 4 — R6 Gate-A / G0 Readiness
+# Phase 4 — R6 Gate-A Readiness
 
 **Record:** P4-R6-GATE-A-READINESS-01  
 **Date:** September 27, 2026  
 **Planning baseline:** `main@2372418d80fa07f633a0e4adc99a21b1f7d8300a`  
 **Planning branch:** `phase4/r6-crm-commercial-g0-20260927`  
-**Status:** GATE-A COMPLETE — P4-R6-G0 NOT YET QUALIFIED/FROZEN  
+**Status:** GATE-A OWNER-APPROVED — G0 FALSIFICATION / QUALIFICATION IN PROGRESS — NOT FROZEN  
 **R6 production implementation:** NOT AUTHORIZED
 
-## 1. Gate-A owner decision
+## 1. Gate-A authority state
 
-Gate A is owner-approved for D01–D15.
+The live Gate-A authority record is `P4-R6-GOV-01`.
 
-### D01
+Owner-approved decisions:
 
-Resolution A approved:
+- D01: **Resolution A** — strict Master Completion Bible release-table precedence; Proposal production behavior belongs to R7; R6 Deal progression stops at `PROPOSAL_PREPARATION`;
+- D02–D14: approved as recorded;
+- D15: **Resolution A** — `template.manage` remains `R6+` and dormant; R6 may only reference/select already-approved immutable template versions and may not mutate them.
 
-- Proposal production ownership remains R7;
-- R6 proposal persistence/version/send/acceptance is dormant;
-- R6 deal ceiling is `PROPOSAL_PREPARATION`;
-- R6 cannot manufacture product/package/proposal/contract/invoice/payment truth.
+The approval authorizes completion, falsification and qualification of P4-R6-G0 contracts only.
 
-### D15
+It does not authorize R6 production implementation.
 
-Resolution A approved:
+## 2. Technical G0 control added after Gate-A
 
-- `template.manage` remains exact activation stage `R6+`;
-- R6 does not activate it;
-- R6 may reference/select already-approved immutable template versions;
-- R6 may not create/edit/version templates through `template.manage`.
+D16 is a technical security prerequisite, not a new scope amendment:
 
-D02–D14 are approved exactly as recorded in `PHASE-4-R6-GATE-A-DECISIONS.md`.
+- future R6 activation requires the approved 37-key active-permission allowlist;
+- four historical `proposal.*` keys remain excluded/dormant despite frozen R6 stage metadata;
+- every active R6 permission requires explicit action/resource binding;
+- undeclared action/resource/permission => DENY;
+- `template.manage` remains excluded because its stage is `R6+`.
 
-## 2. Completed G0 planning artifacts
+D16 must be implemented and directly attacked only after a separate R6 implementation authorization.
 
-The package now contains:
+## 3. Completed planning evidence
 
-- planning authorization;
-- repository pre-design audit;
-- Gate-A decisions;
-- authority/action/resource matrix;
+The G0 package now includes:
+
+- owner planning authorization;
+- repository-backed pre-design audit;
+- owner-approved Gate-A scope;
+- R6 authority/action matrix;
 - trusted ResourceContext + field policy;
-- database tenancy/RLS matrix;
+- table-by-table database tenancy/RLS matrix;
 - lifecycle/guard matrix;
 - 120-case threat model;
-- one-to-one 120-case threat qualification matrix;
-- machine-verifiable R7+ exclusion manifest;
+- one-to-one threat→qualification matrix;
 - draft P4-R6-G0 implementation contract;
-- enhanced contract qualification workflow/verifier.
+- planning-only machine verifier/workflow.
 
-No R6 production implementation has been authorized or added.
+No R6 production implementation has been added.
 
-## 3. Repository facts
+## 4. Repository facts established
 
 At the authorized baseline:
 
-- Prisma has no `crm`, `comms`, or `commercial` production models;
-- there are zero CRM/comms/commercial production API routes;
-- R6-looking workspace screens are prototype/static presentation rather than durable business behavior;
+- Prisma has no `crm`, `comms` or `commercial` production models;
+- current APIs contain no R6 CRM/comms/commercial business routes;
+- R6-adjacent UI is primarily hard-coded/prototype presentation;
 - 15/34 canonical screens 11–44 have exact canonical route files;
-- 19/34 require canonical binding during a future authorized implementation;
-- accepted R5 registry contains 41 historical `activationStage: "R6"` keys;
-- four proposal keys are owner-narrowed to R7 production ownership;
-- candidate R6 active subset is therefore 37 keys;
+- 19/34 require future canonical route binding;
+- the accepted registry contains 41 historical exact-`R6` permission keys;
+- owner-approved D01 narrows four `proposal.*` keys to R7 ownership;
+- candidate R6 active subset is therefore exactly 37 keys;
 - `template.manage` remains `R6+`;
 - R5 default active stage remains exactly `R5`;
-- R6 production authority is currently dormant.
+- R6 remains dormant.
 
-## 4. Closed governance findings
+## 5. Gate-A decision state
 
-| Finding | Disposition |
+| Decision | State |
 |---|---|
-| R6-G01 Proposal release ownership | CLOSED — D01 Resolution A |
-| R6-G02 Template mutation stage ownership | CLOSED — D15 Resolution A |
-| R6-G04 Historical proposal R6 metadata vs narrowed R7 ownership | CLOSED AT CONTRACT LEVEL — explicit 37-key active allowlist required |
+| D01 Proposal ownership | OWNER-APPROVED — Resolution A |
+| D02 Deal lifecycle ceiling | OWNER-APPROVED |
+| D03 Client conversion semantics | OWNER-APPROVED |
+| D04 Existing UI responsibility | OWNER-APPROVED |
+| D05 Module architecture | OWNER-APPROVED |
+| D06 Database schemas | OWNER-APPROVED |
+| D07 Campaign launch authority | OWNER-APPROVED |
+| D08 Provider integrations | OWNER-APPROVED |
+| D09 Source/extraction/enrichment safety | OWNER-APPROVED |
+| D10 Stage activation | OWNER-APPROVED |
+| D11 R7 boundary | OWNER-APPROVED |
+| D12 R11 boundary | OWNER-APPROVED |
+| D13 Client Portal boundary | OWNER-APPROVED |
+| D14 Acceptance semantics | OWNER-APPROVED |
+| D15 Email-template mutation ownership | OWNER-APPROVED — Resolution A |
+| D16 R6 action-family enforcement | REQUIRED TECHNICAL G0 CONTROL |
 
-R6-G03 is an implementation prerequisite, not a current vulnerability:
+Gate A is complete.
 
-- R5 action binding is R5-only;
-- R6 remains dormant;
-- future R6 activation must implement/test explicit action/resource binding for the approved 37-key active subset.
+## 6. Remaining G0 work
 
-## 5. R7+ exclusion state
+Before one exact SHA can be classified **P4-R6-G0 READY FOR OWNER FREEZE**:
 
-R6 explicitly excludes production:
+1. complete adversarial/falsification review of the planning package;
+2. repair any BLOCKING/HIGH contract finding;
+3. ensure all 120 threats have exactly one qualification disposition;
+4. machine-prove R7 Proposal/contract/finance exclusions;
+5. machine-prove the 37-key R6 active subset and dormant historical keys;
+6. machine-prove planning-only branch scope;
+7. run exact-head enhanced G0 qualification successfully;
+8. record the exact qualified candidate SHA and evidence.
 
-- products/packages;
-- proposals;
-- contracts/signatures;
-- invoices/payments/refunds/ledger;
-- subscriptions/entitlements;
-- R8 project/editorial production;
-- R11 search/analytics/renewal engine;
-- R12 Client Portal production completion.
+Even after those steps, P4-R6-G0 remains unfrozen until the owner explicitly freezes/accepts that exact SHA.
 
-A86–A95 remain R7 behavioral threats and are **deferred, not waived**.
+After freeze, R6 implementation remains locked until the owner separately authorizes implementation.
 
-## 6. Remaining work before owner G0 freeze
-
-Only contract-control work remains:
-
-1. adversarially review the complete G0 package;
-2. close any BLOCKING/HIGH planning findings;
-3. update machine verifier to the approved Gate-A state;
-4. run enhanced qualification on one exact candidate SHA;
-5. verify branch scope is planning-only;
-6. record exact workflow/job evidence;
-7. classify the exact SHA as **P4-R6-G0 READY FOR OWNER FREEZE**.
-
-This document does not itself perform step 7.
-
-## 7. Control state
+## 7. Current control state
 
 ~~~text
 R1–R5                         ACCEPTED
 R6 planning                   AUTHORIZED
+R6 repository audit           COMPLETE
 Gate A D01–D15                OWNER-APPROVED
-R6 pre-design audit           COMPLETE
-R6 resource/field policy      COMPLETE CANDIDATE
-R6 tenancy/RLS matrix         COMPLETE CANDIDATE
-R6 lifecycle/guard matrix     COMPLETE CANDIDATE
-R6 threat model               120 CASES
-R6 threat qualification map   120/120 MAPPED
-R7+ exclusion manifest        COMPLETE CANDIDATE
-R6 contract                   DRAFT G0 CANDIDATE
-adversarial contract audit    PENDING
-enhanced exact-head qual      PENDING
+D01 Proposal ownership        CLOSED — Resolution A / R7
+D15 Template ownership        CLOSED — Resolution A / R6+ dormant
+D16 action binding            REQUIRED G0 TECHNICAL CONTROL
+R6 threat model               120/120 PLANNED
+R6 threat qualification map   120/120 PLANNED
+P4-R6-G0 candidate            DRAFT / FALSIFICATION+QUALIFICATION IN PROGRESS
 P4-R6-G0                      NOT FROZEN
-R6 implementation             NOT AUTHORIZED
+R6 production implementation NOT AUTHORIZED
 R7+                           LOCKED
 Design 154                    LOCKED
 V1.0 certification            NOT AUTHORIZED
