@@ -245,6 +245,14 @@ Required candidate tables:
 - `comms.meeting_participants`
 - `comms.meeting_notes`
 
+### 6.2A D15 template persistence boundary
+
+`comms.message_templates` and immutable template-version persistence may exist in R6 only as a reference/read boundary for already-approved versions.
+
+R6 runtime commands may not create/edit/version/approve/archive templates because `template.manage` remains `R6+`.
+
+If no approved immutable template version exists, campaign readiness fails closed. R6 must not synthesize placeholder content or silently activate `template.manage`.
+
 ### 6.3 Commercial — uncontested
 
 Required candidate tables:
