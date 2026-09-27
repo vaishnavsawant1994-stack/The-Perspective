@@ -88,6 +88,27 @@ describe("R5 launch role matrix", () => {
     }
   });
 
+  it("keeps R17 equal to the baseline B17 bundle and excludes elevated client capabilities", () => {
+    const r17 = getLaunchRoleDefinition("R17");
+    expect(r17.permissions).toEqual(PERMISSION_BUNDLES.B17.permissions);
+
+    const elevatedClientPermissions = new Set(
+      CLIENT_CAPABILITY_ROLES.flatMap((role) => [...role.permissions]),
+    );
+
+    for (const permissionKey of elevatedClientPermissions) {
+      expect(r17.permissions, permissionKey).not.toContain(permissionKey);
+      expect(PERMISSION_BUNDLES.B17.permissions, permissionKey).not.toContain(
+        permissionKey,
+      );
+    }
+
+    expect(r17.permissions).not.toContain("approval.client.decide");
+    expect(r17.permissions).not.toContain("client.contract.sign");
+    expect(r17.permissions).not.toContain("client.billing.pay");
+    expect(r17.permissions).not.toContain("client.org.manage");
+  });
+
   it("keeps every client capability role CLIENT-scoped and client-only", () => {
     expect(CLIENT_CAPABILITY_ROLES.map((role) => role.key)).toEqual([
       "client-approver",
