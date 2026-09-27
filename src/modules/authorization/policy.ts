@@ -325,6 +325,13 @@ export function evaluateAuthorization(
     return deny(permissionKey, "WORKFLOW_DENIED");
   }
 
+  // P4-R5-G0 requires export to have separate explicit authority. The frozen
+  // R5 registry defines no export permission, so generic read/view grants must
+  // fail closed instead of treating export as an ordinary read action.
+  if (command.action === "export") {
+    return deny(permissionKey, "WORKFLOW_DENIED");
+  }
+
   const hasBlockedEdge =
     context.authorization.blockedPermissions.has(permissionKey as PermissionKey);
 
