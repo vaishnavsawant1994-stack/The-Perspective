@@ -53,8 +53,6 @@ export async function POST(request: Request) {
   const resolved = await resolveR6TeamRequest(request);
   if (resolved.kind === "response") return resolved.response;
 
-  const requestedFields = (["companyId", "contactId", "leadSourceId"] as const)
-    .filter((field) => input[field] !== undefined);
   const authorization = await authorizeTrustedHttpOperation({
     context: resolved.context,
     permissionKey: "lead.edit",
@@ -64,7 +62,7 @@ export async function POST(request: Request) {
       "CONFIDENTIAL",
       "NEW",
     ),
-    command: { action: "create", requestedFields },
+    command: { action: "create", requestedFields: Object.keys(input) },
   });
   if (authorization.kind === "response") return authorization.response;
 
