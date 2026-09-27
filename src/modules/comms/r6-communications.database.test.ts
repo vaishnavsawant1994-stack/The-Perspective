@@ -75,14 +75,14 @@ function teamContext(input: {
 const platform = teamContext({
   organizationId: primaryOrganizationId,
   membershipId: primaryMembershipId,
-  userId: primaryUserId,
+  userId: seedIds.user.operator,
   requestId: "r6-comms-platform",
 });
 
 const foreign = teamContext({
   organizationId: secondaryOrganizationId,
   membershipId: secondaryMembershipId,
-  userId: foreignUserId,
+  userId: seedIds.user.asteriaAdmin,
   requestId: "r6-comms-foreign",
 });
 
@@ -219,7 +219,7 @@ beforeAll(async () => {
       {
         id: primaryMembershipId,
         organizationId: primaryOrganizationId,
-        userAccountId: primaryUserId,
+        userAccountId: seedIds.user.operator,
         membershipType: "STAFF",
         status: "ACTIVE",
         joinedAt: epoch,
@@ -227,7 +227,7 @@ beforeAll(async () => {
       {
         id: secondaryMembershipId,
         organizationId: secondaryOrganizationId,
-        userAccountId: foreignUserId,
+        userAccountId: seedIds.user.asteriaAdmin,
         membershipType: "STAFF",
         status: "ACTIVE",
         joinedAt: epoch,
