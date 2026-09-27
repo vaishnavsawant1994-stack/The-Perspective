@@ -238,6 +238,7 @@ async function main() {
     const targetUser = await userWithMembership({
       organizationId: platform.id,
       email: `r5-target-${randomUUID()}@example.test`,
+      password: "R5 Browser Target Passphrase 2026!",
       displayName: "R5 Browser Target",
     });
 
