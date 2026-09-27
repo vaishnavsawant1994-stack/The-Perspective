@@ -79,3 +79,9 @@ export {
   type ClientSafeResourceMetadata,
   type R5FieldPolicyResourceType,
 } from "./fields";
+
+export {
+  recordCompletedAuthorizedActionEvidence,
+  recordDeniedAuthorizationEvidence,
+  type AuthorizationTelemetry,
+} from "./audit";
