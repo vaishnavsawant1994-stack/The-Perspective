@@ -83,3 +83,14 @@ export interface ConvertLeadToDealInput {
   readonly probability?: number | null;
   readonly expectedCloseDate?: Date | null;
 }
+
+
+export interface AddClientRelationshipInput {
+  readonly clientAccountId: string;
+  readonly contactId: string;
+  readonly relationshipRole: string;
+  readonly isPrimary?: boolean;
+  readonly isBilling?: boolean;
+  readonly isApprover?: boolean;
+  readonly isAdmin?: boolean;
+}
