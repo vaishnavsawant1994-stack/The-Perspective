@@ -47,3 +47,23 @@ export {
   evaluateAuthorizationByKey,
   type AuthorizationPolicyOptions,
 } from "./policy";
+
+export {
+  CLIENT_CAPABILITY_ROLES,
+  FROZEN_TEAM_ROLE_PERMISSION_KEYS,
+  getClientCapabilityRoleDefinition,
+  getLaunchRoleDefinition,
+  isLaunchRoleCode,
+  LAUNCH_ROLES,
+  PERMISSION_BUNDLES,
+  permissionRegistryFingerprint,
+  PROTECTED_PERMISSION_KEYS,
+  R5_FROZEN_CONTRACT_SHA,
+  R5_PERMISSION_REGISTRY_VERSION,
+  ROLE_DELEGATION_CEILINGS,
+  type ClientCapabilityRoleDefinition,
+  type LaunchRoleCode,
+  type LaunchRoleDefinition,
+  type PermissionBundle,
+  type PermissionBundleKey,
+} from "./launch-roles";
