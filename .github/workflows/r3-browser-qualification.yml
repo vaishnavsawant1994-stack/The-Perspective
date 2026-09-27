@@ -1,6 +1,9 @@
 name: R3 Browser Qualification
 
 on:
+  push:
+    branches:
+      - phase4/r5-authorization-implementation-20260927
   pull_request:
     branches:
       - main
