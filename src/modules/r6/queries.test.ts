@@ -10,6 +10,9 @@ import type {
 } from "@/modules/foundation/request-context";
 
 import {
+  getAuthorizedCompany,
+  getAuthorizedContact,
+  getAuthorizedLead,
   listAuthorizedCompanies,
   listAuthorizedContacts,
   listDiscoverableLeadSources,
@@ -86,6 +89,33 @@ describe("R6 API canonical field projection", () => {
             archivedAt: null,
           },
           take: 100,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    ["company", "crmCompany", getAuthorizedCompany],
+    ["contact", "crmContact", getAuthorizedContact],
+    ["lead", "crmLead", getAuthorizedLead],
+  ] as const)(
+    "hard-binds %s detail lookup to id, selected tenant and non-archived state",
+    async (_name, modelName, query) => {
+      const findFirst = vi.fn().mockResolvedValue(null);
+      const database = {
+        [modelName]: { findFirst },
+      } as unknown as PrismaClient;
+      const id = "00000000-0000-4000-8000-000000000030";
+
+      await query(context(), id, database);
+
+      expect(findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id,
+            ownerOrganizationId: "org-r6",
+            archivedAt: null,
+          },
         }),
       );
     },
