@@ -65,6 +65,34 @@ describe("R5 launch role matrix", () => {
     }
   });
 
+  it("pins every launch role to its exact frozen scope set", () => {
+    const expectedScopes = {
+      R01: ["ORG"],
+      R02: ["ORG"],
+      R03: ["ORG", "DEPT"],
+      R04: ["DEPT", "ASN", "OWN"],
+      R05: ["DEPT", "ASN", "OWN"],
+      R06: ["DEPT", "ASN", "OWN"],
+      R07: ["ORG", "DEPT"],
+      R08: ["DEPT", "ASN", "OWN"],
+      R09: ["ASN", "OWN"],
+      R10: ["ASN", "OWN"],
+      R11: ["DEPT", "ASN", "OWN"],
+      R12: ["DEPT", "ASN", "OWN"],
+      R13: ["ORG", "DEPT"],
+      R14: ["ORG", "DEPT"],
+      R15: ["ORG"],
+      R16: ["ORG"],
+      R17: ["CLIENT"],
+    } as const;
+
+    for (const [code, expected] of Object.entries(expectedScopes)) {
+      expect(getLaunchRoleDefinition(code as keyof typeof expectedScopes).scopes).toEqual(
+        expected,
+      );
+    }
+  });
+
   it("keeps launch roles inside their permitted surfaces and scopes", () => {
     for (const role of LAUNCH_ROLES) {
       for (const permissionKey of role.permissions) {
@@ -167,6 +195,40 @@ describe("R5 launch role matrix", () => {
         );
       }
     }
+  });
+
+  it("pins each client capability role to the exact frozen elevated permission set", () => {
+    expect(CLIENT_CAPABILITY_ROLES).toEqual([
+      {
+        key: "client-approver",
+        name: "Client Approver",
+        scope: "CLIENT",
+        permissions: [
+          "client.draft.review",
+          "client.design.review",
+          "client.media.review",
+          "approval.client.decide",
+        ],
+      },
+      {
+        key: "client-signer",
+        name: "Client Signer",
+        scope: "CLIENT",
+        permissions: ["client.contract.sign"],
+      },
+      {
+        key: "client-billing",
+        name: "Client Billing",
+        scope: "CLIENT",
+        permissions: ["client.billing.pay"],
+      },
+      {
+        key: "client-admin",
+        name: "Client Admin",
+        scope: "CLIENT",
+        permissions: ["client.org.manage"],
+      },
+    ]);
   });
 
   it("freezes the delegation ceiling between R01 and R02", () => {
