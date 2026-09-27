@@ -150,9 +150,9 @@ A denied attack is not proven unless the test also verifies, as applicable:
 | A84 | Staff converts unqualified/disallowed lead/deal | lifecycle/permission guard denies |
 | A85 | Client relationship flags create unauthorized approver/admin capability | IAM/R5 capability provisioning remains separate |
 
-## 10. Proposal attacks — conditional on Gate-A D01
+## 10. Proposal attacks — DEFERRED TO R7 under approved Gate-A D01
 
-These become R6-applicable only if the owner explicitly assigns proposal implementation to R6.
+Gate-A D01 Resolution A is owner-approved. Proposal persistence/versioning/send/acceptance are R7-owned. A86–A95 are therefore not R6 behavioral implementation tests; R6 G0 must instead prove that these surfaces remain absent/dormant, and R7 must later execute the behavioral attacks.
 
 | ID | Attack | Required proof |
 |---|---|---|
@@ -167,7 +167,7 @@ These become R6-applicable only if the owner explicitly assigns proposal impleme
 | A94 | R6 proposal implementation creates shadow products/packages | contract qualification failure |
 | A95 | Proposal command crosses into contract/invoice/payment creation | R7 stage denial |
 
-If Gate-A D01 resolves to strict R7 proposal ownership, A86–A95 are marked **DEFERRED TO R7**, not waived.
+A86–A95 are **DEFERRED TO R7, NOT WAIVED**. R6 qualification must prove no R6 proposal production table/API/service/action is introduced and proposal permissions remain inactive.
 
 ## 11. Transaction / event / audit attacks
 
