@@ -3,13 +3,13 @@
 **Record:** P4-R5-THREAT-COVERAGE-01  
 **Date:** September 27, 2026  
 **Frozen substantive contract:** 2914e76b22468137630a4d444adb5431209fb5aa  
-**Qualified implementation candidate:** 1d6ccc8c3ddb52c539c268e10527378ddb2529a3  
+**Qualified implementation candidate:** 8823c63c1a03281d91d5085bba07206186380f6c  
 **Historical pre-falsification qualified checkpoint:** ccfdf61897106661439f2bee4626f8d065e718f3  
 **Review type:** enhanced authoring-agent falsification / closure evidence review — not independent  
 **Independent external review:** NOT PERFORMED  
 **Independent-review requirement:** OWNER-WAIVED under GOV-REVIEW-01  
 **Replacement control:** ENHANCED QUALIFICATION  
-**P4-R5-C1:** CANDIDATE — NOT ACCEPTED  
+**P4-R5-C1:** READY FOR OWNER ACCEPTANCE — NOT ACCEPTED  
 **R6+:** LOCKED
 
 ## 1. Classification rule
@@ -35,7 +35,7 @@ An OPEN item in this document is not a claim that the current implementation is 
 | A06 | PASS — compositional | Team/Client authority classes are separated by registry, resolver and trusted resource context; later Client business routes remain future-stage. |
 | A07 | PASS — R5 | Client authority is organization-local; Client resource loader prefilters own client organization plus CLIENT_SHARED before exposure. |
 | A08 | PASS — inherited + R5 | R3 database tests deny suspended/ended membership contexts; R5 re-reads current membership and HTTP fails closed when membership authority no longer resolves. |
-| A09 | **OPEN — evidence gap** | Resolver requires role status ACTIVE, but no executable R5 negative test was found that supplies an inactive role with otherwise valid authority. |
+| A09 | PASS — R5 | `resolver.test.ts` now executes an otherwise-valid grant with a SUSPENDED role and proves zero permission/grant paths plus `ROLE_NOT_ACTIVE`. |
 | A10 | PASS — R5 | Resolver/unit and live database evidence reject expired MembershipRole grants. |
 | A11 | PASS — R5 | Resolver rejects cross-tenant roles; live DB/admin tests also preserve foreign rows/grants. |
 | A12 | PASS — R5 | Complete same-grant path is preserved; Role.defaultScope cannot be borrowed to widen another permission. |
@@ -43,10 +43,10 @@ An OPEN item in this document is not a claim that the current implementation is 
 | A14 | PASS — R5 | Registry recognizes exact keys only; live DB test fails closed on inherited unknown permission keys. |
 | A15 | PASS — R5 | Unknown/malformed constraint payloads fail closed; blocked-only permissions have no usable grant path. |
 | A16 | PASS — R5 | DEPT policy requires trusted actor department and trusted resource department equality. |
-| A17 | **OPEN — evidence gap** | ASN matching is implemented through server-owned assignedMembershipIds, and resolver preserves ASN scope, but no executable policy-negative proof for a non-assigned/forged-assignee case was found. |
-| A18 | **OPEN — evidence gap** | OWN matching is implemented through trusted ownerMembershipId/ownerUserId, but no executable policy-negative proof for forged/non-owned access was found. |
+| A17 | PASS — R5 | `policy.test.ts` proves ASN ALLOW only when trusted `assignedMembershipIds` contains the actor and `SCOPE_DENIED` when it does not. |
+| A18 | PASS — R5 | `policy.test.ts` proves OWN ALLOW for trusted actor ownership and `SCOPE_DENIED` when trusted owner membership/user belongs to another actor. |
 | A19 | PASS — R5 | Active R5 permission keys are bound to explicit action families; view permission cannot authorize delete/mutation. |
-| A20 | **OPEN — evidence gap** | NONE scope fails when a generic resource is present in policy code, but no explicit executable negative test for NONE + generic record access was found. |
+| A20 | PASS — R5 | `policy.test.ts` explicitly supplies a generic resource to a `NONE`-scoped grant and proves `SCOPE_DENIED`. |
 | A21 | PASS — R5 | Mutation schemas are explicit/strict; forbidden/undeclared fields are rejected; field-policy checks are mandatory where metadata requires them. |
 | A22 | PASS — R5 | Requested fields outside the server readable policy deny; role-permission projection is explicitly declared. |
 | A23 | PASS — R5 | Client-safe projection is mandatory; Client IAM fields are unavailable and non-client-shared resources are refused. |
@@ -58,8 +58,8 @@ An OPEN item in this document is not a claim that the current implementation is 
 | A29 | PASS — R5 | No cross-request authorization cache is used; revocation tests demonstrate current-DB authority resolution. |
 | A30 | PASS — R5 | Sensitive admin mutations re-resolve authority inside a Serializable transaction; stale/revoked authority is denied before mutation. |
 | A31 | PASS — R5 | Self-assignment is denied with zero residue; R02→R01 escalation is denied; custom roles cannot receive protected access-admin permissions. |
-| A32 | **OPEN — evidence gap** | Current revoke path uses the same fresh no-self/delegation ceiling and therefore appears compositional-safe, but no executable negative test directly attempts removal of the actor/last protected administrator. |
-| A33 | **OPEN — evidence gap** | Application duplicate check and membership_roles_one_live_grant DB index exist, but no executable negative test was found that attempts a duplicate live MembershipRole grant. |
+| A32 | PASS — R5 | Live PostgreSQL attack calls protected R01 self-revocation through the real revoke service and proves DENY, unchanged `validUntil`, and durable denial evidence. Because protected administration requires R01/R02 and self-revocation is denied, the final administering actor cannot remove its own protected authority through this path. |
+| A33 | PASS — R5 | Live PostgreSQL attack creates one legitimate grant, retries the same live assignment, receives `CONFLICT`, and proves exactly one live MembershipRole remains. |
 | A34 | PASS — R5 | Unknown scopeOverride constraint fails closed and is exercised in unit/live DB authority tests. |
 | A35 | PASS — inherited + R5 | R4 browser regression proves current selected context switching; R5 reloads trusted resource/tenant context rather than reusing URL authority. |
 | A36 | DEFERRED — domain binding | Generic lifecycle constraint support is present; production archived/inactive domain semantics belong to the owning R6+ resource stage. |
@@ -86,36 +86,53 @@ An OPEN item in this document is not a claim that the current implementation is 
 | A57 | PASS — R5 | Custom Team roles reject protected role.manage/permission.manage and Client/SELF permissions; existing edges remain unchanged on denial. |
 | A58 | PASS — R5 | R01 remains organization-bound; foreign role/resource operations are concealed/denied and R4 tenant isolation remains enforced. |
 | A59 | PASS — R5 absence boundary | R5 defines no support/impersonation bypass for R01; no current production path grants such authority. |
-| A60 | **OPEN — evidence gap** | Policy resource scopes fail when ResourceContext is absent, but no explicit executable R5 negative test was found for protected permission + missing resource context. |
+| A60 | PASS — R5 | `policy.test.ts` evaluates a protected `team.view` permission with no ResourceContext and proves fail-closed `SCOPE_DENIED`. |
 
-## 3. Open closure findings
+## 3. Closed closure findings
 
-| Finding | Threat IDs | Classification | Required closure |
+Q01–Q07 were closed by test-only proof commits on the R5 implementation line. No production authorization repair was required.
+
+| Finding | Threat ID | Exact executable proof | Status |
 |---|---|---|---|
-| Q01 | A09 | Qualification evidence gap | Add negative test: otherwise-valid grant with inactive role must produce no authority/DENY. |
-| Q02 | A17 | Qualification evidence gap | Add negative policy test for ASN where trusted assignedMembershipIds does not contain actor. |
-| Q03 | A18 | Qualification evidence gap | Add negative policy test for OWN where trusted ownership does not match actor. |
-| Q04 | A20 | Qualification evidence gap | Add negative policy test proving NONE cannot authorize generic resource access. |
-| Q05 | A32 | Qualification evidence gap | Add direct revocation test proving actor/last protected admin cannot remove own protected grant and leaves no residue. |
-| Q06 | A33 | Qualification evidence gap | Add duplicate-live MembershipRole attack test proving application/DB guard rejects duplicate without widening authority. |
-| Q07 | A60 | Qualification evidence gap | Add explicit missing-ResourceContext negative test for a protected resource permission. |
+| Q01 | A09 | `resolver.test.ts` — "rejects an inactive role even when its grant would otherwise be valid" | CLOSED |
+| Q02 | A17 | `policy.test.ts` — "denies ASN authority when the actor is absent from trusted assignments" | CLOSED |
+| Q03 | A18 | `policy.test.ts` — "denies OWN authority when trusted ownership belongs to another actor" | CLOSED |
+| Q04 | A20 | `policy.test.ts` — "does not let NONE scope authorize a generic resource" | CLOSED |
+| Q05 | A32 | `r5-authorization-admin.database.test.ts` — "denies protected administrator self-revocation and preserves the live grant" | CLOSED |
+| Q06 | A33 | `r5-authorization-admin.database.test.ts` — "rejects a duplicate live MembershipRole without widening authority" | CLOSED |
+| Q07 | A60 | `policy.test.ts` — "fails closed when a protected resource permission has no ResourceContext" | CLOSED |
 
-These findings do **not** currently demonstrate an authorization bypass. They demonstrate that the frozen A01–A60 implementation-evidence requirement is not yet completely proven by executable negative tests.
+Proof-only implementation commits:
+
+- `f78b667d5f17c953bf75787e47e614966c973ff4` — inactive-role proof;
+- `cfdbe3501fdf1b3bba1446ef334897a1dbe40cfd` — ASN/OWN/NONE/missing-resource policy proofs;
+- `8823c63c1a03281d91d5085bba07206186380f6c` — protected-revocation and duplicate-grant live PostgreSQL proofs.
+
+The delta from the previously qualified production candidate `1d6ccc8c3ddb52c539c268e10527378ddb2529a3` to `8823c63c1a03281d91d5085bba07206186380f6c` changes only three test files. No production source, schema, migration, workflow, or runtime configuration changed.
 
 ## 4. Acceptance impact
 
-The current production-code SHA 1d6ccc8c3ddb52c539c268e10527378ddb2529a3 remains:
+The current implementation SHA `8823c63c1a03281d91d5085bba07206186380f6c` is fully exact-head qualified:
 
-- exact-head qualified by all four current workflows;
-- the P4-R5-C1 implementation candidate;
-- not accepted;
-- not merge-authorized.
+- R5 Implementation Qualification #104 — SUCCESS;
+- R5 Browser Qualification #33 — SUCCESS;
+- R4 Browser Qualification #67 — SUCCESS;
+- R3 Browser Qualification #69 — SUCCESS.
 
-Because P4-R5-G0 requires applicable threat attacks to map to executable negative tests before P4-R5-C1, Q01–Q07 must be closed before owner acceptance is requested.
+All seven closure evidence gaps Q01–Q07 are now closed by executable negative proofs. None of those attacks succeeded against the existing production implementation, so no production-code repair was required.
 
-If Q01–Q07 require test-only commits and no production behavior changes, the resulting new implementation head still requires complete exact-head R5 Implementation, R5 Browser, R4 Browser and R3 Browser requalification before the closure package may advance.
+Current technical disposition:
 
-Only a demonstrated production behavior defect warrants production-code repair. Test-only evidence repairs should remain narrowly scoped to the missing proofs.
+```text
+production authorization defect demonstrated by Q01-Q07: NO
+qualification / executable-proof gap remaining: NO
+blocking/high R5 finding remaining from this closure pass: NO
+P4-R5-C1: READY FOR OWNER ACCEPTANCE — NOT YET ACCEPTED
+merge authorization: NOT AUTHORIZED
+R6+: LOCKED
+```
+
+Owner acceptance remains a separate human control gate. This evidence record does not perform or imply that acceptance.
 
 ## 5. Future-stage carry-forward
 
