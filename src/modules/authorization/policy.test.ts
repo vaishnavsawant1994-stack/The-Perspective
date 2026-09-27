@@ -222,6 +222,25 @@ describe("R5 resource policy", () => {
     });
   });
 
+  it("does not let a view permission authorize a mutation action", () => {
+    const context = authorizedContext([grant("team.view")]);
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "membership",
+          ownerOrganizationId: "org-1",
+        },
+        { action: "delete" },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "WORKFLOW_DENIED",
+    });
+  });
+
   it("fails closed on reserved field-group constraints that have no R5 enforcement mapping", () => {
     const context = authorizedContext(
       [
