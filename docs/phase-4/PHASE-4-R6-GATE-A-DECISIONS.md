@@ -328,3 +328,25 @@ The next control sequence is:
 5. classify one exact SHA as P4-R6-G0 READY FOR OWNER FREEZE;
 6. obtain separate owner freeze/acceptance;
 7. obtain separate R6 implementation authorization.
+
+
+## D16 — R6 action-family enforcement
+
+**Status:** REQUIRED G0 SECURITY CONTROL — NO SEPARATE SCOPE AMENDMENT
+
+Accepted R5 policy action binding currently applies only when `activationStage === "R5"`.
+
+Before any R6 permission can be activated, R6 implementation must add explicit permission→action/resource binding matching `PHASE-4-R6-AUTHORITY-ACTION-MATRIX.md` and the approved 37-key R6 active-permission allowlist.
+
+Requirements:
+
+- undeclared R6 permission action => DENY;
+- permission absent from the approved 37-key R6 allowlist => DENY even if historical metadata says `R6`;
+- wrong resource type => DENY;
+- generic edit/manage may not launder lifecycle/launch authority;
+- proposal permissions remain dormant under approved D01 Resolution A;
+- `template.manage` remains dormant under approved D15 Resolution A;
+- R7+ remains dormant;
+- direct executable negative tests cover action laundering and dormant-key attempts.
+
+This is a technical G0 control required to implement the already approved scope safely. It does not amend the owner-approved D01–D15 scope and does not authorize implementation.
