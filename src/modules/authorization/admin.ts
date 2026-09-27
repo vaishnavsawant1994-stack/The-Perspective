@@ -29,7 +29,6 @@ import {
 import { parseRolePermissionConstraints } from "./constraints";
 import { getR5FieldPolicy } from "./fields";
 import {
-  getLaunchRoleDefinition,
   isLaunchRoleCode,
   PROTECTED_PERMISSION_KEYS,
   ROLE_DELEGATION_CEILINGS,
@@ -195,17 +194,6 @@ function actorAdminRole(context: AuthorizedRequestContext) {
   if (context.authorization.roleKeys.includes("R01")) return "R01" as const;
   if (context.authorization.roleKeys.includes("R02")) return "R02" as const;
   return undefined;
-}
-
-function canAdministerLaunchRole(
-  context: AuthorizedRequestContext,
-  roleKey: string,
-) {
-  const actorRole = actorAdminRole(context);
-  if (!actorRole || !isLaunchRoleCode(roleKey)) return false;
-  return (
-    ROLE_DELEGATION_CEILINGS[actorRole].assignableLaunchRoles as readonly string[]
-  ).includes(roleKey);
 }
 
 function canMutateCustomPermissions(
