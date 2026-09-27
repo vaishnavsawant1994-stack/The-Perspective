@@ -49,7 +49,13 @@ export async function GET(
       action: "view",
       workflowSatisfied: true,
       fieldPolicy: getR5FieldPolicy("TEAM", "role-permission"),
-      requestedFields: ["effect", "constraints"],
+      requestedFields: [
+        "roleId",
+        "permissionsHash",
+        "permissionKey",
+        "effect",
+        "constraints",
+      ],
     },
     concealResource: true,
   });
