@@ -142,7 +142,11 @@ try {
   evidence.anonymousDenied = true;
   await anonymous.close();
 
-  const r01 = await contextFor(browser, r01Token);
+  const r01 = await contextFor(browser, {
+    email: fixture.r01Email,
+    password: fixture.r01Password,
+    totpSeed: fixture.r01TotpSeed,
+  });
   const initialRoles = await api(r01.page, "/api/v1/workspace/roles");
   assert.equal(initialRoles.status, 200);
   assert.ok(initialRoles.body.roles.some((role) => role.key === "R01"));
@@ -274,7 +278,11 @@ try {
   });
   await r01.context.close();
 
-  const r02 = await contextFor(browser, r02Token);
+  const r02 = await contextFor(browser, {
+    email: fixture.r02Email,
+    password: fixture.r02Password,
+    totpSeed: fixture.r02TotpSeed,
+  });
   const r02ToR01 = await api(
     r02.page,
     "/api/v1/workspace/membership-roles",
