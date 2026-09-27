@@ -301,9 +301,15 @@ const policy = (
   readableFields: readonly string[],
   mutableFields: readonly string[],
   fieldGroups: ReturnType<typeof groups>,
+  fieldLifecycle: {
+    readonly createOnlyFields?: readonly string[];
+    readonly serverOwnedFields?: readonly string[];
+  } = {},
 ): AuthorizationFieldPolicy => ({
   readableFields,
   mutableFields,
+  createOnlyFields: fieldLifecycle.createOnlyFields ?? [],
+  serverOwnedFields: fieldLifecycle.serverOwnedFields ?? [],
   fieldGroups,
 });
 
@@ -318,6 +324,10 @@ export const R6_FIELD_POLICIES: Record<
       publicBusiness: ["id", "resourceId", "name", "sourceType", "health", "createdAt", "updatedAt"],
       internal: ["baseUrl", "configuration", "complianceNotes", "archivedAt"],
     }),
+    {
+      createOnlyFields: ["sourceType"],
+      serverOwnedFields: ["id", "resourceId", "health", "createdAt", "updatedAt", "archivedAt"],
+    },
   ),
   "lead-search": policy(
     ["query", "sourceIds", "safeResults", "resultCount"],
@@ -331,6 +341,10 @@ export const R6_FIELD_POLICIES: Record<
       publicBusiness: ["id", "resourceId", "status", "requestedCount", "processedCount", "acceptedCount", "rejectedCount", "requestedAt", "startedAt", "finishedAt"],
       internal: ["leadSourceId", "querySnapshot"],
     }),
+    {
+      createOnlyFields: ["leadSourceId", "requestedCount"],
+      serverOwnedFields: ["id", "resourceId", "status", "processedCount", "acceptedCount", "rejectedCount", "requestedAt", "startedAt", "finishedAt", "requestHash"],
+    },
   ),
   "staged-record": policy(
     ["id", "sourceRecordKey", "normalizedPayload", "provenanceUrl", "confidence", "validationState", "reviewedAt"],
@@ -348,6 +362,10 @@ export const R6_FIELD_POLICIES: Record<
       internal: ["id", "resourceId", "targetResourceId", "requestedFields", "status", "attempt", "requestedAt", "startedAt", "finishedAt"],
       provider: ["provider"],
     }),
+    {
+      createOnlyFields: ["targetResourceId", "provider"],
+      serverOwnedFields: ["id", "resourceId", "status", "attempt", "requestedAt", "startedAt", "finishedAt", "requestHash"],
+    },
   ),
   "enrichment-fact": policy(
     ["id", "targetResourceId", "fieldKey", "typedValue", "sourceUrl", "confidence", "observedAt", "acceptedAt", "rejectedAt"],
@@ -365,6 +383,9 @@ export const R6_FIELD_POLICIES: Record<
       publicBusiness: ["id", "resourceId", "companyId", "contactId", "lifecycleState", "lastActivityAt"],
       internal: ["leadSourceId", "fitScore", "qualificationState", "ownerMembershipId", "departmentId"],
     }),
+    {
+      serverOwnedFields: ["id", "resourceId", "sourceRecordKey", "lifecycleState", "fitScore", "qualificationState", "lastActivityAt", "ownerMembershipId", "departmentId"],
+    },
   ),
   "duplicate-candidate": policy(
     ["id", "resourceId", "entityType", "leftResourceId", "rightResourceId", "confidence", "reasons", "status", "resolvedAt"],
@@ -383,6 +404,10 @@ export const R6_FIELD_POLICIES: Record<
       publicBusiness: ["id", "resourceId", "name", "listType", "memberCount"],
       internal: ["filterDefinition", "ownerMembershipId", "archivedAt"],
     }),
+    {
+      createOnlyFields: ["listType"],
+      serverOwnedFields: ["id", "resourceId", "memberCount", "ownerMembershipId", "archivedAt"],
+    },
   ),
   company: policy(
     ["id", "resourceId", "name", "legalName", "domain", "website", "industry", "sizeBand", "revenueBand", "country", "ownerMembershipId", "departmentId", "archivedAt"],
@@ -391,6 +416,9 @@ export const R6_FIELD_POLICIES: Record<
       publicBusiness: ["id", "resourceId", "name", "legalName", "domain", "website", "industry", "sizeBand", "revenueBand", "country"],
       internal: ["ownerMembershipId", "departmentId", "archivedAt"],
     }),
+    {
+      serverOwnedFields: ["id", "resourceId", "ownerMembershipId", "departmentId", "archivedAt"],
+    },
   ),
   contact: policy(
     ["id", "resourceId", "companyId", "personId", "title", "relationshipState", "preferredChannel", "contactabilityState", "consentState", "emailOriginal", "emailNormalized", "phoneNormalized", "ownerMembershipId"],
@@ -400,6 +428,9 @@ export const R6_FIELD_POLICIES: Record<
       internal: ["ownerMembershipId"],
       pii: ["emailOriginal", "emailNormalized", "phoneNormalized"],
     }),
+    {
+      serverOwnedFields: ["id", "resourceId", "contactabilityState", "consentState", "emailOriginal", "emailNormalized", "phoneNormalized", "ownerMembershipId"],
+    },
   ),
   "outreach-dashboard": policy(
     ["campaignCount", "recipientCount", "sentCount", "replyCount", "positiveReplyCount"],
@@ -461,12 +492,16 @@ export const R6_FIELD_POLICIES: Record<
   ),
   deal: policy(
     ["id", "resourceId", "companyId", "primaryContactId", "sourceLeadId", "pipelineId", "stageId", "amountMinor", "currency", "probability", "expectedCloseDate", "ownerMembershipId", "departmentId", "rowVersion", "archivedAt"],
-    ["pipelineId", "companyId", "primaryContactId", "amountMinor", "currency", "probability", "expectedCloseDate"],
+    ["companyId", "primaryContactId", "amountMinor", "currency", "probability", "expectedCloseDate"],
     groups({
       publicBusiness: ["id", "resourceId", "companyId", "primaryContactId", "pipelineId", "stageId", "expectedCloseDate"],
       internal: ["sourceLeadId", "ownerMembershipId", "departmentId", "rowVersion", "archivedAt"],
       commercial: ["amountMinor", "currency", "probability"],
     }),
+    {
+      createOnlyFields: ["pipelineId"],
+      serverOwnedFields: ["id", "resourceId", "sourceLeadId", "stageId", "ownerMembershipId", "departmentId", "rowVersion", "archivedAt"],
+    },
   ),
   "deal-pipeline": policy(
     ["id", "resourceId", "name", "version", "active", "rowVersion", "archivedAt"],
