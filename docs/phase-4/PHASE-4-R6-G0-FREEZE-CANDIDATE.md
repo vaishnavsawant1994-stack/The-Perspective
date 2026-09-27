@@ -4,8 +4,9 @@
 **Date:** September 27, 2026  
 **Planning baseline:** `main@2372418d80fa07f633a0e4adc99a21b1f7d8300a`  
 **Branch:** `phase4/r6-crm-commercial-g0-20260927`  
-**Status:** OWNER-FREEZE CANDIDATE — NOT FROZEN  
+**Status:** HISTORICAL OWNER-FREEZE CANDIDATE — SUPERSEDED BY FROZEN RECORD  
 **R6 production implementation:** NOT AUTHORIZED  
+**Superseded by:** `PHASE-4-R6-G0-FREEZE.md`  
 **R7+:** LOCKED  
 **Design 154:** NOT AUTHORIZED  
 **V1.0 certification:** NOT AUTHORIZED
@@ -89,7 +90,7 @@ Only that exact green head may be presented to the owner for P4-R6-G0 freeze.
 
 ## 7. Owner control boundary
 
-This record does not freeze G0.
+At the time this candidate record was created, it did not freeze G0. The owner has since frozen the exact contract candidate `730d2280fafe29c756ba7e0b09ff7e8e5c9496a6`; see `PHASE-4-R6-G0-FREEZE.md`.
 
 Required next transition:
 
@@ -107,4 +108,4 @@ separate owner implementation authorization
 ONLY THEN production implementation
 ~~~
 
-No owner freeze or implementation authorization may be inferred from CI.
+The later owner freeze is explicit and recorded separately. Implementation authorization still may not be inferred from CI or from the G0 freeze.
