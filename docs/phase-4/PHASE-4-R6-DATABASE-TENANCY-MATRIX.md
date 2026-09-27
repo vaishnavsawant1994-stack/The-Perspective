@@ -72,6 +72,14 @@ No R6 table may be “tenant neutral” merely because it is a child table.
 | `comms.meeting_participants` | meeting | PARENT RLS + FK | no | unique meeting+person/membership; membership org valid |
 | `comms.meeting_notes` | meeting | PARENT RLS + FK | no | author membership valid; visibility explicit |
 
+### 3.1 D15 template persistence rule
+
+Gate-A D15 Resolution A keeps `template.manage` dormant at `R6+`.
+
+R6 may materialize `comms.message_templates` / `comms.message_template_versions` only as a read/reference boundary for already-approved immutable versions. R6 runtime user commands may not create, edit, version, approve, publish or archive templates.
+
+An empty approved-template set is valid. Campaign readiness must fail closed when no approved immutable template version is available; R6 may not generate placeholder template truth to bypass D15.
+
 ## 4. Commercial R6 tables
 
 | Table | Tenant source | RLS class | Resource-backed | Critical DB invariants |
