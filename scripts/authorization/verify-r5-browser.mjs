@@ -112,8 +112,9 @@ async function contextFor(browser, credentials) {
     "production session cookie was not issued after MFA",
   );
 
-  await page.goto(absolute("/app/settings"));
-  await page.waitForLoadState("networkidle");
+  await page.goto(absolute("/app/settings"), {
+    waitUntil: "domcontentloaded",
+  });
   return { context, page };
 }
 
