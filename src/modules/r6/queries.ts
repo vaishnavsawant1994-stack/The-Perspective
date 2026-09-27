@@ -20,12 +20,20 @@ export function projectR6ReadableFields<T extends Readonly<Record<string, unknow
 
 function authorizedReadableFields(
   context: AuthorizedRequestContext,
-  permissionKey: "lead.view" | "campaign.view" | "deal.view" | "client.view",
+  permissionKey:
+    | "lead.view"
+    | "company.view"
+    | "contact.view"
+    | "lead.discover"
+    | "campaign.view"
+    | "deal.view"
+    | "client.view",
   resource: AuthorizationResourceContext,
   requestedFields: readonly string[],
+  action: "list" | "discover" = "list",
 ) {
   const decision = evaluateAuthorization(context, permissionKey, resource, {
-    action: "list",
+    action,
     requestedFields,
   });
   return decision.decision === "ALLOW" ? decision.readableFields ?? [] : undefined;
@@ -53,6 +61,250 @@ function commonResource(input: {
     lifecycleState: input.lifecycleState,
     version: input.version,
   };
+}
+
+export async function listDiscoverableLeadSources(
+  context: AuthorizedRequestContext,
+  limit: number,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const requestedFields = [
+    "id",
+    "resourceId",
+    "name",
+    "sourceType",
+    "health",
+    "createdAt",
+    "updatedAt",
+  ] as const;
+
+  const candidates = await database.crmLeadSource.findMany({
+    where: {
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    take: Math.min(limit * OVERFETCH_FACTOR, 400),
+    select: {
+      id: true,
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      name: true,
+      sourceType: true,
+      health: true,
+      createdAt: true,
+      updatedAt: true,
+      rowVersion: true,
+    },
+  });
+
+  const items = [];
+  for (const row of candidates) {
+    const resource = commonResource({
+      resourceId: row.resourceId,
+      resourceType: "lead-source",
+      ownerOrganizationId: row.ownerOrganizationId,
+      departmentId: row.departmentId,
+      ownerMembershipId: row.ownerMembershipId,
+      visibility: row.visibility,
+      sensitivity: row.sensitivity,
+      lifecycleState: "ACTIVE",
+      version: row.rowVersion,
+    });
+    const readableFields = authorizedReadableFields(
+      context,
+      "lead.discover",
+      resource,
+      requestedFields,
+      "discover",
+    );
+    if (!readableFields) continue;
+
+    items.push(projectR6ReadableFields({
+      id: row.id,
+      resourceId: row.resourceId,
+      name: row.name,
+      sourceType: row.sourceType,
+      health: row.health,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }, readableFields));
+
+    if (items.length >= limit) break;
+  }
+
+  return { items };
+}
+
+export async function listAuthorizedCompanies(
+  context: AuthorizedRequestContext,
+  limit: number,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const requestedFields = [
+    "id",
+    "resourceId",
+    "name",
+    "legalName",
+    "domain",
+    "website",
+    "industry",
+    "sizeBand",
+    "revenueBand",
+    "country",
+  ] as const;
+
+  const candidates = await database.crmCompany.findMany({
+    where: {
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    take: Math.min(limit * OVERFETCH_FACTOR, 400),
+    select: {
+      id: true,
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      name: true,
+      legalName: true,
+      domain: true,
+      website: true,
+      industry: true,
+      sizeBand: true,
+      revenueBand: true,
+      country: true,
+      rowVersion: true,
+    },
+  });
+
+  const items = [];
+  for (const row of candidates) {
+    const resource = commonResource({
+      resourceId: row.resourceId,
+      resourceType: "company",
+      ownerOrganizationId: row.ownerOrganizationId,
+      departmentId: row.departmentId,
+      ownerMembershipId: row.ownerMembershipId,
+      visibility: row.visibility,
+      sensitivity: row.sensitivity,
+      lifecycleState: "ACTIVE",
+      version: row.rowVersion,
+    });
+    const readableFields = authorizedReadableFields(
+      context,
+      "company.view",
+      resource,
+      requestedFields,
+    );
+    if (!readableFields) continue;
+
+    items.push(projectR6ReadableFields({
+      id: row.id,
+      resourceId: row.resourceId,
+      name: row.name,
+      legalName: row.legalName,
+      domain: row.domain,
+      website: row.website,
+      industry: row.industry,
+      sizeBand: row.sizeBand,
+      revenueBand: row.revenueBand,
+      country: row.country,
+    }, readableFields));
+
+    if (items.length >= limit) break;
+  }
+
+  return { items };
+}
+
+export async function listAuthorizedContacts(
+  context: AuthorizedRequestContext,
+  limit: number,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const requestedFields = [
+    "id",
+    "resourceId",
+    "companyId",
+    "personId",
+    "title",
+    "relationshipState",
+    "preferredChannel",
+    "contactabilityState",
+    "consentState",
+  ] as const;
+
+  const candidates = await database.crmContact.findMany({
+    where: {
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    take: Math.min(limit * OVERFETCH_FACTOR, 400),
+    select: {
+      id: true,
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      companyId: true,
+      personId: true,
+      title: true,
+      relationshipState: true,
+      preferredChannel: true,
+      contactabilityState: true,
+      consentState: true,
+      rowVersion: true,
+    },
+  });
+
+  const items = [];
+  for (const row of candidates) {
+    const resource = commonResource({
+      resourceId: row.resourceId,
+      resourceType: "contact",
+      ownerOrganizationId: row.ownerOrganizationId,
+      departmentId: row.departmentId,
+      ownerMembershipId: row.ownerMembershipId,
+      visibility: row.visibility,
+      sensitivity: row.sensitivity,
+      lifecycleState: "ACTIVE",
+      version: row.rowVersion,
+    });
+    const readableFields = authorizedReadableFields(
+      context,
+      "contact.view",
+      resource,
+      requestedFields,
+    );
+    if (!readableFields) continue;
+
+    items.push(projectR6ReadableFields({
+      id: row.id,
+      resourceId: row.resourceId,
+      companyId: row.companyId,
+      personId: row.personId,
+      title: row.title,
+      relationshipState: row.relationshipState,
+      preferredChannel: row.preferredChannel,
+      contactabilityState: row.contactabilityState,
+      consentState: row.consentState,
+    }, readableFields));
+
+    if (items.length >= limit) break;
+  }
+
+  return { items };
 }
 
 export async function listAuthorizedLeads(
