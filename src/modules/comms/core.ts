@@ -214,6 +214,20 @@ export async function addSequenceStep(
       throw new CommsCommandError("STALE_WRITE");
     }
 
+    const frozenCampaignReferences = await transaction.commsOutreachCampaign.count({
+      where: {
+        ownerOrganizationId: context.tenant.organizationId,
+        sequenceId: input.sequenceId,
+        archivedAt: null,
+        status: {
+          in: ["READY", "APPROVED", "SCHEDULED", "RUNNING", "PAUSED", "COMPLETED"],
+        },
+      },
+    });
+    if (frozenCampaignReferences > 0) {
+      throw new CommsCommandError("TRANSITION_DENIED");
+    }
+
     const version = await transaction.commsMessageTemplateVersion.findFirst({
       where: {
         id: input.templateVersionId,
@@ -492,7 +506,7 @@ export async function evaluateDispatchSafety(
       },
     });
     if (!recipient) throw new CommsCommandError("NOT_FOUND");
-    if (["BOUNCED", "UNSUBSCRIBED", "STOPPED", "CONVERTED"].includes(recipient.state)) {
+    if (["REPLIED", "BOUNCED", "UNSUBSCRIBED", "STOPPED", "CONVERTED"].includes(recipient.state)) {
       throw new CommsCommandError("CONTACT_BLOCKED");
     }
 
@@ -624,16 +638,106 @@ export async function recordDeliveryEvent(
   database: PrismaClient = getPrismaClient(),
 ) {
   return run(context, async (transaction) => {
-    const provider = input.provider.trim();
+    const provider = input.provider.trim().toLowerCase();
     const externalEventId = input.externalEventId.trim();
     const eventType = input.eventType.trim().toUpperCase();
-    if (!provider || !externalEventId || !eventType) throw new CommsCommandError("INVALID");
+    const allowedEventTypes = new Set([
+      "SENT",
+      "DELIVERED",
+      "OPENED",
+      "CLICKED",
+      "REPLIED",
+      "BOUNCED",
+      "UNSUBSCRIBED",
+    ]);
+
+    if (
+      !provider ||
+      !externalEventId ||
+      !allowedEventTypes.has(eventType) ||
+      !input.campaignRecipientId
+    ) {
+      throw new CommsCommandError("INVALID");
+    }
+
+    const recipientEnvelope = await transaction.commsCampaignRecipient.findFirst({
+      where: {
+        id: input.campaignRecipientId,
+        ownerOrganizationId: context.tenant.organizationId,
+      },
+      select: {
+        id: true,
+        campaignId: true,
+        state: true,
+        rowVersion: true,
+      },
+    });
+    if (!recipientEnvelope) throw new CommsCommandError("NOT_FOUND");
+
+    const campaign = await transaction.commsOutreachCampaign.findFirst({
+      where: {
+        id: recipientEnvelope.campaignId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { sendingAccountId: true },
+    });
+    if (!campaign) throw new CommsCommandError("NOT_FOUND");
+
+    const sender = await transaction.commsSendingAccount.findFirst({
+      where: {
+        id: campaign.sendingAccountId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { provider: true },
+    });
+    if (!sender || sender.provider.trim().toLowerCase() !== provider) {
+      throw new CommsCommandError("INVALID");
+    }
+
+    const existing = await transaction.commsMessageDelivery.findFirst({
+      where: { provider, externalEventId },
+      select: {
+        id: true,
+        ownerOrganizationId: true,
+        campaignRecipientId: true,
+        sequenceStepId: true,
+        messageId: true,
+        eventType: true,
+        occurredAt: true,
+        payloadHash: true,
+        metadata: true,
+      },
+    });
+
+    if (existing) {
+      const sameMetadata =
+        JSON.stringify(existing.metadata ?? {}) ===
+        JSON.stringify(input.metadata ?? {});
+      const sameEvidence =
+        existing.ownerOrganizationId === context.tenant.organizationId &&
+        existing.campaignRecipientId === input.campaignRecipientId &&
+        existing.sequenceStepId === (input.sequenceStepId ?? null) &&
+        existing.messageId === (input.messageId ?? null) &&
+        existing.eventType === eventType &&
+        existing.occurredAt.getTime() === input.occurredAt.getTime() &&
+        existing.payloadHash === (input.payloadHash?.trim() || null) &&
+        sameMetadata;
+
+      if (!sameEvidence) throw new CommsCommandError("CONFLICT");
+
+      return {
+        id: existing.id,
+        campaignRecipientId: existing.campaignRecipientId,
+      };
+    }
 
     const row = await transaction.commsMessageDelivery.create({
       data: {
         id: newCommsId(),
         ownerOrganizationId: context.tenant.organizationId,
-        campaignRecipientId: input.campaignRecipientId ?? null,
+        campaignRecipientId: input.campaignRecipientId,
         sequenceStepId: input.sequenceStepId ?? null,
         messageId: input.messageId ?? null,
         provider,
@@ -646,7 +750,7 @@ export async function recordDeliveryEvent(
       select: { id: true, campaignRecipientId: true },
     });
 
-    const mapped: Partial<Record<string, RecipientState>> = {
+    const mapped: Record<string, RecipientState> = {
       SENT: "SENT",
       DELIVERED: "DELIVERED",
       OPENED: "OPENED",
@@ -656,32 +760,30 @@ export async function recordDeliveryEvent(
       UNSUBSCRIBED: "UNSUBSCRIBED",
     };
 
-    if (row.campaignRecipientId && mapped[eventType]) {
-      const recipient = await transaction.commsCampaignRecipient.findFirst({
-        where: {
-          id: row.campaignRecipientId,
-          ownerOrganizationId: context.tenant.organizationId,
-        },
-        select: { state: true, rowVersion: true },
-      });
-      if (!recipient) throw new CommsCommandError("NOT_FOUND");
-      const to = mapped[eventType]!;
-      const from = recipient.state as RecipientState;
+    const to = mapped[eventType];
+    const from = recipientEnvelope.state as RecipientState;
 
-      if (canAdvanceRecipient(from, to) && from !== to) {
-        await transaction.commsCampaignRecipient.updateMany({
-          where: {
-            id: row.campaignRecipientId,
-            ownerOrganizationId: context.tenant.organizationId,
-            rowVersion: recipient.rowVersion,
-          },
-          data: {
-            state: to,
-            rowVersion: { increment: 1 },
-            stoppedAt: ["BOUNCED", "UNSUBSCRIBED"].includes(to) ? input.occurredAt : null,
-            stopReason: ["BOUNCED", "UNSUBSCRIBED"].includes(to) ? eventType : null,
-          },
-        });
+    if (canAdvanceRecipient(from, to) && from !== to) {
+      const updated = await transaction.commsCampaignRecipient.updateMany({
+        where: {
+          id: recipientEnvelope.id,
+          ownerOrganizationId: context.tenant.organizationId,
+          rowVersion: recipientEnvelope.rowVersion,
+        },
+        data: {
+          state: to,
+          rowVersion: { increment: 1 },
+          stoppedAt: ["REPLIED", "BOUNCED", "UNSUBSCRIBED"].includes(to)
+            ? input.occurredAt
+            : null,
+          stopReason: ["REPLIED", "BOUNCED", "UNSUBSCRIBED"].includes(to)
+            ? eventType
+            : null,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new CommsCommandError("CONFLICT");
       }
     }
 
@@ -779,13 +881,14 @@ export async function recordMessage(
 ) {
   return run(context, async (transaction) => {
     const body = input.bodyText?.trim() || null;
-    const internal = input.internalNote === true || input.direction === "INTERNAL";
     if (!body) throw new CommsCommandError("INVALID");
-    if (internal && input.direction === "OUTBOUND") throw new CommsCommandError("INVALID");
 
-    const provider = input.provider?.trim() || null;
-    const externalId = input.externalId?.trim() || null;
-    if (input.direction === "OUTBOUND" && (!provider || !externalId)) {
+    if (
+      input.direction !== "INTERNAL" ||
+      input.internalNote === false ||
+      input.provider?.trim() ||
+      input.externalId?.trim()
+    ) {
       throw new CommsCommandError("INVALID");
     }
 
@@ -795,22 +898,20 @@ export async function recordMessage(
         id: newCommsId(),
         ownerOrganizationId: context.tenant.organizationId,
         conversationId: input.conversationId,
-        direction: internal ? "INTERNAL" : input.direction,
-        senderMembershipId: internal || input.direction === "OUTBOUND"
-          ? context.membership.membershipId
-          : null,
+        direction: "INTERNAL",
+        senderMembershipId: context.membership.membershipId,
         bodyText: body,
-        provider,
-        externalId,
-        sentAt: input.direction === "OUTBOUND" ? occurredAt : null,
-        receivedAt: input.direction === "INBOUND" ? occurredAt : null,
+        provider: null,
+        externalId: null,
+        sentAt: null,
+        receivedAt: null,
         visibility: "INTERNAL",
-        isInternalNote: internal,
+        isInternalNote: true,
       },
       select: { id: true, direction: true, isInternalNote: true, createdAt: true },
     });
 
-    await transaction.commsConversation.updateMany({
+    const updated = await transaction.commsConversation.updateMany({
       where: {
         id: input.conversationId,
         ownerOrganizationId: context.tenant.organizationId,
@@ -821,6 +922,7 @@ export async function recordMessage(
         updatedByMembershipId: context.membership.membershipId,
       },
     });
+    if (updated.count !== 1) throw new CommsCommandError("NOT_FOUND");
 
     return message;
   }, database);
