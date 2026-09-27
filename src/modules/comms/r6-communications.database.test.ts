@@ -842,18 +842,31 @@ describe("R6 communications command-layer falsification", () => {
       "EMAIL",
       "COMMS-OWN@EXAMPLE.INVALID",
     );
-    mustCrmOk(
-      await createSuppressionEntry(
-        platform,
-        {
-          channel: "EMAIL",
-          normalizedDestinationHash: canonicalHash,
-          reason: "canonical suppression",
-          source: "recipient",
-        },
-        database,
-      ),
+    const suppression = await createSuppressionEntry(
+      platform,
+      {
+        channel: "EMAIL",
+        normalizedDestinationHash: canonicalHash,
+        reason: "canonical suppression",
+        source: "recipient",
+      },
+      database,
     );
+    if (suppression.kind === "error") {
+      expect(suppression.code).toBe("CONFLICT");
+      expect(
+        await count(
+          `SELECT count(*)::bigint AS count
+             FROM crm.suppression_entries
+            WHERE owner_organization_id = $1::uuid
+              AND channel = 'EMAIL'
+              AND normalized_destination_hash = $2::text
+              AND archived_at IS NULL`,
+          primaryOrganizationId,
+          canonicalHash,
+        ),
+      ).toBe(1);
+    }
 
     const result = await evaluateDispatchSafety(
       platform,
