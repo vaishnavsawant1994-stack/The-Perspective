@@ -299,7 +299,7 @@ async function readDealIdentity(
       },
     });
     if (!sourceLead) throw new CommercialCommandError("NOT_FOUND");
-    if (!["QUALIFIED", "INTERESTED"].includes(sourceLead.lifecycleState)) {
+    if (!["QUALIFIED", "CONTACTED", "REPLIED", "INTERESTED"].includes(sourceLead.lifecycleState)) {
       throw new CommercialCommandError("TRANSITION_DENIED");
     }
     if (companyId && sourceLead.companyId && companyId !== sourceLead.companyId) {
