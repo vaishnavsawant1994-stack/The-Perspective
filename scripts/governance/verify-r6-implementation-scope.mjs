@@ -24,7 +24,7 @@ const auth = readFileSync(
 );
 const schema = readFileSync("prisma/schema.prisma", "utf8");
 const migration = readFileSync(
-  "prisma/migrations/20260927103000_r6_crm_commercial_foundation/migration.sql",
+  "prisma/migrations/20260927101500_r6_crm_commercial_foundation/migration.sql",
   "utf8",
 );
 const registry = readFileSync("src/modules/authorization/registry.ts", "utf8");
