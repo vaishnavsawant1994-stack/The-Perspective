@@ -226,6 +226,32 @@ describe("R5 resource policy", () => {
     });
   });
 
+  it("keeps R5+ vocabulary dormant until that owning stage is explicitly activated", () => {
+    const context = authorizedContext(
+      [grant("workspace.search", { scope: "DEPT" })],
+      { departmentId: "dept-1" },
+    );
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "workspace.search",
+        {
+          resourceType: "search-document",
+          ownerOrganizationId: "org-1",
+          departmentId: "dept-1",
+        },
+        {
+          action: "search",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "WORKFLOW_DENIED",
+    });
+  });
+
   it("requires a field policy whenever permission metadata requires one", () => {
     const context = authorizedContext([grant("team.view")]);
 
@@ -383,6 +409,7 @@ describe("R5 resource policy", () => {
           action: "search",
           fieldPolicy: { readableFields: [], mutableFields: [] },
         },
+        { activeStages: new Set(["R5+"]) },
       ).decision,
     ).toBe("ALLOW");
 
@@ -396,6 +423,7 @@ describe("R5 resource policy", () => {
           departmentId: "dept-2",
         },
         { action: "search" },
+        { activeStages: new Set(["R5+"]) },
       ),
     ).toMatchObject({
       decision: "DENY",

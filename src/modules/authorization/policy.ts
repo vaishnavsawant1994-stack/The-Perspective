@@ -22,7 +22,7 @@ import type {
   SensitivityLevel,
 } from "./types";
 
-const DEFAULT_ACTIVE_STAGES = new Set(["R5", "R5+"]);
+const DEFAULT_ACTIVE_STAGES = new Set(["R5"]);
 const READ_ACTIONS = new Set([
   "read",
   "view",
