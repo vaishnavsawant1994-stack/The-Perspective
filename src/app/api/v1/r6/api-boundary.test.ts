@@ -262,35 +262,27 @@ describe("R6 CRM direct-call API boundary", () => {
     });
   });
 
-  it.each([
-    [
-      "company detail",
-      getCompany,
-      { params: Promise.resolve({ companyId: "not-a-uuid" }) },
-    ],
-    [
-      "contact detail",
-      getContact,
-      { params: Promise.resolve({ contactId: "not-a-uuid" }) },
-    ],
-    [
-      "lead detail",
-      getLead,
-      { params: Promise.resolve({ leadId: "not-a-uuid" }) },
-    ],
-  ] as const)(
-    "rejects malformed %s identifiers before database access",
-    async (_name, handler, route) => {
-      const response = await handler(
-        new Request(`${origin}/api/v1/r6/malformed-detail`),
-        route,
-      );
+  it("rejects malformed CRM detail identifiers before database access", async () => {
+    const request = new Request(`${origin}/api/v1/r6/malformed-detail`);
+    const responses = [
+      await getCompany(request, {
+        params: Promise.resolve({ companyId: "not-a-uuid" }),
+      }),
+      await getContact(request, {
+        params: Promise.resolve({ contactId: "not-a-uuid" }),
+      }),
+      await getLead(request, {
+        params: Promise.resolve({ leadId: "not-a-uuid" }),
+      }),
+    ];
+
+    for (const response of responses) {
       expect(response.status).toBe(400);
       await expect(response.json()).resolves.toMatchObject({
         code: "R6_INVALID_REQUEST",
       });
-    },
-  );
+    }
+  });
 
   it("rejects out-of-range CRM list pagination before authorization", async () => {
     const response = await listCompanies(
