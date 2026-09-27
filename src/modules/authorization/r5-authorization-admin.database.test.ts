@@ -23,6 +23,7 @@ import {
   createCustomAuthorizationRole,
   readRolePermissions,
   replaceCustomRolePermissions,
+  revokeMembershipAuthorizationRole,
   updateCustomAuthorizationRole,
 } from "./admin";
 import { resolveAuthorizedRequestContext } from "./resolver";
@@ -346,6 +347,84 @@ describe("R5 live database authorization-admin attacks", () => {
     expect(
       (await auditActions(context.requestId)).map((entry) => entry.action),
     ).toContain("authorization.denied.role.manage");
+  });
+
+  it("denies protected administrator self-revocation and preserves the live grant", async () => {
+    const requestId = "r5-admin-db-protected-self-revocation";
+    const { context, actorGrant } = await adminActor("R01", requestId);
+
+    const before = await database.membershipRole.findUniqueOrThrow({
+      where: { id: actorGrant.id },
+      select: { validUntil: true, createdAt: true },
+    });
+    expect(before.validUntil).toBeNull();
+
+    const result = await revokeMembershipAuthorizationRole(
+      context,
+      {
+        membershipRoleId: actorGrant.id,
+        expectedCreatedAt: actorGrant.createdAt,
+        reason: "attempt protected administrator self revocation",
+      },
+      database,
+      now,
+    );
+
+    expect(result.kind).toBe("denied");
+    await expect(
+      database.membershipRole.findUniqueOrThrow({
+        where: { id: actorGrant.id },
+        select: { validUntil: true, createdAt: true },
+      }),
+    ).resolves.toEqual(before);
+    expect(
+      (await auditActions(requestId)).map((entry) => entry.action),
+    ).toContain("authorization.denied.role.manage");
+  });
+
+  it("rejects a duplicate live MembershipRole without widening authority", async () => {
+    const { context } = await adminActor(
+      "R01",
+      "r5-admin-db-duplicate-membership-role",
+    );
+    const targetMembership = await createStaffMembership();
+    const targetRole = await createRoleFixture({
+      key: "R03",
+      systemRole: true,
+    });
+    const input = {
+      membershipId: targetMembership.id,
+      roleId: targetRole.id,
+      scope: "ORG" as const,
+      expectedMembershipUpdatedAt: targetMembership.updatedAt,
+      reason: "duplicate live grant attack",
+    };
+
+    const first = await assignMembershipAuthorizationRole(
+      context,
+      input,
+      database,
+      now,
+    );
+    expect(first.kind).toBe("ok");
+
+    const second = await assignMembershipAuthorizationRole(
+      context,
+      input,
+      database,
+      new Date(now.getTime() + 1),
+    );
+    expect(second).toEqual({ kind: "error", code: "CONFLICT" });
+
+    expect(
+      await database.membershipRole.count({
+        where: {
+          membershipId: targetMembership.id,
+          roleId: targetRole.id,
+          OR: [{ validUntil: null }, { validUntil: { gt: now } }],
+        },
+      }),
+    ).toBe(1);
   });
 
   it("denies R02 assigning R01 and leaves no elevated grant", async () => {
