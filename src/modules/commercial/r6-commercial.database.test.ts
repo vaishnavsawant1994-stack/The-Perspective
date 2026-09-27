@@ -25,6 +25,7 @@ import {
   moveDeal,
   updateDealFields,
 } from "./core";
+import { withCommercialTenantTransaction } from "./persistence";
 import type { CommercialResult, CreateDealPipelineInput } from "./types";
 
 const database = createPrismaClient();
@@ -1606,6 +1607,353 @@ describe("R6 commercial deal falsification", () => {
         account.id,
       ),
     ).toBe(before);
+  });
+
+
+  it("prevents a used pipeline stage from being rewritten by the runtime role", async () => {
+    const stageId = fixture.ownStages.INTERESTED;
+    const before = await database.commercialDealStage.findUniqueOrThrow({
+      where: { id: stageId },
+      select: { name: true, canonicalClass: true, probability: true },
+    });
+
+    await expect(
+      withCommercialTenantTransaction(
+        platform,
+        (transaction) =>
+          transaction.commercialDealStage.update({
+            where: { id: stageId },
+            data: { name: before.name + " MUTATED" },
+          }),
+        database,
+      ),
+    ).rejects.toBeTruthy();
+
+    const after = await database.commercialDealStage.findUniqueOrThrow({
+      where: { id: stageId },
+      select: { name: true, canonicalClass: true, probability: true },
+    });
+    expect(after).toEqual(before);
+  });
+
+  it("reuses one existing canonical CLIENT identity instead of manufacturing a duplicate", async () => {
+    const clientOrganizationId = crypto.randomUUID();
+    const domain = "canonical-" + crypto.randomUUID() + ".example.invalid";
+
+    await database.organization.create({
+      data: {
+        id: clientOrganizationId,
+        organizationType: "CLIENT",
+        legalName: "Canonical Client",
+        displayName: "Canonical Client",
+        slug: "canonical-client-" + clientOrganizationId.slice(0, 8),
+        normalizedDomain: domain,
+        status: "ACTIVE",
+      },
+    });
+
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        {
+          name: "Canonical Client Company " + crypto.randomUUID(),
+          domain,
+        },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Canonical contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "canonical-reuse",
+    });
+
+    const converted = mustOk(
+      await convertDealToClient(
+        platform,
+        {
+          dealId: deal.id,
+          expectedRowVersion: deal.rowVersion,
+          idempotencyKey: "canonical-reuse-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+
+    expect(converted.clientOrganizationId).toBe(clientOrganizationId);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM iam.organizations
+          WHERE organization_type = 'CLIENT'
+            AND normalized_domain = $1::text`,
+        domain,
+      ),
+    ).toBe(1);
+  });
+
+  it("contains concurrent different-key conversion of one deal to one canonical client account", async () => {
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Different Key Race " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Different key race contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "different-key-race",
+    });
+
+    const keys = [
+      "different-key-a-" + crypto.randomUUID(),
+      "different-key-b-" + crypto.randomUUID(),
+    ];
+    const results = await Promise.all([
+      convertDealToClient(
+        platform,
+        {
+          dealId: deal.id,
+          expectedRowVersion: deal.rowVersion,
+          idempotencyKey: keys[0],
+        },
+        database,
+      ),
+      convertDealToClient(
+        platform,
+        {
+          dealId: deal.id,
+          expectedRowVersion: deal.rowVersion,
+          idempotencyKey: keys[1],
+        },
+        database,
+      ),
+    ]);
+
+    expect(results.filter((result) => result.kind === "ok")).toHaveLength(1);
+    expect(
+      results.filter(
+        (result) => result.kind === "error" && result.code === "CONFLICT",
+      ),
+    ).toHaveLength(1);
+
+    const dealRow = await database.commercialDeal.findUniqueOrThrow({
+      where: { id: deal.id },
+      select: { clientOrganizationId: true },
+    });
+    expect(dealRow.clientOrganizationId).not.toBeNull();
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_accounts
+          WHERE owner_organization_id = $1::uuid
+            AND client_organization_id = $2::uuid
+            AND archived_at IS NULL`,
+        primaryOrganizationId,
+        dealRow.clientOrganizationId!,
+      ),
+    ).toBe(1);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM platform.idempotency_receipts
+          WHERE owner_organization_id = $1::uuid
+            AND scope = 'commercial.client-conversion'
+            AND idempotency_key = ANY($2::text[])`,
+        primaryOrganizationId,
+        keys,
+      ),
+    ).toBe(1);
+  });
+
+  it("does not turn client relationship admin/approver flags into IAM membership", async () => {
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Relationship Capability " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Executive sponsor" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "relationship-capability",
+    });
+    const account = mustOk(
+      await convertDealToClient(
+        platform,
+        {
+          dealId: deal.id,
+          expectedRowVersion: deal.rowVersion,
+          idempotencyKey: "relationship-capability-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+
+    const beforeMemberships = await count(
+      `SELECT count(*)::bigint AS count
+         FROM iam.organization_memberships
+        WHERE organization_id = $1::uuid`,
+      account.clientOrganizationId,
+    );
+
+    const relationship = await addClientRelationship(
+      platform,
+      {
+        clientAccountId: account.id,
+        contactId: contact.id,
+        relationshipRole: "EXECUTIVE_SPONSOR",
+        isApprover: true,
+        isAdmin: true,
+      },
+      database,
+    );
+    expect(relationship.kind).toBe("ok");
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM iam.organization_memberships
+          WHERE organization_id = $1::uuid`,
+        account.clientOrganizationId,
+      ),
+    ).toBe(beforeMemberships);
+  });
+
+  it("rejects a second account for an already-linked canonical client identity with zero conversion residue", async () => {
+    const sourceCompany = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Canonical Source " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const sourceContact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: sourceCompany.id, title: "Canonical source contact" },
+        database,
+      ),
+    );
+    const sourceDeal = await createProposalPreparationDeal({
+      companyId: sourceCompany.id,
+      contactId: sourceContact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "canonical-source",
+    });
+    const existingAccount = mustOk(
+      await convertDealToClient(
+        platform,
+        {
+          dealId: sourceDeal.id,
+          expectedRowVersion: sourceDeal.rowVersion,
+          idempotencyKey: "canonical-source-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+
+    const targetCompany = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Canonical Target " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const targetContact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: targetCompany.id, title: "Canonical target contact" },
+        database,
+      ),
+    );
+    await database.crmCompany.update({
+      where: { id: targetCompany.id },
+      data: { linkedOrganizationId: existingAccount.clientOrganizationId },
+    });
+
+    const targetDeal = await createProposalPreparationDeal({
+      companyId: targetCompany.id,
+      contactId: targetContact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "canonical-target",
+    });
+    const key = "canonical-duplicate-" + crypto.randomUUID();
+    const beforeResources = await resourceCount(
+      primaryOrganizationId,
+      "client-account",
+    );
+    const beforeAccounts = await count(
+      `SELECT count(*)::bigint AS count
+         FROM commercial.client_accounts
+        WHERE owner_organization_id = $1::uuid`,
+      primaryOrganizationId,
+    );
+
+    const result = await convertDealToClient(
+      platform,
+      {
+        dealId: targetDeal.id,
+        expectedRowVersion: targetDeal.rowVersion,
+        idempotencyKey: key,
+      },
+      database,
+    );
+
+    expect(result).toEqual({ kind: "error", code: "CONFLICT" });
+    expect(await resourceCount(primaryOrganizationId, "client-account")).toBe(
+      beforeResources,
+    );
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_accounts
+          WHERE owner_organization_id = $1::uuid`,
+        primaryOrganizationId,
+      ),
+    ).toBe(beforeAccounts);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM platform.idempotency_receipts
+          WHERE owner_organization_id = $1::uuid
+            AND scope = 'commercial.client-conversion'
+            AND idempotency_key = $2::text`,
+        primaryOrganizationId,
+        key,
+      ),
+    ).toBe(0);
   });
 
 });
