@@ -301,15 +301,15 @@ function fieldPolicyAllows(
   const requestedFields = command.requestedFields ?? [];
   if (requestedFields.length === 0) return true;
 
-  const serverOwnedFields = new Set(command.fieldPolicy.serverOwnedFields ?? []);
-  if (requestedFields.some((field) => serverOwnedFields.has(field))) {
-    return false;
-  }
-
   if (READ_ACTIONS.has(command.action)) {
     return requestedFields.every((field) =>
       command.fieldPolicy?.readableFields.includes(field),
     );
+  }
+
+  const serverOwnedFields = new Set(command.fieldPolicy.serverOwnedFields ?? []);
+  if (requestedFields.some((field) => serverOwnedFields.has(field))) {
+    return false;
   }
 
   const allowedFields =
