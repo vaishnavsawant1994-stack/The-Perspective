@@ -389,6 +389,15 @@ export function evaluateAuthorization(
       return deny(permissionKey, "WORKFLOW_DENIED");
     }
 
+    if (
+      definition.surface !== "TEAM" ||
+      definition.assignability !== "TEAM_ROLE" ||
+      context.membership.surface !== "TEAM" ||
+      context.tenant.surface !== "TEAM"
+    ) {
+      return deny(permissionKey, "POLICY_INVALID");
+    }
+
     const binding = getR6PermissionBinding(permissionKey);
     if (!(binding.actions as readonly string[]).includes(command.action)) {
       return deny(permissionKey, "WORKFLOW_DENIED");
@@ -446,6 +455,15 @@ export function evaluateAuthorization(
       permissionKey,
       hasBlockedEdge ? "POLICY_INVALID" : "PERMISSION_MISSING",
     );
+  }
+
+  if (
+    definition.activationStage === "R6" &&
+    grants.some(
+      (grant) => !definition.permittedScopes.includes(grant.scope),
+    )
+  ) {
+    return deny(permissionKey, "POLICY_INVALID");
   }
 
   for (const grant of grants) {
