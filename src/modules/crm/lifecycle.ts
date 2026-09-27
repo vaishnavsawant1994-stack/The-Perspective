@@ -19,7 +19,7 @@ const FORWARD_TRANSITIONS: Readonly<Record<LeadLifecycleState, readonly LeadLife
   INTERESTED: ["NURTURE", "CONVERTED"],
   NURTURE: ["QUALIFICATION_PENDING"],
   DISQUALIFIED: [],
-  SUPPRESSED: [],
+  DO_NOT_CONTACT: [],
   CONVERTED: [],
 };
 
