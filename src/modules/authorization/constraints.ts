@@ -14,8 +14,9 @@ export const rolePermissionConstraintsSchema = z
     allowedProjectTypes: boundedStringList.optional(),
     requireAssignment: z.boolean().optional(),
     requireOwnership: z.boolean().optional(),
-    allowedFieldGroups: boundedStringList.optional(),
-    deniedFieldGroups: boundedStringList.optional(),
+    // Field-group constraints are reserved by P4-R5-G0, but R5 has no
+    // trusted field-group registry/mapping yet. Keep them out of the accepted
+    // schema so .strict() fails closed instead of silently ignoring them.
     clientSafeOnly: z.boolean().optional(),
     allowedLifecycleStates: boundedStringList.optional(),
     requireReason: z.boolean().optional(),
