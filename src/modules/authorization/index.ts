@@ -67,3 +67,15 @@ export {
   type PermissionBundle,
   type PermissionBundleKey,
 } from "./launch-roles";
+
+export {
+  buildTrustedIamResourceContext,
+  loadTrustedResourceContext,
+  type LoadedResourceEnvelope,
+} from "./resource-context";
+export {
+  getR5FieldPolicy,
+  projectClientSafeResourceMetadata,
+  type ClientSafeResourceMetadata,
+  type R5FieldPolicyResourceType,
+} from "./fields";
