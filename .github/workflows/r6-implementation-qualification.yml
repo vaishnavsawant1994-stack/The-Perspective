@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - phase4/r6-crm-commercial-implementation-20260927
+      - phase4/r6-step6-api-20260927
   pull_request:
     branches:
       - main
