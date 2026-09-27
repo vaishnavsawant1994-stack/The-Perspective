@@ -28,6 +28,7 @@ import {
   suppressLead,
   transitionLeadLifecycle,
 } from "./core";
+import { withCrmTenantTransaction } from "./persistence";
 import type { CrmCoreResult } from "./types";
 
 const database = createPrismaClient();
@@ -63,17 +64,24 @@ function teamContext(input: {
   };
 }
 
+const primaryOrganizationId = seedIds.organization.asteria;
+const primaryMembershipId = seedIds.membership.asteriaAdmin;
+const primaryUserId = seedIds.user.asteriaAdmin;
+const foreignOrganizationId = seedIds.organization.northstar;
+const foreignMembershipId = seedIds.membership.northstarAdmin;
+const foreignUserId = seedIds.user.northstarAdmin;
+
 const platform = teamContext({
-  organizationId: seedIds.organization.platform,
-  membershipId: seedIds.membership.operator,
-  userId: seedIds.user.operator,
-  requestId: "r6-crm-falsify-platform",
+  organizationId: primaryOrganizationId,
+  membershipId: primaryMembershipId,
+  userId: primaryUserId,
+  requestId: "r6-crm-falsify-primary",
 });
 
 const foreign = teamContext({
-  organizationId: seedIds.organization.asteria,
-  membershipId: seedIds.membership.asteriaAdmin,
-  userId: seedIds.user.asteriaAdmin,
+  organizationId: foreignOrganizationId,
+  membershipId: foreignMembershipId,
+  userId: foreignUserId,
   requestId: "r6-crm-falsify-foreign",
 });
 
@@ -273,9 +281,9 @@ describe("R6 CRM command-layer falsification", () => {
   it("derives owner and membership from trusted context and ignores forged input authority", async () => {
     const forged = {
       name: "FALSIFY forged owner input",
-      ownerOrganizationId: seedIds.organization.asteria,
-      ownerMembershipId: seedIds.membership.asteriaAdmin,
-      createdByMembershipId: seedIds.membership.asteriaAdmin,
+      ownerOrganizationId: foreignOrganizationId,
+      ownerMembershipId: foreignMembershipId,
+      createdByMembershipId: foreignMembershipId,
     };
 
     const result = await createCompany(platform, forged, database);
@@ -297,25 +305,25 @@ describe("R6 CRM command-layer falsification", () => {
 
     expect(rows).toEqual([
       {
-        owner_organization_id: seedIds.organization.platform,
-        owner_membership_id: seedIds.membership.operator,
-        created_by_membership_id: seedIds.membership.operator,
+        owner_organization_id: primaryOrganizationId,
+        owner_membership_id: primaryMembershipId,
+        created_by_membership_id: primaryMembershipId,
       },
     ]);
   });
 
   it("rejects a forged cross-tenant membership context and rolls back its resource envelope", async () => {
     const forgedContext = teamContext({
-      organizationId: seedIds.organization.platform,
-      membershipId: seedIds.membership.asteriaAdmin,
-      userId: seedIds.user.operator,
+      organizationId: primaryOrganizationId,
+      membershipId: foreignMembershipId,
+      userId: primaryUserId,
       requestId: "r6-crm-forged-membership",
     });
     const beforeResources = await resourceCount(
-      seedIds.organization.platform,
+      primaryOrganizationId,
       "company",
     );
-    const beforeOutbox = await outboxCount(seedIds.organization.platform);
+    const beforeOutbox = await outboxCount(primaryOrganizationId);
 
     const result = await createCompany(
       forgedContext,
@@ -325,9 +333,9 @@ describe("R6 CRM command-layer falsification", () => {
 
     expect(result).toEqual({ kind: "error", code: "INVALID" });
     expect(
-      await resourceCount(seedIds.organization.platform, "company"),
+      await resourceCount(primaryOrganizationId, "company"),
     ).toBe(beforeResources);
-    expect(await outboxCount(seedIds.organization.platform)).toBe(beforeOutbox);
+    expect(await outboxCount(primaryOrganizationId)).toBe(beforeOutbox);
     expect(
       await tableCount(
         `SELECT count(*)::bigint AS count
@@ -390,18 +398,18 @@ describe("R6 CRM command-layer falsification", () => {
     "rejects cross-tenant %s and leaves no separately registered %s resource",
     async (_name, resourceType, operation) => {
       const beforeResources = await resourceCount(
-        seedIds.organization.platform,
+        primaryOrganizationId,
         resourceType,
       );
-      const beforeOutbox = await outboxCount(seedIds.organization.platform);
+      const beforeOutbox = await outboxCount(primaryOrganizationId);
 
       const result = await operation();
 
       expect(result.kind).toBe("error");
       expect(
-        await resourceCount(seedIds.organization.platform, resourceType),
+        await resourceCount(primaryOrganizationId, resourceType),
       ).toBe(beforeResources);
-      expect(await outboxCount(seedIds.organization.platform)).toBe(
+      expect(await outboxCount(primaryOrganizationId)).toBe(
         beforeOutbox,
       );
     },
@@ -487,7 +495,7 @@ describe("R6 CRM command-layer falsification", () => {
            FROM crm.lead_list_members
           WHERE owner_organization_id = $1::uuid
             AND lead_id = $2::uuid`,
-        seedIds.organization.platform,
+        primaryOrganizationId,
         fixture.foreignLeadId,
       ),
     ).toBe(0);
@@ -515,7 +523,7 @@ describe("R6 CRM command-layer falsification", () => {
           AND lead_list_id = $2::uuid
           AND lead_id = $3::uuid
           AND removed_at IS NULL`,
-      seedIds.organization.platform,
+      primaryOrganizationId,
       fixture.ownListId,
       fixture.ownLeadId,
     );
@@ -551,7 +559,7 @@ describe("R6 CRM command-layer falsification", () => {
           AND lead_list_id = $2::uuid
           AND lead_id = $3::uuid
           AND removed_at IS NULL`,
-      seedIds.organization.platform,
+      primaryOrganizationId,
       fixture.ownListId,
       fixture.ownLeadId,
     );
@@ -625,9 +633,28 @@ describe("R6 CRM command-layer falsification", () => {
         database,
       ),
     );
-    await database.$executeRawUnsafe(
-      `UPDATE crm.leads SET archived_at = CURRENT_TIMESTAMP WHERE id = $1::uuid`,
-      lead.id,
+    const archivedAt = new Date();
+    await withCrmTenantTransaction(
+      platform,
+      async (transaction) => {
+        await transaction.$queryRawUnsafe(
+          `SELECT platform.update_r6_resource(
+             $1::uuid,
+             'Lead'::text,
+             NULL::uuid,
+             'INTERNAL'::platform."Visibility",
+             'CONFIDENTIAL'::platform."Sensitivity",
+             $2::timestamptz
+           )`,
+          lead.resourceId,
+          archivedAt,
+        );
+        await transaction.crmLead.update({
+          where: { id: lead.id },
+          data: { archivedAt },
+        });
+      },
+      database,
     );
 
     const result = await transitionLeadLifecycle(
@@ -668,7 +695,7 @@ describe("R6 CRM command-layer falsification", () => {
     ).toBe(0);
 
     const beforeResources = await resourceCount(
-      seedIds.organization.platform,
+      primaryOrganizationId,
       "qualification",
     );
     const qualification = await recordQualification(
@@ -683,13 +710,13 @@ describe("R6 CRM command-layer falsification", () => {
     );
     expect(qualification.kind).toBe("error");
     expect(
-      await resourceCount(seedIds.organization.platform, "qualification"),
+      await resourceCount(primaryOrganizationId, "qualification"),
     ).toBe(beforeResources);
   });
 
   it("rejects duplicate candidates that connect resources across tenants with no resource residue", async () => {
     const beforeResources = await resourceCount(
-      seedIds.organization.platform,
+      primaryOrganizationId,
       "duplicate-candidate",
     );
     const result = await createDuplicateCandidate(
@@ -706,7 +733,7 @@ describe("R6 CRM command-layer falsification", () => {
 
     expect(result.kind).toBe("error");
     expect(
-      await resourceCount(seedIds.organization.platform, "duplicate-candidate"),
+      await resourceCount(primaryOrganizationId, "duplicate-candidate"),
     ).toBe(beforeResources);
   });
 
@@ -722,7 +749,7 @@ describe("R6 CRM command-layer falsification", () => {
 
   it("rejects empty normalized safety/evidence identifiers with zero resource residue", async () => {
     const suppressionBefore = await resourceCount(
-      seedIds.organization.platform,
+      primaryOrganizationId,
       "suppression-entry",
     );
     const suppression = await createSuppressionEntry(
@@ -737,11 +764,11 @@ describe("R6 CRM command-layer falsification", () => {
     );
     expect(suppression).toEqual({ kind: "error", code: "INVALID" });
     expect(
-      await resourceCount(seedIds.organization.platform, "suppression-entry"),
+      await resourceCount(primaryOrganizationId, "suppression-entry"),
     ).toBe(suppressionBefore);
 
     const enrichmentBefore = await resourceCount(
-      seedIds.organization.platform,
+      primaryOrganizationId,
       "enrichment-job",
     );
     const enrichment = await requestEnrichment(
@@ -756,7 +783,7 @@ describe("R6 CRM command-layer falsification", () => {
     );
     expect(enrichment).toEqual({ kind: "error", code: "INVALID" });
     expect(
-      await resourceCount(seedIds.organization.platform, "enrichment-job"),
+      await resourceCount(primaryOrganizationId, "enrichment-job"),
     ).toBe(enrichmentBefore);
 
     const staged = await stageExtractedRecord(
@@ -888,7 +915,7 @@ describe("R6 CRM command-layer falsification", () => {
     );
 
     const beforeResources = await resourceCount(
-      seedIds.organization.platform,
+      primaryOrganizationId,
       "suppression-entry",
     );
     const beforeHistory = await tableCount(
@@ -897,7 +924,7 @@ describe("R6 CRM command-layer falsification", () => {
         WHERE lead_id = $1::uuid`,
       lead.id,
     );
-    const beforeOutbox = await outboxCount(seedIds.organization.platform);
+    const beforeOutbox = await outboxCount(primaryOrganizationId);
 
     const result = await suppressLead(
       platform,
@@ -914,7 +941,7 @@ describe("R6 CRM command-layer falsification", () => {
 
     expect(result).toEqual({ kind: "error", code: "STALE_WRITE" });
     expect(
-      await resourceCount(seedIds.organization.platform, "suppression-entry"),
+      await resourceCount(primaryOrganizationId, "suppression-entry"),
     ).toBe(beforeResources);
     expect(
       await tableCount(
@@ -931,6 +958,6 @@ describe("R6 CRM command-layer falsification", () => {
         lead.id,
       ),
     ).toBe(beforeHistory);
-    expect(await outboxCount(seedIds.organization.platform)).toBe(beforeOutbox);
+    expect(await outboxCount(primaryOrganizationId)).toBe(beforeOutbox);
   });
 });
