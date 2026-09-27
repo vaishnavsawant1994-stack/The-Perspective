@@ -26,9 +26,6 @@ const schema = z.object({
   title: z.string().trim().max(160).nullable().optional(),
   relationshipState: z.string().trim().max(80).nullable().optional(),
   preferredChannel: z.string().trim().max(80).nullable().optional(),
-  emailOriginal: z.string().trim().email().max(320).nullable().optional(),
-  emailNormalized: z.string().trim().email().max(320).nullable().optional(),
-  phoneNormalized: z.string().trim().max(40).nullable().optional(),
 }).strict();
 
 export async function GET(request: Request) {
