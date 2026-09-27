@@ -67,6 +67,7 @@ function mapKnownFailure(value: unknown): CommercialResult<never> | undefined {
   switch (databaseCode(value)) {
     case "P2002":
     case "P2034":
+    case "40001":
     case "23505":
       return error("CONFLICT");
     case "P2025":
@@ -299,7 +300,9 @@ async function readDealIdentity(
     });
     if (!sourceLead) throw new CommercialCommandError("NOT_FOUND");
     if (
-      !["QUALIFIED", "INTERESTED"].includes(sourceLead.lifecycleState)
+      !["QUALIFIED", "CONTACTED", "REPLIED", "INTERESTED"].includes(
+        sourceLead.lifecycleState,
+      )
     ) {
       throw new CommercialCommandError("TRANSITION_DENIED");
     }
