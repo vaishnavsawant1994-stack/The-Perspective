@@ -64,7 +64,7 @@ assert(gateText.includes("### D01 approved resolution"), "D01 approved Resolutio
 assert(gateText.includes("### D15 approved resolution"), "D15 approved Resolution A is missing");
 assert(!gateText.includes("## D16"), "Unapproved D16 must not exist as a Gate-A decision");
 assert(!gateText.includes("OPEN — BLOCKS P4-R6-G0 FREEZE"), "Gate A still contains an open blocking decision");
-assert(readinessText.includes("GATE-A COMPLETE"), "Gate-A readiness does not reflect owner approval");
+assert(readinessText.includes("GATE-A OWNER-APPROVED"), "Gate-A readiness does not reflect owner approval");
 assert(readinessText.includes("P4-R6-G0"), "Gate-A readiness does not track the G0 gate");
 assert(readinessText.includes("R6 production implementation:** NOT AUTHORIZED"), "Readiness document unlocks R6 implementation");
 
