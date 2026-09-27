@@ -2299,6 +2299,26 @@ describe("R6 commercial deeper falsification", () => {
       primaryOrganizationId,
       "client-account",
     );
+    const beforeAudit = await count(
+      `SELECT count(*)::bigint AS count
+         FROM audit.audit_events
+        WHERE owner_organization_id = $1::uuid`,
+      primaryOrganizationId,
+    );
+    const beforeOutbox = await count(
+      `SELECT count(*)::bigint AS count
+         FROM platform.outbox_events
+        WHERE owner_organization_id = $1::uuid`,
+      primaryOrganizationId,
+    );
+    const beforeHistory = await count(
+      `SELECT count(*)::bigint AS count
+         FROM commercial.deal_stage_history
+        WHERE owner_organization_id = $1::uuid
+          AND deal_id = $2::uuid`,
+      primaryOrganizationId,
+      deal.id,
+    );
 
     const result = await convertDealToClient(
       platform,
@@ -2347,6 +2367,32 @@ describe("R6 commercial deeper falsification", () => {
     expect(await resourceCount(primaryOrganizationId, "client-account")).toBe(
       beforeResources,
     );
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM audit.audit_events
+          WHERE owner_organization_id = $1::uuid`,
+        primaryOrganizationId,
+      ),
+    ).toBe(beforeAudit);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM platform.outbox_events
+          WHERE owner_organization_id = $1::uuid`,
+        primaryOrganizationId,
+      ),
+    ).toBe(beforeOutbox);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.deal_stage_history
+          WHERE owner_organization_id = $1::uuid
+            AND deal_id = $2::uuid`,
+        primaryOrganizationId,
+        deal.id,
+      ),
+    ).toBe(beforeHistory);
   });
 
   it("prevents the restricted runtime role from rewriting versioned pipeline or stage semantics after history exists", async () => {
