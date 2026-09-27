@@ -13,6 +13,7 @@ import {
   canTransitionConversation,
   canTransitionMeeting,
 } from "./lifecycle";
+import { hashNormalizedDestination } from "./safety";
 import {
   CommsTenantBoundaryError,
   newCommsId,
@@ -297,7 +298,20 @@ export async function addCampaignRecipient(
   if (Boolean(input.leadId) === Boolean(input.contactId)) return error("INVALID");
 
   return run(context, async (transaction) => {
-    return transaction.commsCampaignRecipient.create({
+    const campaign = await transaction.commsOutreachCampaign.findFirst({
+      where: {
+        id: input.campaignId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { status: true, rowVersion: true },
+    });
+    if (!campaign) throw new CommsCommandError("NOT_FOUND");
+    if (!["DRAFT", "READY"].includes(campaign.status)) {
+      throw new CommsCommandError("TRANSITION_DENIED");
+    }
+
+    const recipient = await transaction.commsCampaignRecipient.create({
       data: {
         id: newCommsId(),
         ownerOrganizationId: context.tenant.organizationId,
@@ -309,6 +323,27 @@ export async function addCampaignRecipient(
       },
       select: { id: true, campaignId: true, state: true, rowVersion: true },
     });
+
+    if (campaign.status === "READY") {
+      await transaction.commsOutreachCampaign.updateMany({
+        where: {
+          id: input.campaignId,
+          ownerOrganizationId: context.tenant.organizationId,
+          rowVersion: campaign.rowVersion,
+        },
+        data: {
+          status: "DRAFT",
+          audienceSnapshotHash: null,
+          approvedSnapshotHash: null,
+          approvedAt: null,
+          approvedByMembershipId: null,
+          rowVersion: { increment: 1 },
+          updatedByMembershipId: context.membership.membershipId,
+        },
+      });
+    }
+
+    return recipient;
   }, database);
 }
 
@@ -442,9 +477,8 @@ export async function evaluateDispatchSafety(
   database: PrismaClient = getPrismaClient(),
 ) {
   return run(context, async (transaction) => {
-    const channel = input.channel.trim();
-    const destinationHash = input.normalizedDestinationHash.trim();
-    if (!channel || !destinationHash) throw new CommsCommandError("INVALID");
+    const channel = input.channel.trim().toUpperCase();
+    if (!channel) throw new CommsCommandError("INVALID");
 
     const recipient = await transaction.commsCampaignRecipient.findFirst({
       where: {
@@ -467,7 +501,7 @@ export async function evaluateDispatchSafety(
       select: { sendingAccountId: true, status: true },
     });
     if (!campaign) throw new CommsCommandError("NOT_FOUND");
-    if (!["SCHEDULED", "RUNNING", "PAUSED"].includes(campaign.status)) {
+    if (!["SCHEDULED", "RUNNING"].includes(campaign.status)) {
       throw new CommsCommandError("TRANSITION_DENIED");
     }
 
@@ -483,6 +517,8 @@ export async function evaluateDispatchSafety(
       throw new CommsCommandError("SENDER_NOT_READY");
     }
 
+    let contactId = recipient.contactId ?? null;
+
     if (recipient.leadId) {
       const lead = await transaction.crmLead.findFirst({
         where: {
@@ -496,47 +532,43 @@ export async function evaluateDispatchSafety(
       if (lead.lifecycleState === "DO_NOT_CONTACT") {
         throw new CommsCommandError("CONTACT_BLOCKED");
       }
-
-      if (lead.contactId) {
-        const contact = await transaction.crmContact.findFirst({
-          where: {
-            id: lead.contactId,
-            ownerOrganizationId: context.tenant.organizationId,
-            archivedAt: null,
-          },
-          select: { contactabilityState: true, consentState: true },
-        });
-        if (
-          contact &&
-          (["DO_NOT_CONTACT", "BLOCKED", "UNSUBSCRIBED"].includes(
-            contact.contactabilityState ?? "",
-          ) ||
-            ["REVOKED", "DENIED"].includes(contact.consentState ?? ""))
-        ) {
-          throw new CommsCommandError("CONTACT_BLOCKED");
-        }
-      }
+      contactId = contactId ?? lead.contactId;
     }
 
-    if (recipient.contactId) {
-      const contact = await transaction.crmContact.findFirst({
-        where: {
-          id: recipient.contactId,
-          ownerOrganizationId: context.tenant.organizationId,
-          archivedAt: null,
-        },
-        select: { contactabilityState: true, consentState: true },
-      });
-      if (!contact) throw new CommsCommandError("NOT_FOUND");
-      if (
-        ["DO_NOT_CONTACT", "BLOCKED", "UNSUBSCRIBED"].includes(
-          contact.contactabilityState ?? "",
-        ) ||
-        ["REVOKED", "DENIED"].includes(contact.consentState ?? "")
-      ) {
-        throw new CommsCommandError("CONTACT_BLOCKED");
-      }
+    if (!contactId) throw new CommsCommandError("CONTACT_BLOCKED");
+
+    const contact = await transaction.crmContact.findFirst({
+      where: {
+        id: contactId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: {
+        contactabilityState: true,
+        consentState: true,
+        emailNormalized: true,
+        phoneNormalized: true,
+      },
+    });
+    if (!contact) throw new CommsCommandError("NOT_FOUND");
+    if (
+      ["DO_NOT_CONTACT", "BLOCKED", "UNSUBSCRIBED"].includes(
+        contact.contactabilityState ?? "",
+      ) ||
+      ["REVOKED", "DENIED"].includes(contact.consentState ?? "")
+    ) {
+      throw new CommsCommandError("CONTACT_BLOCKED");
     }
+
+    const destination =
+      channel === "EMAIL"
+        ? contact.emailNormalized
+        : channel === "SMS" || channel === "PHONE"
+          ? contact.phoneNormalized
+          : null;
+    if (!destination) throw new CommsCommandError("CONTACT_BLOCKED");
+
+    const destinationHash = hashNormalizedDestination(channel, destination);
 
     const suppression = await transaction.crmSuppressionEntry.findFirst({
       where: {
@@ -725,6 +757,12 @@ export async function recordMessage(
     if (!body) throw new CommsCommandError("INVALID");
     if (internal && input.direction === "OUTBOUND") throw new CommsCommandError("INVALID");
 
+    const provider = input.provider?.trim() || null;
+    const externalId = input.externalId?.trim() || null;
+    if (input.direction === "OUTBOUND" && (!provider || !externalId)) {
+      throw new CommsCommandError("INVALID");
+    }
+
     const occurredAt = input.occurredAt ?? new Date();
     const message = await transaction.commsMessage.create({
       data: {
@@ -736,8 +774,8 @@ export async function recordMessage(
           ? context.membership.membershipId
           : null,
         bodyText: body,
-        provider: input.provider?.trim() || null,
-        externalId: input.externalId?.trim() || null,
+        provider,
+        externalId,
         sentAt: input.direction === "OUTBOUND" ? occurredAt : null,
         receivedAt: input.direction === "INBOUND" ? occurredAt : null,
         visibility: "INTERNAL",
