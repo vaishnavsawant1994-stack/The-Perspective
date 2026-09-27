@@ -14,7 +14,9 @@ export type {
   AuthorityResolutionIssue,
   AuthorityResolutionIssueCode,
   AuthorityResolutionResult,
+  AuthorizationCommandContext,
   AuthorizationDecision,
+  AuthorizationFieldPolicy,
   AuthorizationObligation,
   AuthorizationReasonCode,
   AuthorizationResourceContext,
@@ -39,3 +41,9 @@ export {
   type PersistedAuthorityState,
   type ResolveAuthorityInput,
 } from "./resolver";
+
+export {
+  evaluateAuthorization,
+  evaluateAuthorizationByKey,
+  type AuthorizationPolicyOptions,
+} from "./policy";
