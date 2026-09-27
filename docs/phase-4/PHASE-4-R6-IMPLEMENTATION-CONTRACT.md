@@ -83,7 +83,7 @@ P4-R6-G0 may not become frozen until:
 12. owner explicitly freezes/accepts P4-R6-G0;
 13. owner separately authorizes implementation.
 
-Until item 12: **production R6 implementation is prohibited**.
+Until item 13: **production R6 implementation is prohibited**.
 
 ## 4. Domain module ownership
 
@@ -233,6 +233,15 @@ Required candidate tables:
 - `comms.sending_accounts`
 - `comms.message_templates`
 - `comms.message_template_versions`
+
+Under owner-approved D15 Resolution A these tables are **read-only reference/catalog infrastructure during R6**:
+
+- no R6 runtime create/edit/version/archive/publish command exists;
+- `template.manage` remains `R6+` and dormant;
+- R6 may select only an already-approved immutable version;
+- any production baseline template/version must come from an explicitly reviewed immutable seed/import manifest included in the future implementation qualification, not from browser authority or a hidden admin path;
+- if no approved immutable template version exists, campaign/sequence readiness fails closed;
+- later template mutation requires its separately authorized owning release.
 - `comms.outreach_campaigns`
 - `comms.sequences`
 - `comms.sequence_steps`
