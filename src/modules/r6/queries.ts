@@ -30,7 +30,7 @@ function authorizedReadableFields(
     | "client.view",
   resource: AuthorizationResourceContext,
   requestedFields: readonly string[],
-  action: "list" | "discover" = "list",
+  action: "list" | "view" | "discover" = "list",
 ) {
   const decision = evaluateAuthorization(context, permissionKey, resource, {
     action,
@@ -61,6 +61,247 @@ function commonResource(input: {
     lifecycleState: input.lifecycleState,
     version: input.version,
   };
+}
+
+export async function getAuthorizedCompany(
+  context: AuthorizedRequestContext,
+  companyId: string,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const row = await database.crmCompany.findFirst({
+    where: {
+      id: companyId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      id: true,
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      name: true,
+      legalName: true,
+      domain: true,
+      website: true,
+      industry: true,
+      sizeBand: true,
+      revenueBand: true,
+      country: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return undefined;
+
+  const requestedFields = [
+    "id",
+    "resourceId",
+    "name",
+    "legalName",
+    "domain",
+    "website",
+    "industry",
+    "sizeBand",
+    "revenueBand",
+    "country",
+  ] as const;
+  const resource = commonResource({
+    resourceId: row.resourceId,
+    resourceType: "company",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility,
+    sensitivity: row.sensitivity,
+    lifecycleState: "ACTIVE",
+    version: row.rowVersion,
+  });
+  const readableFields = authorizedReadableFields(
+    context,
+    "company.view",
+    resource,
+    requestedFields,
+    "view",
+  );
+  if (!readableFields) return undefined;
+
+  return projectR6ReadableFields({
+    id: row.id,
+    resourceId: row.resourceId,
+    name: row.name,
+    legalName: row.legalName,
+    domain: row.domain,
+    website: row.website,
+    industry: row.industry,
+    sizeBand: row.sizeBand,
+    revenueBand: row.revenueBand,
+    country: row.country,
+  }, readableFields);
+}
+
+export async function getAuthorizedContact(
+  context: AuthorizedRequestContext,
+  contactId: string,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const row = await database.crmContact.findFirst({
+    where: {
+      id: contactId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      id: true,
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      companyId: true,
+      personId: true,
+      title: true,
+      relationshipState: true,
+      preferredChannel: true,
+      contactabilityState: true,
+      consentState: true,
+      emailOriginal: true,
+      emailNormalized: true,
+      phoneNormalized: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return undefined;
+
+  const requestedFields = [
+    "id",
+    "resourceId",
+    "companyId",
+    "personId",
+    "title",
+    "relationshipState",
+    "preferredChannel",
+    "contactabilityState",
+    "consentState",
+    "emailOriginal",
+    "emailNormalized",
+    "phoneNormalized",
+  ] as const;
+  const resource = commonResource({
+    resourceId: row.resourceId,
+    resourceType: "contact",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility,
+    sensitivity: row.sensitivity,
+    lifecycleState: "ACTIVE",
+    version: row.rowVersion,
+  });
+  const readableFields = authorizedReadableFields(
+    context,
+    "contact.view",
+    resource,
+    requestedFields,
+    "view",
+  );
+  if (!readableFields) return undefined;
+
+  return projectR6ReadableFields({
+    id: row.id,
+    resourceId: row.resourceId,
+    companyId: row.companyId,
+    personId: row.personId,
+    title: row.title,
+    relationshipState: row.relationshipState,
+    preferredChannel: row.preferredChannel,
+    contactabilityState: row.contactabilityState,
+    consentState: row.consentState,
+    emailOriginal: row.emailOriginal,
+    emailNormalized: row.emailNormalized,
+    phoneNormalized: row.phoneNormalized,
+  }, readableFields);
+}
+
+export async function getAuthorizedLead(
+  context: AuthorizedRequestContext,
+  leadId: string,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const row = await database.crmLead.findFirst({
+    where: {
+      id: leadId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      id: true,
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      companyId: true,
+      contactId: true,
+      leadSourceId: true,
+      lifecycleState: true,
+      fitScore: true,
+      qualificationState: true,
+      lastActivityAt: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return undefined;
+
+  const requestedFields = [
+    "id",
+    "resourceId",
+    "companyId",
+    "contactId",
+    "leadSourceId",
+    "lifecycleState",
+    "fitScore",
+    "qualificationState",
+    "lastActivityAt",
+    "ownerMembershipId",
+    "departmentId",
+  ] as const;
+  const resource = commonResource({
+    resourceId: row.resourceId,
+    resourceType: "lead",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility,
+    sensitivity: row.sensitivity,
+    lifecycleState: row.lifecycleState,
+    version: row.rowVersion,
+  });
+  const readableFields = authorizedReadableFields(
+    context,
+    "lead.view",
+    resource,
+    requestedFields,
+    "view",
+  );
+  if (!readableFields) return undefined;
+
+  return projectR6ReadableFields({
+    id: row.id,
+    resourceId: row.resourceId,
+    companyId: row.companyId,
+    contactId: row.contactId,
+    leadSourceId: row.leadSourceId,
+    lifecycleState: row.lifecycleState,
+    fitScore: row.fitScore?.toString() ?? null,
+    qualificationState: row.qualificationState,
+    lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
+    ownerMembershipId: row.ownerMembershipId,
+    departmentId: row.departmentId,
+  }, readableFields);
 }
 
 export async function listDiscoverableLeadSources(
