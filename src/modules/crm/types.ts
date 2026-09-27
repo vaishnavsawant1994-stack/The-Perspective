@@ -11,7 +11,7 @@ export const LEAD_LIFECYCLE_STATES = [
   "INTERESTED",
   "NURTURE",
   "DISQUALIFIED",
-  "DO_NOT_CONTACT",
+  "SUPPRESSED",
   "CONVERTED",
 ] as const;
 
