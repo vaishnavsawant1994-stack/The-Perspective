@@ -299,6 +299,8 @@ describe("R6 PostgreSQL persistence attacks", () => {
         "SELECT set_config('app.r6_template_import', '', true)",
       );
 
+      await client.query("SAVEPOINT r6_template_runtime_denial");
+
       await expect(
         client.query(
           "UPDATE comms.message_templates SET name = 'Runtime Edit' WHERE id = $1",
@@ -306,9 +308,8 @@ describe("R6 PostgreSQL persistence attacks", () => {
         ),
       ).rejects.toMatchObject({ code: "55000" });
 
-      await client.query(
-        "SELECT set_config('app.r6_template_import', 'on', true)",
-      );
+      await client.query("ROLLBACK TO SAVEPOINT r6_template_runtime_denial");
+
       const after = await client.query<{ name: string }>(
         "SELECT name FROM comms.message_templates WHERE id = $1",
         [templateId],
