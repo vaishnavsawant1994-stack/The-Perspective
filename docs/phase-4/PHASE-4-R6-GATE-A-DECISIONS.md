@@ -3,14 +3,14 @@
 **Record:** P4-R6-GOV-01  
 **Date:** September 27, 2026  
 **Planning baseline:** `main@2372418d80fa07f633a0e4adc99a21b1f7d8300a`  
-**Status:** GATE-A CANDIDATE — OWNER APPROVAL NOT YET RECORDED  
+**Status:** GATE-A OWNER-APPROVED — G0 CONTRACT COMPLETION AUTHORIZED  
 **R6 implementation:** NOT AUTHORIZED
 
 This document isolates decisions that must not be hidden inside implementation code.
 
 ## D01 — Proposal release ownership
 
-**Status:** OPEN — BLOCKS P4-R6-G0 FREEZE
+**Status:** APPROVED — RESOLUTION A
 
 Retained sources conflict:
 
@@ -44,7 +44,7 @@ No implementation may infer B from UI existence.
 
 ## D02 — Deal lifecycle stage ceiling
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 R6 persists the canonical deal state vocabulary but only authorizes transitions whose required evidence belongs to accepted stages.
 
@@ -65,7 +65,7 @@ R6 must never manufacture contract/payment evidence to reach WON.
 
 ## D03 — Client conversion semantics
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 R6 owns idempotent lead/deal → client-account conversion because the Master Bible explicitly assigns client-account conversion to R6.
 
@@ -84,7 +84,7 @@ Portal membership/provisioning may be prepared only through accepted R3/R4/R5 id
 
 ## D04 — Existing UI responsibility
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 R6 must preserve the existing 151-screen design responsibility.
 
@@ -98,7 +98,7 @@ Hard-coded demonstration routes may remain only as controlled aliases/test fixtu
 
 ## D05 — Module architecture
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 Use accepted `src/modules` architecture.
 
@@ -112,7 +112,7 @@ Do not introduce a competing `src/server/domains` architecture from older illust
 
 ## D06 — Database schemas
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 Extend the existing PostgreSQL/Prisma datasource with logical schemas:
 
@@ -128,7 +128,7 @@ Every tenant-scoped aggregate uses explicit organization ownership and the accep
 
 ## D07 — Campaign approval / launch authority
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 Campaign drafting/configuration uses `campaign.manage` / `outreach.prepare`.
 
@@ -148,7 +148,7 @@ Editing protected launch inputs invalidates prior launch approval.
 
 ## D08 — Provider integrations
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 R6 owns provider-neutral business contracts and outbox dispatch boundaries for extraction, enrichment, sending and message ingestion.
 
@@ -160,7 +160,7 @@ A missing provider configuration must fail closed rather than simulate success.
 
 ## D09 — Extraction / enrichment source safety
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 Lead discovery/extraction may operate only on permitted public sources or explicitly authorized connected sources.
 
@@ -177,7 +177,7 @@ Required controls:
 
 ## D10 — R5 stage activation
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 The R5 default active stage remains `R5` during planning.
 
@@ -189,7 +189,7 @@ R7+ activation remains absent.
 
 ## D11 — R7 boundary
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 Regardless of D01, R6 must not implement:
 
@@ -204,7 +204,7 @@ Products/packages also remain R7 under the current Master Bible release table un
 
 ## D12 — Search/analytics/renewal boundary
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 R6 may emit events/read models needed later, but must not absorb:
 
@@ -215,7 +215,7 @@ R6 may emit events/read models needed later, but must not absorb:
 
 ## D13 — Client Portal boundary
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 R6 may establish canonical client account/contact/access relationships required by conversion.
 
@@ -225,7 +225,7 @@ Client-facing screens remain projections governed by their owning later release 
 
 ## D14 — Acceptance semantics
 
-**Candidate:** APPROVE
+**Status:** APPROVED
 
 Completing R6 planning, Gate A, enhanced qualification, or a G0 candidate does not authorize implementation.
 
@@ -240,7 +240,7 @@ Required controls remain:
 
 ## D15 — Email-template permission stage ownership
 
-**Status:** OPEN — BLOCKS P4-R6-G0 FREEZE
+**Status:** APPROVED — RESOLUTION A
 
 Frozen operational screen 27 (`/app/outreach/templates`) belongs to the R6 outreach responsibility and expects template create/edit/version behavior.
 
@@ -270,11 +270,62 @@ If B is selected, the implementation must update the accepted permission metadat
 
 No implementation may silently relabel or bypass the stage.
 
+## Gate-A owner approval
+
+The owner explicitly approved D01–D15.
+
+### D01 approved resolution
+
+Resolution A is authoritative:
+
+- strict Master Completion Bible release-table precedence;
+- proposal persistence, versioning, sending and acceptance remain R7-owned;
+- proposal production behavior remains dormant during R6;
+- R6 deal progression is capped at `PROPOSAL_PREPARATION`;
+- R6 must not manufacture product/package, proposal, contract, invoice or payment truth.
+
+### D15 approved resolution
+
+Resolution A is authoritative:
+
+- `template.manage` remains activation stage `R6+`;
+- it remains dormant during R6;
+- R6 may reference/select already-approved immutable template versions where required;
+- R6 may not create/edit/version templates through `template.manage`;
+- implementation may not relabel or implicitly activate `R6+`.
+
+### D02–D14
+
+Approved exactly as recorded in this document.
+
+### Scope of approval
+
+The approval authorizes only:
+
+- completion of P4-R6-G0 contracts;
+- trusted ResourceContext and field-policy definition;
+- RLS/table inventory;
+- lifecycle/guard mapping;
+- mapping of all 120 threats to executable qualification;
+- machine-verifiable R7+ exclusions;
+- adversarial contract review;
+- enhanced exact-head G0 qualification.
+
+It does not authorize R6 production implementation.
+
+R7+, Design 154 and V1.0 production certification remain locked.
+
 ## Gate-A completion condition
 
-Gate A is not complete until both open scope decisions are explicitly resolved:
+Gate A is complete.
 
-1. D01 — Proposal release ownership;
-2. D15 — Email-template permission stage ownership.
+The next control sequence is:
 
-D02–D14 remain candidate decisions pending owner approval together with D01/D15.
+1. complete the remaining G0 companion contracts;
+2. adversarially review/falsify the planning package;
+3. close all BLOCKING/HIGH contract findings;
+4. run exact-head enhanced G0 qualification;
+5. classify one exact SHA as P4-R6-G0 READY FOR OWNER FREEZE;
+6. obtain separate owner freeze/acceptance;
+7. obtain separate R6 implementation authorization.
+
