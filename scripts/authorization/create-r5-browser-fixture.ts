@@ -4,17 +4,21 @@ import { writeFile } from "node:fs/promises";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   AccountState,
-  AuthSurface,
+  AuthenticationSecretKind,
   IdentityProvider,
   MembershipStatus,
   MembershipType,
+  MfaMethodType,
   OrganizationType,
   PermissionEffect,
   PrismaClient,
   RecordStatus,
   RoleScope,
 } from "../../src/generated/prisma/client";
-import { hashOpaqueToken } from "../../src/modules/authentication/crypto/tokens";
+import { hashPassword } from "../../src/modules/authentication/crypto/password";
+import { sealSecret } from "../../src/modules/authentication/crypto/sealed-secret";
+import { createTotpSeed } from "../../src/modules/authentication/crypto/totp";
+import { hashSensitiveSignal } from "../../src/modules/authentication/crypto/tokens";
 
 async function main() {
   if (process.env.PERSPECTIVE_ALLOW_AUTH_FIXTURE !== "true") {
@@ -22,14 +26,27 @@ async function main() {
   }
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
 
-  const r01Token = process.env.PERSPECTIVE_R5_BROWSER_R01_TOKEN;
-  const r02Token = process.env.PERSPECTIVE_R5_BROWSER_R02_TOKEN;
+  const r01Email = process.env.PERSPECTIVE_R5_BROWSER_R01_EMAIL;
+  const r01Password = process.env.PERSPECTIVE_R5_BROWSER_R01_PASSWORD;
+  const r02Email = process.env.PERSPECTIVE_R5_BROWSER_R02_EMAIL;
+  const r02Password = process.env.PERSPECTIVE_R5_BROWSER_R02_PASSWORD;
   const outputFile =
     process.env.PERSPECTIVE_R5_BROWSER_FIXTURE_FILE ??
     "/tmp/r5-browser-fixture.json";
-  if (!r01Token || !r02Token) {
-    throw new Error("R5 browser session tokens are required.");
+  const dataKeyValue = process.env.PERSPECTIVE_AUTH_DATA_KEY;
+  const keyVersion = Number(process.env.PERSPECTIVE_AUTH_KEY_VERSION ?? "0");
+  if (
+    !r01Email ||
+    !r01Password ||
+    !r02Email ||
+    !r02Password ||
+    !dataKeyValue ||
+    !Number.isInteger(keyVersion) ||
+    keyVersion <= 0
+  ) {
+    throw new Error("R5 browser credentials and authentication key material are required.");
   }
+  const dataKey = Buffer.from(dataKeyValue, "base64");
 
   const database = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -55,49 +72,90 @@ async function main() {
   async function userWithMembership(input: {
     organizationId: string;
     email: string;
+    password: string;
     displayName: string;
   }) {
     const personId = randomUUID();
     const userAccountId = randomUUID();
+    const identityId = randomUUID();
+    const credentialId = randomUUID();
     const membershipId = randomUUID();
+    const secretId = randomUUID();
+    const mfaMethodId = randomUUID();
+    const totpSeed = createTotpSeed();
+    const sealed = sealSecret(
+      totpSeed,
+      dataKey,
+      keyVersion,
+      `totp:${secretId}:${userAccountId}`,
+    );
 
-    await database.person.create({
-      data: {
-        id: personId,
-        displayName: input.displayName,
-        emailOriginal: input.email,
-        emailNormalized: input.email,
-      },
-    });
-    await database.userAccount.create({
-      data: {
-        id: userAccountId,
-        personId,
-        accountState: AccountState.ACTIVE,
-        emailVerifiedAt: now,
-      },
-    });
-    await database.userIdentity.create({
-      data: {
-        id: randomUUID(),
-        userAccountId,
-        provider: IdentityProvider.PASSWORD,
-        providerSubject: input.email,
-      },
-    });
-    const membership = await database.organizationMembership.create({
-      data: {
-        id: membershipId,
-        organizationId: input.organizationId,
-        userAccountId,
-        membershipType: MembershipType.STAFF,
-        status: MembershipStatus.ACTIVE,
-        joinedAt: now,
-      },
-      select: { id: true, updatedAt: true },
+    const membership = await database.$transaction(async (transaction) => {
+      await transaction.person.create({
+        data: {
+          id: personId,
+          displayName: input.displayName,
+          emailOriginal: input.email,
+          emailNormalized: input.email,
+        },
+      });
+      await transaction.userAccount.create({
+        data: {
+          id: userAccountId,
+          personId,
+          accountState: AccountState.ACTIVE,
+          emailVerifiedAt: now,
+        },
+      });
+      await transaction.userIdentity.create({
+        data: {
+          id: identityId,
+          userAccountId,
+          provider: IdentityProvider.PASSWORD,
+          providerSubject: input.email,
+          credentialReference: credentialId,
+        },
+      });
+      await transaction.passwordCredential.create({
+        data: {
+          id: credentialId,
+          userIdentityId: identityId,
+          passwordHash: await hashPassword(input.password),
+          version: 1,
+        },
+      });
+      await transaction.authenticationSecret.create({
+        data: {
+          id: secretId,
+          userAccountId,
+          secretKind: AuthenticationSecretKind.TOTP_SEED,
+          ...sealed,
+        },
+      });
+      await transaction.mfaMethod.create({
+        data: {
+          id: mfaMethodId,
+          userAccountId,
+          methodType: MfaMethodType.TOTP,
+          secretReference: secretId,
+          keyFingerprint: hashSensitiveSignal(totpSeed, dataKey),
+          verifiedAt: now,
+        },
+      });
+      return transaction.organizationMembership.create({
+        data: {
+          id: membershipId,
+          organizationId: input.organizationId,
+          userAccountId,
+          membershipType: MembershipType.STAFF,
+          status: MembershipStatus.ACTIVE,
+          joinedAt: now,
+        },
+        select: { id: true, updatedAt: true },
+      });
     });
 
-    return { userAccountId, membership };
+    return { userAccountId, membership, totpSeed };
   }
 
   async function launchRole(
@@ -167,12 +225,14 @@ async function main() {
 
     const r01User = await userWithMembership({
       organizationId: platform.id,
-      email: `r5-r01-${randomUUID()}@example.test`,
+      email: r01Email,
+      password: r01Password,
       displayName: "R5 Browser R01",
     });
     const r02User = await userWithMembership({
       organizationId: platform.id,
-      email: `r5-r02-${randomUUID()}@example.test`,
+      email: r02Email,
+      password: r02Password,
       displayName: "R5 Browser R02",
     });
     const targetUser = await userWithMembership({
@@ -208,27 +268,14 @@ async function main() {
       },
     });
 
-    for (const [token, actor] of [
-      [r01Token, r01User],
-      [r02Token, r02User],
-    ] as const) {
-      await database.session.create({
-        data: {
-          id: randomUUID(),
-          userAccountId: actor.userAccountId,
-          activeMembershipId: actor.membership.id,
-          tokenHash: hashOpaqueToken(token),
-          surface: AuthSurface.TEAM,
-          authenticationMethod: "password+totp",
-          mfaVerifiedAt: now,
-          issuedAt: now,
-          expiresAt: new Date(now.getTime() + 2 * 60 * 60_000),
-        },
-      });
-    }
-
     const output = {
       platformOrganizationId: platform.id,
+      r01Email,
+      r01Password,
+      r01TotpSeed: r01User.totpSeed,
+      r02Email,
+      r02Password,
+      r02TotpSeed: r02User.totpSeed,
       r01MembershipId: r01User.membership.id,
       r01MembershipUpdatedAt: r01User.membership.updatedAt.toISOString(),
       r02MembershipId: r02User.membership.id,
