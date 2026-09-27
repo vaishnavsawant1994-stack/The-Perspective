@@ -291,9 +291,10 @@ function unmetObligationReason(
 function fieldPolicyAllows(
   command: AuthorizationCommandContext,
 ) {
+  if (!command.fieldPolicy) return false;
+
   const requestedFields = command.requestedFields ?? [];
   if (requestedFields.length === 0) return true;
-  if (!command.fieldPolicy) return false;
 
   const allowedFields = READ_ACTIONS.has(command.action)
     ? command.fieldPolicy.readableFields
