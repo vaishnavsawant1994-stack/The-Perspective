@@ -18,10 +18,11 @@ Status: **R1–R5 accepted; R5 implementation merged; R6 remains separately lock
 - [R5 Checkpoint](./PHASE-4-R5-CHECKPOINT.md)
 
 - Frozen baseline: Designs 001–153
-- Current checkpoint: **P4-R5-C1 — owner-accepted**
+- Current checkpoint: **P4-R5-C1 — ACCEPTED + MERGED**
 - Frozen R5 contract: `2914e76b22468137630a4d444adb5431209fb5aa`
 - Accepted R5 implementation: `8823c63c1a03281d91d5085bba07206186380f6c`
 - R5 implementation merge on main: `748f6af4ce4c9868c2441125cd0480cf8abc34d4`
+- R5 closure-documentation merge on main: `6add999609736e788d9bdaf8ddc690445f6d36e7`
 - R2: accepted authoritative persistence baseline
 - R3: accepted authentication/session/MFA boundary with automated + Chromium qualification
 - R4: accepted organization-context selection and PostgreSQL tenant isolation
@@ -36,6 +37,6 @@ P4-R1-C1 through P4-R5-C1 are accepted.
 
 R5 preserves the R3 authenticated-identity boundary and R4 tenant boundary, then adds current-database authorization resolution, complete same-grant paths, explicit DENY precedence, scope/resource/action/constraint enforcement, field and Client-safe projection policy, protected role administration controls, transactional authority revalidation, immutable/redacted authorization evidence, and dormant future-stage permission vocabulary.
 
-The accepted R5 implementation was merged with a merge commit so exact accepted SHA `8823c63c1a03281d91d5085bba07206186380f6c` remains a direct parent of `main@748f6af4ce4c9868c2441125cd0480cf8abc34d4`.
+The accepted R5 implementation was merged with a merge commit so exact accepted SHA `8823c63c1a03281d91d5085bba07206186380f6c` remains a direct parent of `748f6af4ce4c9868c2441125cd0480cf8abc34d4`. The permanent R5 closure records were then merged documentation-only at `6add999609736e788d9bdaf8ddc690445f6d36e7`.
 
 R6 must be authorized separately after final R5 merged-state closure. This README does not authorize R6, Design 154, or V1.0 production certification.
