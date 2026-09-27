@@ -27,7 +27,7 @@ const requiredDocs = [
   "docs/phase-4/PHASE-4-R6-LIFECYCLE-GUARD-MATRIX.md",
   "docs/phase-4/PHASE-4-R6-THREAT-QUALIFICATION-MATRIX.md",
   "docs/phase-4/PHASE-4-R6-R7-EXCLUSION-MANIFEST.md",
-  "docs/phase-4/PHASE-4-R6-CONTRACT-ADVERSARIAL-AUDIT.md",
+  "docs/phase-4/PHASE-4-R6-G0-ADVERSARIAL-AUDIT.md",
   "docs/phase-4/PHASE-4-R6-IMPLEMENTATION-CONTRACT.md",
 ];
 
@@ -191,9 +191,9 @@ for (const marker of [
 }
 
 // Adversarial audit must close planning findings without claiming external review.
-assert(adversarialText.includes("Independent external review: NOT PERFORMED"), "Adversarial audit must not imply independent review");
-assert(adversarialText.includes("BLOCKING/HIGH findings remaining: NONE OPEN"), "Adversarial audit has unresolved BLOCKING/HIGH findings");
-assert(adversarialText.includes("production implementation: NOT AUTHORIZED"), "Adversarial audit unlocks production implementation");
+assert(adversarialText.includes("not independent external review"), "Adversarial audit must not imply independent review");
+assert(adversarialText.includes("BLOCKING G0 contract findings open: 0") && adversarialText.includes("HIGH G0 contract findings open: 0"), "Adversarial audit has unresolved BLOCKING/HIGH findings");
+assert(adversarialText.includes("R6 implementation: NOT AUTHORIZED"), "Adversarial audit unlocks production implementation");
 
 // Planning must not modify production schema/code.
 const schemaText = read("prisma/schema.prisma");
