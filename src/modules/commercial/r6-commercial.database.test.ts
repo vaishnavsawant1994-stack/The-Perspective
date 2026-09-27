@@ -408,6 +408,73 @@ describe("R6 commercial deal falsification", () => {
     expect(row.ownerOrganizationId).toBe(primaryOrganizationId);
   });
 
+  it.each(["CONTACTED", "REPLIED"])(
+    "rejects lead conversion from non-contract state %s with zero residue",
+    async (state) => {
+      const company = mustDomainOk(
+        await createCompany(
+          platform,
+          { name: "COMMERCIAL invalid conversion " + state + " " + crypto.randomUUID() },
+          database,
+        ),
+      );
+      const lead = mustDomainOk(
+        await createLead(
+          platform,
+          {
+            companyId: company.id,
+            sourceRecordKey: "commercial-invalid-" + state + "-" + crypto.randomUUID(),
+          },
+          database,
+        ),
+      );
+      await database.crmLead.update({
+        where: { id: lead.id },
+        data: { lifecycleState: state },
+      });
+
+      const beforeResources = await resourceCount(primaryOrganizationId, "deal");
+      const beforeHistory = await count(
+        `SELECT count(*)::bigint AS count
+           FROM crm.lead_status_history
+          WHERE lead_id = $1::uuid
+            AND to_state = 'CONVERTED'`,
+        lead.id,
+      );
+
+      const result = await createDeal(
+        platform,
+        {
+          pipelineId: fixture.ownPipelineId,
+          sourceLeadId: lead.id,
+        },
+        database,
+      );
+
+      expect(result).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
+      expect(await resourceCount(primaryOrganizationId, "deal")).toBe(
+        beforeResources,
+      );
+      expect(
+        await count(
+          `SELECT count(*)::bigint AS count
+             FROM commercial.deals
+            WHERE source_lead_id = $1::uuid`,
+          lead.id,
+        ),
+      ).toBe(0);
+      expect(
+        await count(
+          `SELECT count(*)::bigint AS count
+             FROM crm.lead_status_history
+            WHERE lead_id = $1::uuid
+              AND to_state = 'CONVERTED'`,
+          lead.id,
+        ),
+      ).toBe(beforeHistory);
+    },
+  );
+
   it("converts one qualified lead to one canonical deal idempotently", async () => {
     const company = mustDomainOk(
       await createCompany(platform, { name: "COMMERCIAL idempotent company" }, database),
