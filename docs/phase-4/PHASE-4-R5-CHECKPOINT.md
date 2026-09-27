@@ -4,7 +4,7 @@
 
 **Checkpoint:** P4-R5-C1  
 **Date:** September 27, 2026  
-**Status:** OWNER-ACCEPTED — IMPLEMENTATION MERGED — CLOSURE DOCS PENDING  
+**Status:** ACCEPTED — MERGED  
 **Frozen substantive contract:** `2914e76b22468137630a4d444adb5431209fb5aa`  
 **Accepted implementation SHA:** `8823c63c1a03281d91d5085bba07206186380f6c`  
 **Historical pre-falsification checkpoint:** `ccfdf61897106661439f2bee4626f8d065e718f3`  
@@ -13,7 +13,7 @@
 **Independent-review requirement:** OWNER-WAIVED under GOV-REVIEW-01  
 **Replacement control:** ENHANCED QUALIFICATION  
 **Owner acceptance:** EXPLICITLY GRANTED  
-**Merge authorization:** EXECUTED FOR R5 IMPLEMENTATION  
+**Merge status:** COMPLETE  
 **R6+:** NOT AUTHORIZED  
 **Design 154:** NOT AUTHORIZED  
 **V1.0 production certification:** NOT AUTHORIZED
@@ -184,35 +184,58 @@ PR #6 prospective-merge qualification completed successfully for all applicable 
 
 `R5 Contract Enhanced Qualification #7` also triggered on PR #6 but is non-applicable to an implementation PR. Its log failed because the contract verifier intentionally rejects implementation files as out-of-scope for a contract-only branch. The frozen contract had already completed its own exact-head contract qualification before implementation authorization.
 
-Closure/evidence documents are being integrated separately as documentation-only changes. R6 remains locked until the final merged R5 handoff is recorded and separately authorized.
+Closure/evidence documents were integrated as documentation-only changes by PR #7 at `6add999609736e788d9bdaf8ddc690445f6d36e7`. R6 remains locked and requires a separate owner authorization.
 
-## 8A. Controlled implementation merge result
+## 8A. Final merged-state verification
 
-The owner has authorized a controlled merge of exact implementation SHA `8823c63c1a03281d91d5085bba07206186380f6c`.
+The R5 implementation and closure records are fully integrated.
 
-Required merge discipline:
+### Implementation merge
 
-1. the implementation PR head must resolve exactly to the accepted SHA;
-2. merge must preserve the accepted SHA in repository history;
-3. the closure/evidence documents may be integrated separately as documentation-only changes;
-4. the resulting main merge SHA must be recorded;
-5. required post-merge checks must be inspected;
-6. this checkpoint must be updated to record the final merged state;
-7. R6 remains locked until a separate owner authorization after verified R5 merge closure.
+- PR: #6
+- accepted implementation parent: `8823c63c1a03281d91d5085bba07206186380f6c`
+- merge SHA: `748f6af4ce4c9868c2441125cd0480cf8abc34d4`
+- merge parents:
+  - `1d4e387a9f9a6d43274bd0b05e175f49b8bf0718`
+  - `8823c63c1a03281d91d5085bba07206186380f6c`
+
+### Closure-documentation merge
+
+- PR: #7
+- closure head: `cb828b8bdbbc33611526b314693dbf9f0596bfe3`
+- merge SHA: `6add999609736e788d9bdaf8ddc690445f6d36e7`
+- prospective merge SHA tested by PR checks: `138aec9ee3237359fd4b1c9cfa011e0a51f357b9`
+- prospective and actual merge tree: `26654067bbdd0c38747b0836215dfcfb16c14ffc`
+- tree comparison: EXACT MATCH
+
+Applicable PR #7 prospective-merge checks all succeeded:
+
+- R5 Implementation Qualification #106 — SUCCESS;
+- R5 Browser Qualification #35 — SUCCESS;
+- R4 Tenancy Qualification #41 — SUCCESS;
+- R4 Browser Qualification #69 — SUCCESS;
+- R3 Review Qualification #70 — SUCCESS;
+- R3 Browser Qualification #71 — SUCCESS.
+
+`R5 Contract Enhanced Qualification #8` was non-applicable to this closure/status PR and failed only because `docs/phase-4/README.md` is outside the contract-only branch allowlist.
+
+The actual closure merge has the same Git tree and same parents as the prospective merge tested by those applicable checks.
 
 ## 9. Current disposition
 
-At creation of this permanent acceptance record:
+Final authoritative R5 disposition:
 
 ~~~text
 P4-R5-G0: FROZEN
-P4-R5-C1: OWNER-ACCEPTED
+P4-R5-C1: ACCEPTED + MERGED
 accepted implementation: 8823c63c1a03281d91d5085bba07206186380f6c
 Q01-Q07: CLOSED
 exact-head qualification: 4/4 SUCCESS
+applicable prospective-merge qualification: 6/6 SUCCESS
 blocking/high R5 findings: NONE OPEN
-controlled R5 implementation merge: COMPLETE at 748f6af4ce4c9868c2441125cd0480cf8abc34d4
-closure/evidence documentation merge: PENDING
+implementation merge: COMPLETE at 748f6af4ce4c9868c2441125cd0480cf8abc34d4
+closure/evidence documentation merge: COMPLETE at 6add999609736e788d9bdaf8ddc690445f6d36e7
+merged-result tree verification: EXACT MATCH
 R6+: LOCKED
 Design 154: LOCKED
 V1.0 production certification: NOT AUTHORIZED
