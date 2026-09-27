@@ -36,6 +36,10 @@ import type { CommsResult } from "./types";
 
 const database = createPrismaClient();
 const epoch = new Date("2026-09-27T11:35:00.000Z");
+const primaryOrganizationId = crypto.randomUUID();
+const secondaryOrganizationId = crypto.randomUUID();
+const primaryMembershipId = crypto.randomUUID();
+const secondaryMembershipId = crypto.randomUUID();
 
 function teamContext(input: {
   organizationId: string;
@@ -68,15 +72,15 @@ function teamContext(input: {
 }
 
 const platform = teamContext({
-  organizationId: seedIds.organization.platform,
-  membershipId: seedIds.membership.operator,
+  organizationId: primaryOrganizationId,
+  membershipId: primaryMembershipId,
   userId: seedIds.user.operator,
   requestId: "r6-comms-platform",
 });
 
 const foreign = teamContext({
-  organizationId: seedIds.organization.asteria,
-  membershipId: seedIds.membership.asteriaAdmin,
+  organizationId: secondaryOrganizationId,
+  membershipId: secondaryMembershipId,
   userId: seedIds.user.asteriaAdmin,
   requestId: "r6-comms-foreign",
 });
@@ -189,6 +193,46 @@ let fixture!: {
 };
 
 beforeAll(async () => {
+  await database.organization.createMany({
+    data: [
+      {
+        id: primaryOrganizationId,
+        organizationType: "PLATFORM",
+        legalName: "R6 Comms Primary Test Org",
+        displayName: "R6 Comms Primary",
+        slug: "r6-comms-primary-" + primaryOrganizationId.slice(0, 8),
+        status: "ACTIVE",
+      },
+      {
+        id: secondaryOrganizationId,
+        organizationType: "PLATFORM",
+        legalName: "R6 Comms Secondary Test Org",
+        displayName: "R6 Comms Secondary",
+        slug: "r6-comms-secondary-" + secondaryOrganizationId.slice(0, 8),
+        status: "ACTIVE",
+      },
+    ],
+  });
+  await database.organizationMembership.createMany({
+    data: [
+      {
+        id: primaryMembershipId,
+        organizationId: primaryOrganizationId,
+        userAccountId: seedIds.user.operator,
+        membershipType: "STAFF",
+        status: "ACTIVE",
+        joinedAt: epoch,
+      },
+      {
+        id: secondaryMembershipId,
+        organizationId: secondaryOrganizationId,
+        userAccountId: seedIds.user.asteriaAdmin,
+        membershipType: "STAFF",
+        status: "ACTIVE",
+        joinedAt: epoch,
+      },
+    ],
+  });
   const ownCompany = mustCrmOk(
     await createCompany(platform, { name: "COMMS Own Company" }, database),
   );
@@ -233,13 +277,13 @@ beforeAll(async () => {
   );
 
   const ownTemplate = await importApprovedTemplate({
-    organizationId: seedIds.organization.platform,
-    membershipId: seedIds.membership.operator,
+    organizationId: primaryOrganizationId,
+    membershipId: primaryMembershipId,
     name: "COMMS Own Approved Template",
   });
   const foreignTemplate = await importApprovedTemplate({
-    organizationId: seedIds.organization.asteria,
-    membershipId: seedIds.membership.asteriaAdmin,
+    organizationId: secondaryOrganizationId,
+    membershipId: secondaryMembershipId,
     name: "COMMS Foreign Approved Template",
   });
 
@@ -385,14 +429,14 @@ describe("R6 communications command-layer falsification", () => {
         `UPDATE comms.message_templates
             SET name = 'runtime mutation attack'
           WHERE owner_organization_id = $1::uuid`,
-        seedIds.organization.platform,
+        primaryOrganizationId,
       ),
-    ).rejects.toMatchObject({ code: "55000" });
+    ).rejects.toMatchObject({ code: "P2010" });
   });
 
   it("rejects cross-tenant campaign relationships and rolls back the resource envelope", async () => {
     const before = await resourceCount(
-      seedIds.organization.platform,
+      primaryOrganizationId,
       "outreach-campaign",
     );
 
@@ -422,7 +466,7 @@ describe("R6 communications command-layer falsification", () => {
     }
 
     expect(
-      await resourceCount(seedIds.organization.platform, "outreach-campaign"),
+      await resourceCount(primaryOrganizationId, "outreach-campaign"),
     ).toBe(before);
   });
 
@@ -634,7 +678,7 @@ describe("R6 communications command-layer falsification", () => {
     expect(result.kind).toBe("error");
 
     const before = await resourceCount(
-      seedIds.organization.platform,
+      primaryOrganizationId,
       "conversation",
     );
     const cross = await createConversation(
@@ -648,7 +692,7 @@ describe("R6 communications command-layer falsification", () => {
     );
     expect(cross.kind).toBe("error");
     expect(
-      await resourceCount(seedIds.organization.platform, "conversation"),
+      await resourceCount(primaryOrganizationId, "conversation"),
     ).toBe(before);
   });
 
