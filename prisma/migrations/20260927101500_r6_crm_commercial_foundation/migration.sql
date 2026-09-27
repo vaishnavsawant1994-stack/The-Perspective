@@ -1959,7 +1959,7 @@ CREATE OR REPLACE FUNCTION "platform"."complete_r6_client_conversion"(
   p_request_hash text,
   p_response_hash text
 )
-RETURNS void
+RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, platform
@@ -1986,8 +1986,10 @@ BEGIN
     RAISE EXCEPTION 'R6 client conversion idempotency completion mismatch'
       USING ERRCODE = '23514';
   END IF;
+
+  RETURN 'COMPLETED';
 END
-$$;
+$;
 
 CREATE OR REPLACE FUNCTION "platform"."resolve_r6_client_organization"(
   p_company_id uuid,
