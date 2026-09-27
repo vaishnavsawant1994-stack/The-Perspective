@@ -57,10 +57,10 @@ Actions outside the declared family fail closed.
 | `client.contact.manage` | client-account / client-relationship | create, update, remove, set-primary | cannot grant IAM/client capability by itself |
 | `client.portal.manage` | client-account / portal-access | update-access, suspend-access, revoke-access | identity/tenant provisioning remains R3/R4/R5 controlled |
 | `client.portal.provision` | client-account / portal-access | invite, provision, reissue | audit required; no automatic admin capability |
-| `proposal.view` | proposal | read, view, list | CONDITIONAL on Gate-A D01 |
-| `proposal.edit` | proposal | create, update, create-revision, withdraw | CONDITIONAL on D01; sent/accepted version immutable |
-| `proposal.send` | proposal | send, resend | CONDITIONAL on D01; exact-version + audit |
-| `proposal.approve` | proposal | approve, reject | CONDITIONAL on D01; exact-version + SoD + audit |
+| `proposal.view` | R7 proposal (inactive) | **NONE IN R6** | DORMANT under approved D01; behavioral tests deferred to R7 |
+| `proposal.edit` | R7 proposal (inactive) | **NONE IN R6** | DORMANT under approved D01 |
+| `proposal.send` | R7 proposal (inactive) | **NONE IN R6** | DORMANT under approved D01 |
+| `proposal.approve` | R7 proposal (inactive) | **NONE IN R6** | DORMANT under approved D01 |
 
 ## 2. Explicitly forbidden laundering
 
@@ -117,14 +117,14 @@ not `R6`.
 Because stage activation uses exact stage strings, `R6+` does not become active merely by activating `R6`.
 
 **Classification:** governance/registry-stage mismatch; no current vulnerability.  
-**Gate impact:** BLOCKS final P4-R6-G0 freeze until resolved.
+**Gate impact:** CLOSED — owner-approved D15 Resolution A; `template.manage` remains dormant at `R6+`.
 
-Candidate choices:
+Owner-approved resolution:
 
-A. keep `template.manage` dormant; R6 template screen is read-only/readiness and sequence creation uses only already-approved templates; later release owns template mutation; or  
-B. explicit owner amendment changes `template.manage` activation ownership to R6 and qualification re-proves R5/R6 stage dormancy.
-
-No implementation may silently relabel the activation stage.
+- keep `template.manage` dormant at `R6+`;
+- R6 may read/select already-approved immutable template versions;
+- R6 cannot create/edit/version/archive templates through `template.manage`;
+- no implementation may silently relabel or activate `R6+` as R6.
 
 ## 5. Calendar note
 
@@ -156,15 +156,16 @@ R6 activation must therefore require both:
 
 Stage metadata alone is insufficient after an owner-approved scope narrowing.
 
-Owner resolution remains required.
+Owner resolution is complete through Gate-A D01 Resolution A.
 
 ## 7. G0 completion condition
 
 Before freeze:
 
-- every R6 permission above has exact action tests planned;
-- D01 proposal ownership resolved;
-- G02 template stage ownership resolved;
+- every active 37-key R6 permission has exact action tests planned;
+- the four proposal keys have explicit R7-deferred/dormant tests;
+- D01 proposal ownership is resolved;
+- G02/D15 template stage ownership is resolved;
 - resource and field policies frozen;
 - negative tests prove action laundering fails;
 - R7+ and R6+ permissions remain dormant unless explicitly owned.
