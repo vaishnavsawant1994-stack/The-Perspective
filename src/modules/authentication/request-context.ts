@@ -27,6 +27,7 @@ export async function resolveAuthenticationRequestContext(
       issuedAt: verified.issuedAt,
       expiresAt: verified.expiresAt,
       authenticationMethod: verified.authenticationMethod,
+      mfaVerifiedAt: verified.mfaVerifiedAt,
     },
   };
 
