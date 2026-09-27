@@ -78,3 +78,17 @@ export function canMoveDeal(
 export function isR6ClientConversionStage(stage: R6DealStageClass) {
   return stage === "PROPOSAL_PREPARATION";
 }
+
+
+/**
+ * Frozen P4-R6-G0 lead→deal conversion edge.
+ * CONTACTED and REPLIED are evidence/outreach states, not deal-conversion authority.
+ */
+export const R6_LEAD_TO_DEAL_CONVERSION_STATES = [
+  "QUALIFIED",
+  "INTERESTED",
+] as const;
+
+export function isR6LeadToDealConversionState(value: string) {
+  return (R6_LEAD_TO_DEAL_CONVERSION_STATES as readonly string[]).includes(value);
+}

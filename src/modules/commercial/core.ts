@@ -6,6 +6,7 @@ import { getPrismaClient } from "@/modules/persistence/client";
 import {
   canMoveDeal,
   isR6DealStageClass,
+  isR6LeadToDealConversionState,
   requiresDealMoveReason,
   R6_DEAL_MAIN_PATH,
 } from "./lifecycle";
@@ -299,7 +300,7 @@ async function readDealIdentity(
       },
     });
     if (!sourceLead) throw new CommercialCommandError("NOT_FOUND");
-    if (!["QUALIFIED", "CONTACTED", "REPLIED", "INTERESTED"].includes(sourceLead.lifecycleState)) {
+    if (!isR6LeadToDealConversionState(sourceLead.lifecycleState)) {
       throw new CommercialCommandError("TRANSITION_DENIED");
     }
     if (companyId && sourceLead.companyId && companyId !== sourceLead.companyId) {

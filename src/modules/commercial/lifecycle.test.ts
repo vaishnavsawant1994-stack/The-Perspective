@@ -5,6 +5,7 @@ import {
   isR6ClientConversionStage,
   isR6DealStageClass,
   requiresDealMoveReason,
+  isR6LeadToDealConversionState,
 } from "./lifecycle";
 
 describe("R6 commercial lifecycle", () => {
@@ -39,4 +40,13 @@ describe("R6 commercial lifecycle", () => {
     expect(isR6ClientConversionStage("DISCOVERY_COMPLETED")).toBe(false);
     expect(isR6ClientConversionStage("QUALIFIED")).toBe(false);
   });
+
+  it("keeps lead-to-deal conversion on the frozen QUALIFIED/INTERESTED edge", () => {
+    expect(isR6LeadToDealConversionState("QUALIFIED")).toBe(true);
+    expect(isR6LeadToDealConversionState("INTERESTED")).toBe(true);
+    expect(isR6LeadToDealConversionState("CONTACTED")).toBe(false);
+    expect(isR6LeadToDealConversionState("REPLIED")).toBe(false);
+    expect(isR6LeadToDealConversionState("CONVERTED")).toBe(false);
+  });
+
 });
