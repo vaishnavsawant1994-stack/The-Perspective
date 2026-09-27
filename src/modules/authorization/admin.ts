@@ -462,7 +462,6 @@ export async function listAuthorizationRoles(
       defaultScope: true,
       status: true,
       updatedAt: true,
-      _count: { select: { rolePermissions: true, membershipRoles: true } },
     },
     orderBy: [{ systemRole: "desc" }, { key: "asc" }],
   });
