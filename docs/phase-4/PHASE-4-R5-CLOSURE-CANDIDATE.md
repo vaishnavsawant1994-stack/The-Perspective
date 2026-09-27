@@ -9,8 +9,8 @@
 **Qualified post-falsification implementation candidate:** 8823c63c1a03281d91d5085bba07206186380f6c  
 **Implementation branch:** phase4/r5-authorization-implementation-20260927  
 **Closure-evidence branch:** phase4/r5-closure-evidence-20260927  
-**P4-R5-C1:** READY FOR OWNER ACCEPTANCE — NOT ACCEPTED  
-**Merge authorization:** NOT AUTHORIZED  
+**P4-R5-C1:** OWNER-ACCEPTED — IMPLEMENTATION MERGED  
+**Implementation merge:** COMPLETE — `748f6af4ce4c9868c2441125cd0480cf8abc34d4`  
 **R6+:** LOCKED  
 **Design 154:** NOT AUTHORIZED
 
@@ -46,9 +46,9 @@ test-only proof completion
   Q01-Q07: CLOSED
   all four exact-head qualification workflows: SUCCESS
         ↓
-P4-R5-C1 READY FOR OWNER ACCEPTANCE
-  NOT YET ACCEPTED
-  MERGE NOT AUTHORIZED
+P4-R5-C1 OWNER-ACCEPTED
+  implementation merged at 748f6af4ce4c9868c2441125cd0480cf8abc34d4
+  closure docs integration pending
   R6 LOCKED
 ~~~
 
@@ -351,7 +351,7 @@ R4 BROWSER #67: SUCCESS
 R3 BROWSER #69: SUCCESS
 FINAL FALSIFICATION: PASS
 BLOCKING/HIGH R5 FINDINGS: NONE OPEN
-P4-R5-C1: READY FOR OWNER ACCEPTANCE — NOT ACCEPTED
-MERGE: NOT AUTHORIZED
+P4-R5-C1: OWNER-ACCEPTED — IMPLEMENTATION MERGED
+IMPLEMENTATION MERGE: COMPLETE — 748f6af4ce4c9868c2441125cd0480cf8abc34d4
 R6+: LOCKED
 ~~~
