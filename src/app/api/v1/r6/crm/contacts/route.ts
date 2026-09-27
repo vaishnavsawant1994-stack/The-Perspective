@@ -1,13 +1,21 @@
 import { z } from "zod";
 
-import { parseAuthenticationJson } from "@/modules/authentication/http/request-security";
 import {
-  authorizeR6Operation,
-  r6DomainResponse,
-  r6MutationOriginProblem,
-  resolveR6TeamRequest,
-} from "@/modules/authorization/r6-http";
+  parseAuthenticationJson,
+  requireSameOrigin,
+} from "@/modules/authentication/http/request-security";
+import {
+  authorizeTrustedHttpOperation,
+  authorizationProblem,
+} from "@/modules/authorization/http";
 import { createContact } from "@/modules/crm/core";
+import {
+  invalidR6Request,
+  r6CommandError,
+  r6Json,
+  resolveR6TeamRequest,
+} from "@/modules/r6/http";
+import { buildProspectiveR6Resource } from "@/modules/r6/resources";
 
 const schema = z.object({
   companyId: z.string().uuid().nullable().optional(),
@@ -21,23 +29,33 @@ const schema = z.object({
 }).strict();
 
 export async function POST(request: Request) {
-  const originProblem = r6MutationOriginProblem(request);
-  if (originProblem) return originProblem;
+  if (!requireSameOrigin(request)) {
+    return authorizationProblem(403, "AUTHZ_DENIED");
+  }
 
   const input = await parseAuthenticationJson(request, schema);
-  if (!input) return new Response(null, { status: 400 });
+  if (!input) return invalidR6Request();
 
   const resolved = await resolveR6TeamRequest(request);
   if (resolved.kind === "response") return resolved.response;
 
-  const authorization = await authorizeR6Operation({
+  const authorization = await authorizeTrustedHttpOperation({
     context: resolved.context,
     permissionKey: "contact.edit",
-    resourceType: "contact",
-    action: "create",
-    requestedFields: Object.keys(input),
+    resource: buildProspectiveR6Resource(
+      resolved.context,
+      "contact",
+      "PII",
+      "ACTIVE",
+    ),
+    command: {
+      action: "create",
+      requestedFields: Object.keys(input),
+    },
   });
   if (authorization.kind === "response") return authorization.response;
 
-  return r6DomainResponse(await createContact(resolved.context, input), 201);
+  const result = await createContact(resolved.context, input);
+  if (result.kind === "error") return r6CommandError(result.code);
+  return r6Json({ contact: result.value }, 201);
 }
