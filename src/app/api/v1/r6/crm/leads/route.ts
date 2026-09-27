@@ -21,7 +21,6 @@ const schema = z.object({
   companyId: z.string().uuid().nullable().optional(),
   contactId: z.string().uuid().nullable().optional(),
   leadSourceId: z.string().uuid().nullable().optional(),
-  sourceRecordKey: z.string().trim().max(255).nullable().optional(),
 }).strict();
 
 export async function POST(request: Request) {
