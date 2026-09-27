@@ -1470,7 +1470,7 @@ ALTER TABLE "crm"."leads" ADD CONSTRAINT "leads_lifecycle_state_valid"
   CHECK ("lifecycle_state" IN (
     'NEW','EXTRACTED','ENRICHMENT_PENDING','ENRICHED','QUALIFICATION_PENDING',
     'QUALIFIED','OUTREACH_READY','CONTACTED','REPLIED','INTERESTED','NURTURE',
-    'DISQUALIFIED','SUPPRESSED','CONVERTED'
+    'DISQUALIFIED','DO_NOT_CONTACT','CONVERTED'
   ));
 ALTER TABLE "crm"."leads" ADD CONSTRAINT "leads_fit_score_valid"
   CHECK ("fit_score" IS NULL OR ("fit_score" >= 0 AND "fit_score" <= 100));
