@@ -245,6 +245,74 @@ describe("R6 API canonical mutation fields", () => {
     });
   });
 
+  it("authorizes submitted lead qualification action fields and rejects smuggled fields", () => {
+    expect(
+      evaluateAuthorization(
+        context("lead.qualify"),
+        "lead.qualify",
+        {
+          ...resource("lead", "CONFIDENTIAL"),
+          lifecycleState: "REVIEW",
+        },
+        {
+          action: "qualify",
+          requestedFields: ["to", "expectedRowVersion", "reason"],
+          workflowSatisfied: true,
+        },
+      ).decision,
+    ).toBe("ALLOW");
+
+    expect(
+      evaluateAuthorization(
+        context("lead.qualify"),
+        "lead.qualify",
+        {
+          ...resource("lead", "CONFIDENTIAL"),
+          lifecycleState: "REVIEW",
+        },
+        {
+          action: "qualify",
+          requestedFields: ["to", "expectedRowVersion", "ownerOrganizationId"],
+          workflowSatisfied: true,
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "FIELD_DENIED",
+    });
+  });
+
+  it("authorizes lead-list relationship IDs only for add/remove actions", () => {
+    for (const action of ["add", "remove"] as const) {
+      expect(
+        evaluateAuthorization(
+          context("lead.list.manage"),
+          "lead.list.manage",
+          resource("lead-list", "CONFIDENTIAL"),
+          {
+            action,
+            requestedFields: ["leadId"],
+          },
+        ).decision,
+      ).toBe("ALLOW");
+    }
+
+    expect(
+      evaluateAuthorization(
+        context("lead.list.manage"),
+        "lead.list.manage",
+        resource("lead-list", "CONFIDENTIAL"),
+        {
+          action: "update",
+          requestedFields: ["leadId"],
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "FIELD_DENIED",
+    });
+  });
+
   it("keeps authorized reads of server-owned fields available", () => {
     expect(
       evaluateAuthorization(
