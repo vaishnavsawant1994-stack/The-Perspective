@@ -409,12 +409,12 @@ describe("R6 commercial deal falsification", () => {
   });
 
   it.each(["CONTACTED", "REPLIED"])(
-    "accepts the Phase-2D lead conversion state %s exactly once",
+    "rejects lead conversion from non-contract state %s with zero residue",
     async (state) => {
       const company = mustDomainOk(
         await createCompany(
           platform,
-          { name: "COMMERCIAL accepted conversion " + state + " " + crypto.randomUUID() },
+          { name: "COMMERCIAL invalid conversion " + state + " " + crypto.randomUUID() },
           database,
         ),
       );
@@ -423,7 +423,7 @@ describe("R6 commercial deal falsification", () => {
           platform,
           {
             companyId: company.id,
-            sourceRecordKey: "commercial-accepted-" + state + "-" + crypto.randomUUID(),
+            sourceRecordKey: "commercial-invalid-" + state + "-" + crypto.randomUUID(),
           },
           database,
         ),
@@ -451,9 +451,9 @@ describe("R6 commercial deal falsification", () => {
         database,
       );
 
-      expect(result.kind).toBe("ok");
+      expect(result).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
       expect(await resourceCount(primaryOrganizationId, "deal")).toBe(
-        beforeResources + 1,
+        beforeResources,
       );
       expect(
         await count(
@@ -462,7 +462,7 @@ describe("R6 commercial deal falsification", () => {
             WHERE source_lead_id = $1::uuid`,
           lead.id,
         ),
-      ).toBe(1);
+      ).toBe(0);
       expect(
         await count(
           `SELECT count(*)::bigint AS count
@@ -471,7 +471,7 @@ describe("R6 commercial deal falsification", () => {
               AND to_state = 'CONVERTED'`,
           lead.id,
         ),
-      ).toBe(beforeHistory + 1);
+      ).toBe(beforeHistory);
     },
   );
 
