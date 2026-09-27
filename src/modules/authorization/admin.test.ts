@@ -298,4 +298,65 @@ describe("R5 authorization administration", () => {
     expect(result.decision.reasonCode).toBe("OBLIGATION_REQUIRED");
     expect(transaction.role.findFirst).not.toHaveBeenCalled();
   });
+  it("recomputes delegation from fresh transaction authority after R01 is revoked", async () => {
+    const original = authorizedContext(["R01"]);
+    const transaction = {
+      organizationMembership: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: original.membership.membershipId,
+          userAccountId: original.identity.userId,
+          organizationId: original.tenant.organizationId,
+          status: "ACTIVE",
+          departmentId: null,
+          membershipRoles: [
+            {
+              id: "fresh-non-admin-grant",
+              scope: "ORG",
+              validFrom: new Date("2026-09-27T06:00:00.000Z"),
+              validUntil: null,
+              role: {
+                id: "fresh-non-admin-role",
+                key: "custom-legacy-role-manager",
+                organizationId: original.tenant.organizationId,
+                status: "ACTIVE",
+                rolePermissions: [
+                  {
+                    effect: "ALLOW",
+                    constraints: {},
+                    permission: { key: "role.manage" },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      },
+      auditEvent: { create: vi.fn().mockResolvedValue({}) },
+      role: {
+        findFirst: vi.fn(),
+        create: vi.fn(),
+      },
+    };
+    const database = transactionDatabase(transaction);
+
+    const result = await createCustomAuthorizationRole(
+      original,
+      {
+        key: "custom-after-revocation",
+        name: "Should not be created",
+        defaultScope: "ORG",
+        reason: "prove fresh delegation",
+      },
+      database,
+      new Date("2026-09-27T06:30:00.000Z"),
+    );
+
+    expect(result.kind).toBe("denied");
+    if (result.kind !== "denied") throw new Error("Expected deny");
+    expect(result.decision.reasonCode).toBe("OBLIGATION_REQUIRED");
+    expect(transaction.role.findFirst).not.toHaveBeenCalled();
+    expect(transaction.role.create).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).toHaveBeenCalledOnce();
+  });
+
 });
