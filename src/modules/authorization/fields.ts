@@ -9,6 +9,7 @@ export type R5FieldPolicyResourceType =
   | "role"
   | "permission"
   | "membership"
+  | "membership-role"
   | "role-permission"
   | "resource";
 
@@ -64,6 +65,18 @@ const TEAM_FIELD_POLICIES: Record<
       "status",
       "endedAt",
     ],
+  },
+  "membership-role": {
+    readableFields: [
+      "id",
+      "membershipId",
+      "roleId",
+      "scope",
+      "validFrom",
+      "validUntil",
+      "createdAt",
+    ],
+    mutableFields: ["roleId", "scope", "validUntil"],
   },
   "role-permission": {
     readableFields: [
