@@ -66,7 +66,7 @@ describe("R5 authorization evidence", () => {
     const create = vi.fn();
     const database = {
       auditEvent: { create },
-    } as unknown as Parameters<typeof recordDeniedAuthorizationEvidence>[4]["database"];
+    } as unknown as NonNullable<Parameters<typeof recordDeniedAuthorizationEvidence>[4]>["database"];
 
     const telemetry = await recordDeniedAuthorizationEvidence(
       context(),
@@ -89,7 +89,7 @@ describe("R5 authorization evidence", () => {
     const create = vi.fn().mockResolvedValue({});
     const database = {
       auditEvent: { create },
-    } as unknown as Parameters<typeof recordDeniedAuthorizationEvidence>[4]["database"];
+    } as unknown as NonNullable<Parameters<typeof recordDeniedAuthorizationEvidence>[4]>["database"];
 
     const telemetry = await recordDeniedAuthorizationEvidence(
       context(),
@@ -136,9 +136,9 @@ describe("R5 authorization evidence", () => {
     const create = vi.fn().mockResolvedValue({});
     const database = {
       auditEvent: { create },
-    } as unknown as Parameters<
-      typeof recordCompletedAuthorizedActionEvidence
-    >[4]["database"];
+    } as unknown as NonNullable<
+      Parameters<typeof recordCompletedAuthorizedActionEvidence>[4]
+    >["database"];
 
     const telemetry = await recordCompletedAuthorizedActionEvidence(
       context(),
