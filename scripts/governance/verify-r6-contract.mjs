@@ -30,6 +30,7 @@ const requiredDocs = [
   "docs/phase-4/PHASE-4-R6-G0-ADVERSARIAL-AUDIT.md",
   "docs/phase-4/PHASE-4-R6-IMPLEMENTATION-CONTRACT.md",
   "docs/phase-4/PHASE-4-R6-G0-FREEZE-CANDIDATE.md",
+  "docs/phase-4/PHASE-4-R6-G0-FREEZE.md",
 ];
 
 const docs = new Map(requiredDocs.map((path) => [path, read(path)]));
@@ -47,6 +48,7 @@ const exclusionText = docs.get(requiredDocs[10]);
 const adversarialText = docs.get(requiredDocs[11]);
 const contractText = docs.get(requiredDocs[12]);
 const candidateText = docs.get(requiredDocs[13]);
+const freezeText = docs.get(requiredDocs[14]);
 
 // Planning authority and hard locks.
 assert(authText.includes(BASELINE), "R6 planning authorization does not pin the exact authorized baseline");
@@ -67,9 +69,22 @@ assert(gateText.includes("### D15 approved resolution"), "D15 approved Resolutio
 assert(gateText.includes("## Post-Gate security prerequisite — R6 action-family enforcement"), "Post-Gate R6 action-binding prerequisite is missing");
 assert(gateText.includes("REQUIRED G0 SECURITY CONTROL — NOT A GATE-A SCOPE DECISION"), "Action binding must remain a technical G0 control, not inferred owner scope approval");
 assert(!gateText.includes("OPEN — BLOCKS P4-R6-G0 FREEZE"), "Gate A still contains an open blocking decision");
-assert(readinessText.includes("P4-R6-G0 OWNER-FREEZE CANDIDATE"), "Readiness does not reflect the owner-freeze candidate state");
+assert(readinessText.includes("P4-R6-G0 FROZEN — OWNER ACCEPTED"), "Readiness does not reflect the frozen G0 state");
 assert(readinessText.includes("P4-R6-G0"), "Gate-A readiness does not track the G0 gate");
 assert(readinessText.includes("R6 production implementation:** NOT AUTHORIZED"), "Readiness document unlocks R6 implementation");
+
+// Owner-freeze record must pin the exact accepted contract and preserve implementation locks.
+assert(candidateText.includes("HISTORICAL OWNER-FREEZE CANDIDATE — SUPERSEDED BY FROZEN RECORD"), "Freeze candidate record is not marked historical/superseded");
+assert(freezeText.includes("**Status:** FROZEN — OWNER ACCEPTED"), "P4-R6-G0 freeze record is not marked frozen");
+assert(freezeText.includes("730d2280fafe29c756ba7e0b09ff7e8e5c9496a6"), "Freeze record does not pin the exact owner-accepted contract SHA");
+assert(freezeText.includes("main@2372418d80fa07f633a0e4adc99a21b1f7d8300a"), "Freeze record does not pin the authorized baseline");
+assert(freezeText.includes("I accept and freeze P4-R6-G0 for exact contract candidate SHA 730d2280fafe29c756ba7e0b09ff7e8e5c9496a6."), "Freeze record does not preserve the explicit owner acceptance");
+assert(freezeText.includes("R6 production implementation:** NOT AUTHORIZED"), "Freeze record incorrectly authorizes R6 implementation");
+assert(freezeText.includes("R7+:** NOT AUTHORIZED"), "Freeze record incorrectly authorizes R7+");
+assert(freezeText.includes("Design 154:** NOT AUTHORIZED"), "Freeze record incorrectly authorizes Design 154");
+assert(freezeText.includes("V1.0 production certification:** NOT AUTHORIZED"), "Freeze record incorrectly authorizes V1.0 certification");
+assert(freezeText.includes("R6 Contract Enhanced Qualification #35"), "Freeze record is missing exact-candidate qualification evidence");
+assert(freezeText.includes("R6 Contract Enhanced Qualification #38"), "Freeze record is missing pre-freeze wrapper qualification evidence");
 
 // Threat model and one-to-one qualification map must both contain exactly A01-A120.
 const expectedThreatIds = Array.from(
@@ -253,6 +268,8 @@ process.stdout.write(JSON.stringify({
   threatCaseCount: modelThreatIds.length,
   mappedThreatCaseCount: mappedThreatIds.length,
   gateAOwnerApproved: true,
+  p4R6G0Frozen: true,
+  frozenContractCandidate: "730d2280fafe29c756ba7e0b09ff7e8e5c9496a6",
   defaultActiveStagePreserved: "R5",
   proposalProductionOwner: "R7",
   templateManageStagePreserved: "R6+",
