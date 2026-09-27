@@ -18,6 +18,8 @@ import {
 import { createMeeting, transitionMeeting } from "@/modules/comms/core";
 
 import {
+  addClientRelationship,
+  convertDealToClient,
   createDeal,
   createDealPipeline,
   moveDeal,
@@ -176,6 +178,130 @@ async function createQualifiedLead(
   );
 
   return { ...lead, rowVersion };
+}
+
+
+async function createProposalPreparationDeal(input: {
+  companyId: string;
+  contactId: string;
+  pipelineId: string;
+  stages: Record<string, string>;
+  key: string;
+}) {
+  const deal = mustOk(
+    await createDeal(
+      platform,
+      {
+        pipelineId: input.pipelineId,
+        companyId: input.companyId,
+        primaryContactId: input.contactId,
+        amountMinor: BigInt(250000),
+        currency: "USD",
+      },
+      database,
+    ),
+  );
+
+  mustOk(
+    await moveDeal(
+      platform,
+      {
+        dealId: deal.id,
+        toStageId: input.stages.INTERESTED,
+        expectedRowVersion: 1,
+      },
+      database,
+    ),
+  );
+
+  const meeting = mustDomainOk(
+    await createMeeting(
+      platform,
+      {
+        title: "Client conversion discovery " + input.key,
+        meetingType: "DISCOVERY",
+        startsAt: new Date("2026-09-30T10:00:00Z"),
+        endsAt: new Date("2026-09-30T11:00:00Z"),
+        timezone: "UTC",
+        dealId: deal.id,
+      },
+      database,
+    ),
+  );
+  mustDomainOk(
+    await transitionMeeting(
+      platform,
+      { meetingId: meeting.id, to: "SCHEDULED", expectedRowVersion: 1 },
+      database,
+    ),
+  );
+
+  mustOk(
+    await moveDeal(
+      platform,
+      {
+        dealId: deal.id,
+        toStageId: input.stages.DISCOVERY_SCHEDULED,
+        expectedRowVersion: 2,
+      },
+      database,
+    ),
+  );
+
+  mustDomainOk(
+    await transitionMeeting(
+      platform,
+      { meetingId: meeting.id, to: "CONFIRMED", expectedRowVersion: 2 },
+      database,
+    ),
+  );
+  mustDomainOk(
+    await transitionMeeting(
+      platform,
+      { meetingId: meeting.id, to: "COMPLETED", expectedRowVersion: 3 },
+      database,
+    ),
+  );
+
+  mustOk(
+    await moveDeal(
+      platform,
+      {
+        dealId: deal.id,
+        toStageId: input.stages.DISCOVERY_COMPLETED,
+        expectedRowVersion: 3,
+      },
+      database,
+    ),
+  );
+
+  mustDomainOk(
+    await recordQualification(
+      platform,
+      {
+        dealId: deal.id,
+        criteriaVersion: "r6-client-conversion-v1",
+        answers: { ready: true },
+        score: 1,
+        disposition: "QUALIFIED",
+      },
+      database,
+    ),
+  );
+
+  mustOk(
+    await moveDeal(
+      platform,
+      {
+        dealId: deal.id,
+        toStageId: input.stages.PROPOSAL_PREPARATION,
+        expectedRowVersion: 4,
+      },
+      database,
+    ),
+  );
+
+  return { ...deal, rowVersion: 5 };
 }
 
 let fixture!: {
@@ -989,4 +1115,483 @@ describe("R6 commercial deal falsification", () => {
       }),
     ).rejects.toBeTruthy();
   });
+
+  it("converts a proposal-preparation deal to one canonical client account idempotently", async () => {
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        {
+          name: "Commercial Client Conversion " + crypto.randomUUID(),
+          domain: "client-" + crypto.randomUUID() + ".example.invalid",
+        },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        {
+          companyId: company.id,
+          title: "Primary client contact",
+          emailOriginal: "client-conversion@example.invalid",
+          emailNormalized: "client-conversion@example.invalid",
+        },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "idempotent",
+    });
+    const key = "client-conversion-" + crypto.randomUUID();
+
+    const first = await convertDealToClient(
+      platform,
+      {
+        dealId: deal.id,
+        expectedRowVersion: deal.rowVersion,
+        idempotencyKey: key,
+      },
+      database,
+    );
+    const replay = await convertDealToClient(
+      platform,
+      {
+        dealId: deal.id,
+        expectedRowVersion: deal.rowVersion,
+        idempotencyKey: key,
+      },
+      database,
+    );
+
+    expect(first.kind).toBe("ok");
+    expect(replay).toEqual(first);
+    if (first.kind !== "ok") return;
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_accounts
+          WHERE owner_organization_id = $1::uuid
+            AND client_organization_id = $2::uuid
+            AND archived_at IS NULL`,
+        primaryOrganizationId,
+        first.value.clientOrganizationId,
+      ),
+    ).toBe(1);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_relationships
+          WHERE owner_organization_id = $1::uuid
+            AND client_account_id = $2::uuid
+            AND contact_id = $3::uuid
+            AND relationship_role = 'PRIMARY_CONTACT'
+            AND archived_at IS NULL`,
+        primaryOrganizationId,
+        first.value.id,
+        contact.id,
+      ),
+    ).toBe(1);
+
+    const dealRow = await database.commercialDeal.findUniqueOrThrow({
+      where: { id: deal.id },
+      select: { clientOrganizationId: true, rowVersion: true, resourceId: true },
+    });
+    expect(dealRow.clientOrganizationId).toBe(first.value.clientOrganizationId);
+    expect(dealRow.rowVersion).toBe(deal.rowVersion + 1);
+
+    const envelope = await database.resource.findUniqueOrThrow({
+      where: { id: dealRow.resourceId },
+      select: { clientOrganizationId: true },
+    });
+    expect(envelope.clientOrganizationId).toBe(first.value.clientOrganizationId);
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM platform.idempotency_receipts
+          WHERE owner_organization_id = $1::uuid
+            AND scope = 'commercial.client-conversion'
+            AND idempotency_key = $2::text
+            AND state = 'COMPLETED'`,
+        primaryOrganizationId,
+        key,
+      ),
+    ).toBe(1);
+  });
+
+  it("rejects changed-payload reuse of a client conversion idempotency key", async () => {
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Client Replay " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Replay contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "changed-payload",
+    });
+    const key = "client-replay-" + crypto.randomUUID();
+
+    const first = await convertDealToClient(
+      platform,
+      { dealId: deal.id, expectedRowVersion: deal.rowVersion, idempotencyKey: key },
+      database,
+    );
+    expect(first.kind).toBe("ok");
+
+    const changed = await convertDealToClient(
+      platform,
+      {
+        dealId: deal.id,
+        expectedRowVersion: deal.rowVersion + 1,
+        idempotencyKey: key,
+      },
+      database,
+    );
+    expect(changed).toEqual({ kind: "error", code: "IDEMPOTENCY_CONFLICT" });
+  });
+
+  it("contains concurrent same-key client conversion to one account and one relationship", async () => {
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Client Race " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Race contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "race",
+    });
+    const key = "client-race-" + crypto.randomUUID();
+    const input = {
+      dealId: deal.id,
+      expectedRowVersion: deal.rowVersion,
+      idempotencyKey: key,
+    };
+
+    const [a, b] = await Promise.all([
+      convertDealToClient(platform, input, database),
+      convertDealToClient(platform, input, database),
+    ]);
+
+    expect(a.kind).toBe("ok");
+    expect(b.kind).toBe("ok");
+    if (a.kind !== "ok" || b.kind !== "ok") return;
+    expect(a.value.id).toBe(b.value.id);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_accounts
+          WHERE owner_organization_id = $1::uuid
+            AND client_organization_id = $2::uuid
+            AND archived_at IS NULL`,
+        primaryOrganizationId,
+        a.value.clientOrganizationId,
+      ),
+    ).toBe(1);
+  });
+
+  it("rejects different-key duplicate client conversion and leaves no second account", async () => {
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Client Duplicate " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Duplicate contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "different-key",
+    });
+
+    const first = await convertDealToClient(
+      platform,
+      {
+        dealId: deal.id,
+        expectedRowVersion: deal.rowVersion,
+        idempotencyKey: "client-first-" + crypto.randomUUID(),
+      },
+      database,
+    );
+    expect(first.kind).toBe("ok");
+    if (first.kind !== "ok") return;
+
+    const second = await convertDealToClient(
+      platform,
+      {
+        dealId: deal.id,
+        expectedRowVersion: deal.rowVersion + 1,
+        idempotencyKey: "client-second-" + crypto.randomUUID(),
+      },
+      database,
+    );
+    expect(second).toEqual({ kind: "error", code: "CONFLICT" });
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_accounts
+          WHERE owner_organization_id = $1::uuid
+            AND client_organization_id = $2::uuid
+            AND archived_at IS NULL`,
+        primaryOrganizationId,
+        first.value.clientOrganizationId,
+      ),
+    ).toBe(1);
+  });
+
+  it("denies client conversion before PROPOSAL_PREPARATION with zero IAM/resource/account/idempotency residue", async () => {
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Pre Ceiling " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Pre ceiling contact" },
+        database,
+      ),
+    );
+    const deal = mustOk(
+      await createDeal(
+        platform,
+        {
+          pipelineId: fixture.ownPipelineId,
+          companyId: company.id,
+          primaryContactId: contact.id,
+          amountMinor: BigInt(10000),
+          currency: "USD",
+        },
+        database,
+      ),
+    );
+    const key = "client-pre-ceiling-" + crypto.randomUUID();
+
+    const beforeClientOrgs = await count(
+      `SELECT count(*)::bigint AS count FROM iam.organizations WHERE organization_type = 'CLIENT'`,
+    );
+    const beforeResources = await resourceCount(primaryOrganizationId, "client-account");
+    const beforeAccounts = await count(
+      `SELECT count(*)::bigint AS count
+         FROM commercial.client_accounts
+        WHERE owner_organization_id = $1::uuid`,
+      primaryOrganizationId,
+    );
+
+    const result = await convertDealToClient(
+      platform,
+      { dealId: deal.id, expectedRowVersion: 1, idempotencyKey: key },
+      database,
+    );
+
+    expect(result).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count FROM iam.organizations WHERE organization_type = 'CLIENT'`,
+      ),
+    ).toBe(beforeClientOrgs);
+    expect(await resourceCount(primaryOrganizationId, "client-account")).toBe(beforeResources);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_accounts
+          WHERE owner_organization_id = $1::uuid`,
+        primaryOrganizationId,
+      ),
+    ).toBe(beforeAccounts);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM platform.idempotency_receipts
+          WHERE owner_organization_id = $1::uuid
+            AND scope = 'commercial.client-conversion'
+            AND idempotency_key = $2::text`,
+        primaryOrganizationId,
+        key,
+      ),
+    ).toBe(0);
+  });
+
+  it("conceals foreign and archived deals from client conversion without residue", async () => {
+    const key = "client-foreign-" + crypto.randomUUID();
+    const foreignResult = await convertDealToClient(
+      platform,
+      {
+        dealId: fixture.foreignLeadId,
+        expectedRowVersion: 1,
+        idempotencyKey: key,
+      },
+      database,
+    );
+    expect(foreignResult).toEqual({ kind: "error", code: "NOT_FOUND" });
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM platform.idempotency_receipts
+          WHERE owner_organization_id = $1::uuid
+            AND scope = 'commercial.client-conversion'
+            AND idempotency_key = $2::text`,
+        primaryOrganizationId,
+        key,
+      ),
+    ).toBe(0);
+
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Archived Conversion " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Archived conversion contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "archived",
+    });
+    await database.commercialDeal.update({
+      where: { id: deal.id },
+      data: { archivedAt: new Date() },
+    });
+
+    const archived = await convertDealToClient(
+      platform,
+      {
+        dealId: deal.id,
+        expectedRowVersion: deal.rowVersion,
+        idempotencyKey: "client-archived-" + crypto.randomUUID(),
+      },
+      database,
+    );
+    expect(archived).toEqual({ kind: "error", code: "NOT_FOUND" });
+  });
+
+  it("rejects cross-tenant and archived client relationship targets with zero relationship residue", async () => {
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Relationship " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Relationship contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "relationship",
+    });
+    const account = mustOk(
+      await convertDealToClient(
+        platform,
+        {
+          dealId: deal.id,
+          expectedRowVersion: deal.rowVersion,
+          idempotencyKey: "client-relationship-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+
+    const before = await count(
+      `SELECT count(*)::bigint AS count
+         FROM commercial.client_relationships
+        WHERE owner_organization_id = $1::uuid
+          AND client_account_id = $2::uuid`,
+      primaryOrganizationId,
+      account.id,
+    );
+
+    const foreignContact = await addClientRelationship(
+      platform,
+      {
+        clientAccountId: account.id,
+        contactId: fixture.foreignContactId,
+        relationshipRole: "APPROVER",
+      },
+      database,
+    );
+    expect(foreignContact).toEqual({ kind: "error", code: "NOT_FOUND" });
+
+    await database.commercialClientAccount.update({
+      where: { id: account.id },
+      data: { archivedAt: new Date() },
+    });
+    const archivedAccount = await addClientRelationship(
+      platform,
+      {
+        clientAccountId: account.id,
+        contactId: contact.id,
+        relationshipRole: "BILLING",
+      },
+      database,
+    );
+    expect(archivedAccount).toEqual({ kind: "error", code: "NOT_FOUND" });
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_relationships
+          WHERE owner_organization_id = $1::uuid
+            AND client_account_id = $2::uuid`,
+        primaryOrganizationId,
+        account.id,
+      ),
+    ).toBe(before);
+  });
+
 });
