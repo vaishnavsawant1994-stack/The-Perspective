@@ -325,11 +325,8 @@ export function evaluateAuthorization(
     return deny(permissionKey, "WORKFLOW_DENIED");
   }
 
-  if (
-    context.authorization.blockedPermissions.has(permissionKey as PermissionKey)
-  ) {
-    return deny(permissionKey, "POLICY_INVALID");
-  }
+  const hasBlockedEdge =
+    context.authorization.blockedPermissions.has(permissionKey as PermissionKey);
 
   const grants = context.authorization.grantPaths
     .filter((grant) => grant.permissionKey === permissionKey)
@@ -337,7 +334,10 @@ export function evaluateAuthorization(
     .filter((grant): grant is NonNullable<typeof grant> => Boolean(grant));
 
   if (grants.length === 0) {
-    return deny(permissionKey, "PERMISSION_MISSING");
+    return deny(
+      permissionKey,
+      hasBlockedEdge ? "POLICY_INVALID" : "PERMISSION_MISSING",
+    );
   }
 
   for (const grant of grants) {
@@ -358,7 +358,10 @@ export function evaluateAuthorization(
   );
 
   if (applicableAllows.length === 0) {
-    return deny(permissionKey, "SCOPE_DENIED");
+    return deny(
+      permissionKey,
+      hasBlockedEdge ? "POLICY_INVALID" : "SCOPE_DENIED",
+    );
   }
 
   if (definition.requiresWorkflowPolicy && command.workflowSatisfied !== true) {
