@@ -299,6 +299,30 @@ BEGIN
       trigger_count;
   END IF;
 
+  -- Used Commercial pipeline/stage semantics are versioned and cannot be
+  -- rewritten after deals or immutable history depend on them.
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger t
+    JOIN pg_class c ON c.oid = t.tgrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'commercial'
+      AND c.relname = 'deal_stages'
+      AND t.tgname = 'deal_stages_used_semantics_guard'
+      AND NOT t.tgisinternal
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger t
+    JOIN pg_class c ON c.oid = t.tgrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'commercial'
+      AND c.relname = 'deal_pipelines'
+      AND t.tgname = 'deal_pipelines_used_semantics_guard'
+      AND NOT t.tgisinternal
+  ) THEN
+    RAISE EXCEPTION 'R6 verification failed: Commercial used-semantics guards are missing';
+  END IF;
+
   -- Immutable evidence/version triggers.
   FOR item IN
     SELECT *
