@@ -14,7 +14,6 @@ export interface R6LeadRow {
   readonly lastActivityAt: string | null;
   readonly ownerMembershipId: string | null;
   readonly departmentId: string | null;
-  readonly updatedAt: string;
 }
 
 export interface R6CampaignRow {
@@ -33,7 +32,6 @@ export interface R6CampaignRow {
   readonly audienceSnapshotHash: string | null;
   readonly approvedSnapshotHash: string | null;
   readonly rowVersion: number;
-  readonly updatedAt: string;
 }
 
 export interface R6DealRow {
@@ -51,7 +49,6 @@ export interface R6DealRow {
   readonly ownerMembershipId: string | null;
   readonly departmentId: string | null;
   readonly rowVersion: number;
-  readonly updatedAt: string;
 }
 
 interface R6Collection<T> {

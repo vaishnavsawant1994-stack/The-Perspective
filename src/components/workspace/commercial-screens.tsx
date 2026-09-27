@@ -104,7 +104,7 @@ export function LeadCRM() {
         </div>
         <div className={s.miniCharts}>
           <Panel title="Live data status"><p>{live.loading ? "Loading authorized CRM records…" : live.error ? "Live CRM data is unavailable for this session." : `${live.items.length} authorized records loaded.`}</p></Panel>
-          <Panel title="Lifecycle coverage"><Ranked names={["NEW", "QUALIFIED", "OUTREACH_READY", "CONTACTED", "REPLIED", "INTERESTED"].filter((state) => count(state) > 0)} /></Panel>
+          <Panel title="Lifecycle coverage"><div>{["NEW", "QUALIFIED", "OUTREACH_READY", "CONTACTED", "REPLIED", "INTERESTED"].filter((state) => count(state) > 0).map((state) => <p className={s.detail} key={state}><span>{state.replaceAll("_", " ")}</span><b>{count(state)}</b></p>)}</div></Panel>
         </div>
       </section>
       <aside className={s.drawer}>
@@ -162,7 +162,7 @@ export function OutreachHub() {
         <Tabs tabs={[`All authorized · ${live.items.length}`, `Active · ${active}`, `Draft · ${live.items.filter((x) => x.status === "DRAFT").length}`, `Scheduled · ${live.items.filter((x) => x.status === "SCHEDULED").length}`, `Paused · ${live.items.filter((x) => x.status === "PAUSED").length}`]} />
         <Filters /><Bulk outreach />
         <div className={`${s.table} ${s.campaignTable}`}>
-          <div className={s.tableHead}><span /><span>Campaign</span><span>Lead list</span><span>Sequence</span><span>Owner</span><span>Enrolled</span><span>Sent</span><span>Reply rate</span><span>Positive</span><span>Status</span><span /></div>
+          <div className={s.tableHead}><span /><span>Campaign</span><span>Lead list</span><span>Sequence</span><span>Sender</span><span>Enrolled</span><span>Sent</span><span>Reply rate</span><span>Positive</span><span>Status</span><span /></div>
           {live.items.map((item) => {
             const rate = item.sentCount > 0 ? `${((item.replyCount / item.sentCount) * 100).toFixed(1)}%` : "0%";
             return <div className={s.tableRow} key={item.id}>

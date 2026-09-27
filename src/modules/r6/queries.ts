@@ -8,16 +8,27 @@ import { getPrismaClient } from "@/modules/persistence/client";
 
 const OVERFETCH_FACTOR = 4;
 
-function allowed(
+export function projectR6ReadableFields<T extends Readonly<Record<string, unknown>>>(
+  value: T,
+  readableFields: readonly string[],
+) {
+  const allowed = new Set(readableFields);
+  return Object.fromEntries(
+    Object.entries(value).filter(([field]) => allowed.has(field)),
+  ) as Partial<T>;
+}
+
+function authorizedReadableFields(
   context: AuthorizedRequestContext,
   permissionKey: "lead.view" | "campaign.view" | "deal.view" | "client.view",
   resource: AuthorizationResourceContext,
   requestedFields: readonly string[],
 ) {
-  return evaluateAuthorization(context, permissionKey, resource, {
+  const decision = evaluateAuthorization(context, permissionKey, resource, {
     action: "list",
     requestedFields,
-  }).decision === "ALLOW";
+  });
+  return decision.decision === "ALLOW" ? decision.readableFields ?? [] : undefined;
 }
 
 function commonResource(input: {
@@ -86,7 +97,6 @@ export async function listAuthorizedLeads(
       qualificationState: true,
       lastActivityAt: true,
       rowVersion: true,
-      updatedAt: true,
     },
   });
 
@@ -104,9 +114,10 @@ export async function listAuthorizedLeads(
       version: row.rowVersion,
     });
 
-    if (!allowed(context, "lead.view", resource, requestedFields)) continue;
+    const readableFields = authorizedReadableFields(context, "lead.view", resource, requestedFields);
+    if (!readableFields) continue;
 
-    items.push({
+    items.push(projectR6ReadableFields({
       id: row.id,
       resourceId: row.resourceId,
       companyId: row.companyId,
@@ -118,8 +129,7 @@ export async function listAuthorizedLeads(
       lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
       ownerMembershipId: row.ownerMembershipId,
       departmentId: row.departmentId,
-      updatedAt: row.updatedAt.toISOString(),
-    });
+    }, readableFields));
 
     if (items.length >= limit) break;
   }
@@ -178,7 +188,6 @@ export async function listAuthorizedCampaigns(
       audienceSnapshotHash: true,
       approvedSnapshotHash: true,
       rowVersion: true,
-      updatedAt: true,
     },
   });
 
@@ -196,9 +205,10 @@ export async function listAuthorizedCampaigns(
       version: row.rowVersion,
     });
 
-    if (!allowed(context, "campaign.view", resource, requestedFields)) continue;
+    const readableFields = authorizedReadableFields(context, "campaign.view", resource, requestedFields);
+    if (!readableFields) continue;
 
-    items.push({
+    items.push(projectR6ReadableFields({
       id: row.id,
       resourceId: row.resourceId,
       name: row.name,
@@ -214,8 +224,7 @@ export async function listAuthorizedCampaigns(
       audienceSnapshotHash: row.audienceSnapshotHash,
       approvedSnapshotHash: row.approvedSnapshotHash,
       rowVersion: row.rowVersion,
-      updatedAt: row.updatedAt.toISOString(),
-    });
+    }, readableFields));
 
     if (items.length >= limit) break;
   }
@@ -272,7 +281,6 @@ export async function listAuthorizedDeals(
       expectedCloseDate: true,
       rowVersion: true,
       archivedAt: true,
-      updatedAt: true,
     },
   });
 
@@ -290,9 +298,10 @@ export async function listAuthorizedDeals(
       version: row.rowVersion,
     });
 
-    if (!allowed(context, "deal.view", resource, requestedFields)) continue;
+    const readableFields = authorizedReadableFields(context, "deal.view", resource, requestedFields);
+    if (!readableFields) continue;
 
-    items.push({
+    items.push(projectR6ReadableFields({
       id: row.id,
       resourceId: row.resourceId,
       companyId: row.companyId,
@@ -307,8 +316,7 @@ export async function listAuthorizedDeals(
       ownerMembershipId: row.ownerMembershipId,
       departmentId: row.departmentId,
       rowVersion: row.rowVersion,
-      updatedAt: row.updatedAt.toISOString(),
-    });
+    }, readableFields));
 
     if (items.length >= limit) break;
   }
@@ -357,7 +365,6 @@ export async function listAuthorizedClients(
       customerSince: true,
       rowVersion: true,
       archivedAt: true,
-      updatedAt: true,
     },
   });
 
@@ -375,9 +382,10 @@ export async function listAuthorizedClients(
       version: row.rowVersion,
     });
 
-    if (!allowed(context, "client.view", resource, requestedFields)) continue;
+    const readableFields = authorizedReadableFields(context, "client.view", resource, requestedFields);
+    if (!readableFields) continue;
 
-    items.push({
+    items.push(projectR6ReadableFields({
       id: row.id,
       resourceId: row.resourceId,
       clientOrganizationId: row.clientOrganizationId,
@@ -387,8 +395,7 @@ export async function listAuthorizedClients(
       portalState: row.portalState,
       customerSince: row.customerSince?.toISOString().slice(0, 10) ?? null,
       rowVersion: row.rowVersion,
-      updatedAt: row.updatedAt.toISOString(),
-    });
+    }, readableFields));
 
     if (items.length >= limit) break;
   }
