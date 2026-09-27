@@ -42,8 +42,22 @@ function error(code: CommercialErrorCode): CommercialResult<never> {
 }
 
 function databaseCode(value: unknown) {
-  if (!value || typeof value !== "object" || !("code" in value)) return undefined;
-  return String((value as { code?: unknown }).code ?? "");
+  if (!value || typeof value !== "object") return undefined;
+
+  const direct = "code" in value
+    ? String((value as { code?: unknown }).code ?? "")
+    : "";
+  const nested = (
+    value as {
+      meta?: {
+        driverAdapterError?: {
+          cause?: { originalCode?: unknown };
+        };
+      };
+    }
+  ).meta?.driverAdapterError?.cause?.originalCode;
+
+  return nested ? String(nested) : direct || undefined;
 }
 
 function mapKnownFailure(value: unknown): CommercialResult<never> | undefined {
@@ -285,9 +299,7 @@ async function readDealIdentity(
     });
     if (!sourceLead) throw new CommercialCommandError("NOT_FOUND");
     if (
-      !["QUALIFIED", "CONTACTED", "REPLIED", "INTERESTED"].includes(
-        sourceLead.lifecycleState,
-      )
+      !["QUALIFIED", "INTERESTED"].includes(sourceLead.lifecycleState)
     ) {
       throw new CommercialCommandError("TRANSITION_DENIED");
     }
@@ -331,43 +343,78 @@ async function readDealIdentity(
   return { pipeline, stage, companyId, contactId, sourceLead };
 }
 
+async function readExistingConvertedDeal(
+  transaction: CommercialTransaction,
+  context: CommercialContext,
+  input: CreateDealInput,
+) {
+  if (!input.sourceLeadId) return null;
+
+  const existing = await transaction.commercialDeal.findFirst({
+    where: {
+      sourceLeadId: input.sourceLeadId,
+      ownerOrganizationId: context.tenant.organizationId,
+    },
+    select: {
+      id: true,
+      resourceId: true,
+      pipelineId: true,
+      companyId: true,
+      primaryContactId: true,
+      sourceLeadId: true,
+      stageId: true,
+      amountMinor: true,
+      currency: true,
+      probability: true,
+      expectedCloseDate: true,
+      rowVersion: true,
+    },
+  });
+  if (!existing) return null;
+
+  const money = validateMoney(input);
+  const probability = validateProbability(input.probability);
+  const expectedDate = input.expectedCloseDate?.getTime() ?? null;
+  const existingDate = existing.expectedCloseDate?.getTime() ?? null;
+
+  if (
+    existing.pipelineId !== input.pipelineId ||
+    (input.companyId != null && existing.companyId !== input.companyId) ||
+    (input.primaryContactId != null &&
+      existing.primaryContactId !== input.primaryContactId) ||
+    existing.amountMinor !== money.amount ||
+    existing.currency !== money.currency ||
+    (existing.probability == null
+      ? probability !== null
+      : Number(existing.probability) !== probability) ||
+    existingDate !== expectedDate
+  ) {
+    throw new CommercialCommandError("IDEMPOTENCY_CONFLICT");
+  }
+
+  return {
+    id: existing.id,
+    resourceId: existing.resourceId,
+    pipelineId: existing.pipelineId,
+    companyId: existing.companyId,
+    primaryContactId: existing.primaryContactId,
+    sourceLeadId: existing.sourceLeadId,
+    stageId: existing.stageId,
+    rowVersion: existing.rowVersion,
+  };
+}
+
 async function createDealInTransaction(
   transaction: CommercialTransaction,
   context: CommercialContext,
   input: CreateDealInput,
 ) {
+  const existing = await readExistingConvertedDeal(transaction, context, input);
+  if (existing) return existing;
+
   const money = validateMoney(input);
   const probability = validateProbability(input.probability);
   const identity = await readDealIdentity(transaction, context, input);
-
-  if (input.sourceLeadId) {
-    const existing = await transaction.commercialDeal.findFirst({
-      where: {
-        sourceLeadId: input.sourceLeadId,
-        ownerOrganizationId: context.tenant.organizationId,
-      },
-      select: {
-        id: true,
-        resourceId: true,
-        pipelineId: true,
-        companyId: true,
-        primaryContactId: true,
-        sourceLeadId: true,
-        stageId: true,
-        rowVersion: true,
-      },
-    });
-    if (existing) {
-      if (
-        existing.pipelineId !== input.pipelineId ||
-        existing.companyId !== identity.companyId ||
-        existing.primaryContactId !== identity.contactId
-      ) {
-        throw new CommercialCommandError("IDEMPOTENCY_CONFLICT");
-      }
-      return existing;
-    }
-  }
 
   const id = newCommercialId();
   const resourceId = newCommercialId();
@@ -476,31 +523,12 @@ export async function createDeal(
     return run(
       context,
       async (transaction) => {
-        const existing = await transaction.commercialDeal.findFirst({
-          where: {
-            sourceLeadId: input.sourceLeadId,
-            ownerOrganizationId: context.tenant.organizationId,
-          },
-          select: {
-            id: true,
-            resourceId: true,
-            pipelineId: true,
-            companyId: true,
-            primaryContactId: true,
-            sourceLeadId: true,
-            stageId: true,
-            rowVersion: true,
-          },
-        });
+        const existing = await readExistingConvertedDeal(
+          transaction,
+          context,
+          input,
+        );
         if (!existing) throw new CommercialCommandError("CONFLICT");
-        if (
-          existing.pipelineId !== input.pipelineId ||
-          (input.companyId && existing.companyId !== input.companyId) ||
-          (input.primaryContactId &&
-            existing.primaryContactId !== input.primaryContactId)
-        ) {
-          throw new CommercialCommandError("IDEMPOTENCY_CONFLICT");
-        }
         return existing;
       },
       database,
