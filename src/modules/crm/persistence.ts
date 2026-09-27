@@ -3,7 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { Prisma, type PrismaClient } from "@/generated/prisma/client";
-import type { TenantScopedRequestContext } from "@/modules/foundation/request-context";
+import type { AuthorizedRequestContext, TenantScopedRequestContext } from "@/modules/foundation/request-context";
 import { getPrismaClient } from "@/modules/persistence/client";
 
 export type CrmTransaction = Prisma.TransactionClient;
@@ -23,7 +23,7 @@ export function newCrmId() {
 }
 
 export async function withCrmTenantTransaction<T>(
-  context: TenantScopedRequestContext,
+  context: TenantScopedRequestContext | AuthorizedRequestContext,
   operation: (transaction: CrmTransaction) => Promise<T>,
   database: PrismaClient = getPrismaClient(),
 ) {
