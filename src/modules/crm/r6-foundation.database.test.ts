@@ -344,6 +344,10 @@ describe("R6 PostgreSQL CRM/commercial foundation", () => {
       );
 
       await client.query(
+        "SELECT set_config('app.r6_template_import', 'on', true)",
+      );
+
+      await client.query(
         `INSERT INTO comms.message_templates (
           id,
           resource_id,
@@ -361,6 +365,9 @@ describe("R6 PostgreSQL CRM/commercial foundation", () => {
         [templateId, resourceId, seedIds.organization.platform],
       );
 
+      await client.query(
+        "SELECT set_config('app.r6_template_import', '', true)",
+      );
       await client.query("SET LOCAL ROLE perspective_runtime");
 
       await expect(
