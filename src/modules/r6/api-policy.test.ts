@@ -127,6 +127,31 @@ describe("R6 API canonical mutation fields", () => {
     },
   );
 
+  it("allows the declared deal-create API fields for an authorized same-tenant pipeline", () => {
+    expect(
+      evaluateAuthorization(
+        context("deal.edit"),
+        "deal.edit",
+        {
+          ...resource("deal", "CONFIDENTIAL"),
+          sensitivity: "FINANCIAL",
+        },
+        {
+          action: "create",
+          requestedFields: [
+            "pipelineId",
+            "companyId",
+            "primaryContactId",
+            "amountMinor",
+            "currency",
+            "probability",
+            "expectedCloseDate",
+          ],
+        },
+      ).decision,
+    ).toBe("ALLOW");
+  });
+
   it("rejects authority fields even if a route accidentally forwards them", () => {
     expect(
       evaluateAuthorization(
