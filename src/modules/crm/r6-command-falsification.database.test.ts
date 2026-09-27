@@ -101,7 +101,7 @@ async function resourceCount(organizationId: string, resourceType: string) {
     organizationId,
     resourceType,
   );
-  return Number(rows[0]?.count ?? 0n);
+  return Number(rows[0]?.count ?? BigInt(0));
 }
 
 async function outboxCount(organizationId: string) {
@@ -111,7 +111,7 @@ async function outboxCount(organizationId: string) {
       WHERE owner_organization_id = $1::uuid`,
     organizationId,
   );
-  return Number(rows[0]?.count ?? 0n);
+  return Number(rows[0]?.count ?? BigInt(0));
 }
 
 async function tableCount(
@@ -122,7 +122,7 @@ async function tableCount(
     sql,
     ...params,
   );
-  return Number(rows[0]?.count ?? 0n);
+  return Number(rows[0]?.count ?? BigInt(0));
 }
 
 let fixture!: {
