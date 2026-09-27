@@ -11,10 +11,13 @@ import {
 import { createContact } from "@/modules/crm/core";
 import {
   invalidR6Request,
+  parseR6ListRequest,
   r6CommandError,
   r6Json,
   resolveR6TeamRequest,
+  unavailableR6Request,
 } from "@/modules/r6/http";
+import { listAuthorizedContacts } from "@/modules/r6/queries";
 import { buildProspectiveR6Resource } from "@/modules/r6/resources";
 
 const schema = z.object({
@@ -27,6 +30,20 @@ const schema = z.object({
   emailNormalized: z.string().trim().email().max(320).nullable().optional(),
   phoneNormalized: z.string().trim().max(40).nullable().optional(),
 }).strict();
+
+export async function GET(request: Request) {
+  const query = parseR6ListRequest(request);
+  if (!query) return invalidR6Request();
+
+  const resolved = await resolveR6TeamRequest(request);
+  if (resolved.kind === "response") return resolved.response;
+
+  try {
+    return r6Json(await listAuthorizedContacts(resolved.context, query.limit));
+  } catch {
+    return unavailableR6Request();
+  }
+}
 
 export async function POST(request: Request) {
   if (!requireSameOrigin(request)) {
