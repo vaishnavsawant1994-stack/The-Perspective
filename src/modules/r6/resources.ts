@@ -59,6 +59,41 @@ export async function loadR6LeadResource(
   };
 }
 
+export async function loadR6LeadListResource(
+  context: AuthorizedRequestContext,
+  leadListId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.crmLeadList.findFirst({
+    where: {
+      id: leadListId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+  return {
+    resourceId: row.resourceId,
+    resourceType: "lead-list",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: row.sensitivity as AuthorizationResourceContext["sensitivity"],
+    lifecycleState: "ACTIVE",
+    version: row.rowVersion,
+  };
+}
+
 export async function loadR6CampaignResource(
   context: AuthorizedRequestContext,
   campaignId: string,
