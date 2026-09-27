@@ -66,7 +66,11 @@ export function assessLaunchRoleAssignment(input: {
   }
 
   const ceiling = ROLE_DELEGATION_CEILINGS[actorRole];
-  if (!ceiling.assignableLaunchRoles.includes(input.targetRoleCode)) {
+  if (
+    !(ceiling.assignableLaunchRoles as readonly string[]).includes(
+      input.targetRoleCode,
+    )
+  ) {
     return {
       allowed: false,
       reason: "ROLE_ABOVE_CEILING",
