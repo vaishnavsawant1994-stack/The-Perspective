@@ -391,4 +391,166 @@ describe("R6 authorization activation", () => {
       ),
     ).toMatchObject({ decision: "DENY", reasonCode: "SCOPE_DENIED" });
   });
+
+  it.each(["ORG", "DEPT", "ASN", "OWN", "READ"] as const)(
+    "rejects cross-tenant resource laundering for %s scope even when local scope evidence matches",
+    (scope) => {
+      expect(
+        evaluateAuthorization(
+          context([grant("deal.view", { scope })]),
+          "deal.view",
+          resource("deal", {
+            ownerOrganizationId: "org-other",
+            departmentId: "dept-r6",
+            assignedMembershipIds: ["membership-r6"],
+            ownerMembershipId: "membership-r6",
+            ownerUserId: "user-r6",
+          }),
+          { action: "view", requestedFields: ["id"] },
+        ),
+      ).toMatchObject({
+        decision: "DENY",
+        reasonCode: "SCOPE_DENIED",
+      });
+    },
+  );
+
+  it("fails closed if an impossible R6 grant scope reaches the policy engine", () => {
+    expect(
+      evaluateAuthorization(
+        context([grant("source.manage", { scope: "OWN" })]),
+        "source.manage",
+        resource("lead-source", {
+          ownerMembershipId: "membership-r6",
+          ownerUserId: "user-r6",
+        }),
+        {
+          action: "manage",
+          requestedFields: ["name"],
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "POLICY_INVALID",
+    });
+  });
+
+  it("does not let a forged Client surface activate Team-only R6 authority", () => {
+    const teamContext = context([grant("lead.view", { scope: "READ" })]);
+    const forgedClientContext: AuthorizedRequestContext = {
+      ...teamContext,
+      membership: {
+        ...teamContext.membership,
+        surface: "CLIENT",
+      },
+      tenant: {
+        ...teamContext.tenant,
+        surface: "CLIENT",
+      },
+    };
+
+    expect(
+      evaluateAuthorization(
+        forgedClientContext,
+        "lead.view",
+        resource("lead", {
+          ownerOrganizationId: "org-other",
+          clientOrganizationId: "org-r6",
+          visibility: "CLIENT_SHARED",
+        }),
+        {
+          action: "view",
+          requestedFields: ["id"],
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "POLICY_INVALID",
+    });
+  });
+
+  it("ignores caller field-policy injection for R6 mutations as well as reads", () => {
+    expect(
+      evaluateAuthorization(
+        context([grant("lead.edit")]),
+        "lead.edit",
+        resource("lead"),
+        {
+          action: "update",
+          requestedFields: ["providerSecret"],
+          fieldPolicy: {
+            readableFields: ["providerSecret"],
+            mutableFields: ["providerSecret"],
+          },
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "FIELD_DENIED",
+    });
+  });
+
+  it.each([
+    ["deal.move", "update", "deal"],
+    ["message.send", "view", "message"],
+    ["reply.assign", "resolve", "reply"],
+    ["client.portal.provision", "revoke-access", "portal-access"],
+  ] as const)(
+    "rejects same-resource action laundering through the wrong permission %s -> %s",
+    (permissionKey, action, resourceType) => {
+      expect(
+        evaluateAuthorization(
+          context([grant(permissionKey)]),
+          permissionKey,
+          resource(resourceType),
+          {
+            action,
+            workflowSatisfied: true,
+            requestedFields: [],
+          },
+        ),
+      ).toMatchObject({
+        decision: "DENY",
+        reasonCode: "WORKFLOW_DENIED",
+      });
+    },
+  );
+
+  it.each([
+    ["reason", { reason: "" }, "OBLIGATION_REQUIRED"],
+    [
+      "recent-auth",
+      { recentAuthenticationSatisfied: false },
+      "OBLIGATION_REQUIRED",
+    ],
+    ["MFA", { mfaSatisfied: false }, "OBLIGATION_REQUIRED"],
+    ["exact-version", { exactVersionMatches: false }, "WORKFLOW_DENIED"],
+  ] as const)(
+    "requires outreach.launch %s independently of the other critical obligations",
+    (_obligation, override, expectedReasonCode) => {
+      const decision = evaluateAuthorization(
+        context([grant("outreach.launch")]),
+        "outreach.launch",
+        resource("outreach-campaign", {
+          lifecycleState: "APPROVED",
+          version: 8,
+        }),
+        {
+          action: "schedule",
+          workflowSatisfied: true,
+          reason: "approved send",
+          recentAuthenticationSatisfied: true,
+          mfaSatisfied: true,
+          exactVersionMatches: true,
+          ...override,
+        },
+      );
+
+      expect(decision).toMatchObject({
+        decision: "DENY",
+        reasonCode: expectedReasonCode,
+      });
+    },
+  );
+
 });
