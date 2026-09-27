@@ -148,6 +148,20 @@ describe("R5 trusted resource context", () => {
 });
 
 describe("R5 field and client projection policy", () => {
+  it("declares every role-permission read field returned by the admin API", () => {
+    const policy = getR5FieldPolicy("TEAM", "role-permission");
+    expect(policy).toBeDefined();
+    expect(policy?.readableFields).toEqual(
+      expect.arrayContaining([
+        "roleId",
+        "permissionsHash",
+        "permissionKey",
+        "effect",
+        "constraints",
+      ]),
+    );
+  });
+
   it("keeps client IAM field policies unavailable", () => {
     expect(getR5FieldPolicy("CLIENT", "role")).toBeUndefined();
     expect(getR5FieldPolicy("CLIENT", "permission")).toBeUndefined();
