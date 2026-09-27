@@ -340,7 +340,7 @@ export async function resolveAuthorizedRequestContext(
     resolution.authority.grantPaths.map((grant) => ({
       ...grant,
       permissionKey: grant.permissionKey as PermissionKey,
-      constraints: grant.constraints,
+      constraints: grant.constraints as Readonly<Record<string, unknown>>,
     }));
 
   return {
