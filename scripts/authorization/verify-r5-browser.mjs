@@ -20,6 +20,36 @@ function absolute(path) {
   return new URL(path, baseUrl).toString();
 }
 
+function decodeBase32(value) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  for (const character of value.replace(/=+$/u, "").toUpperCase()) {
+    const index = alphabet.indexOf(character);
+    if (index < 0) throw new Error("Invalid base32 value.");
+    bits += index.toString(2).padStart(5, "0");
+  }
+
+  const bytes = [];
+  for (let index = 0; index + 8 <= bits.length; index += 8) {
+    bytes.push(Number.parseInt(bits.slice(index, index + 8), 2));
+  }
+  return Buffer.from(bytes);
+}
+
+function generateTotpCode(seed, timestamp = Date.now()) {
+  const counter = Math.floor(timestamp / 1000 / 30);
+  const message = Buffer.alloc(8);
+  message.writeBigUInt64BE(BigInt(counter));
+  const digest = createHmac("sha1", decodeBase32(seed)).update(message).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const binary =
+    ((digest[offset] & 0x7f) << 24) |
+    ((digest[offset + 1] & 0xff) << 16) |
+    ((digest[offset + 2] & 0xff) << 8) |
+    (digest[offset + 3] & 0xff);
+  return String(binary % 1_000_000).padStart(6, "0");
+}
+
 async function api(page, path, init = {}) {
   return page.evaluate(
     async ({ url, init }) => {
