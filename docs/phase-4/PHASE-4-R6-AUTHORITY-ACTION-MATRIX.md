@@ -79,7 +79,7 @@ The following substitutions are prohibited:
 
 ## 3. R6 stage-policy implementation rule
 
-Before any R6 permission becomes active, policy must have an explicit map structurally equivalent to:
+Before any R6 permission becomes active, policy must have an explicit 37-key active-permission allowlist plus a map structurally equivalent to:
 
 ~~~text
 permission key
@@ -138,7 +138,23 @@ R6 must not activate general `calendar.view` to make meeting pages convenient.
 
 All four proposal permissions are currently activation stage R6 in the accepted R5 registry.
 
-This strengthens the retained-source contradiction described in Gate-A D01 but does not by itself override the Master Bible release table assigning proposals to R7.
+Gate-A D01 Resolution A is owner-approved and narrows their owning production release to R7. Therefore they remain registered historical vocabulary but are **not members of the R6 active-permission subset**.
+
+R6 candidate active subset = 41 historical R6-stage keys minus:
+
+- `proposal.view`
+- `proposal.edit`
+- `proposal.send`
+- `proposal.approve`
+
+Expected active subset size: **37**.
+
+R6 activation must therefore require both:
+
+1. owning stage is active; and
+2. permission key is in the explicit approved active-permission allowlist.
+
+Stage metadata alone is insufficient after an owner-approved scope narrowing.
 
 Owner resolution remains required.
 
