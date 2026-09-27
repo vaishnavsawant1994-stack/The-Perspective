@@ -15,6 +15,7 @@ export interface RequestSession {
   readonly issuedAt: Date;
   readonly expiresAt: Date;
   readonly authenticationMethod: string;
+  readonly mfaVerifiedAt?: Date;
 }
 
 export interface RequestTenant {
@@ -52,6 +53,7 @@ export interface EffectiveAuthorization {
   readonly permissions: ReadonlySet<PermissionKey>;
   readonly blockedPermissions: ReadonlySet<PermissionKey>;
   readonly grantPaths: readonly EffectiveAuthorizationGrant[];
+  readonly actorDepartmentId?: string;
 }
 
 export interface AuthenticationMembership {
