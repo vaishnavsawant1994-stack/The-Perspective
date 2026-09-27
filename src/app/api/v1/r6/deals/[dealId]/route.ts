@@ -8,82 +8,71 @@ import {
   authorizeTrustedHttpOperation,
   authorizationProblem,
 } from "@/modules/authorization/http";
-import { createDeal } from "@/modules/commercial/core";
+import { updateDealFields } from "@/modules/commercial/core";
 import {
   invalidR6Request,
-  parseR6ListRequest,
   r6CommandError,
   r6Json,
   resolveR6TeamRequest,
-  unavailableR6Request,
 } from "@/modules/r6/http";
-import { listAuthorizedDeals } from "@/modules/r6/queries";
-import { buildProspectiveR6Resource } from "@/modules/r6/resources";
+import { loadR6DealResource } from "@/modules/r6/resources";
 
 const moneySchema = z.union([
   z.string().regex(/^\d+$/u),
   z.number().int().nonnegative().safe(),
 ]).nullable().optional();
 
-const createDealSchema = z.object({
-  pipelineId: z.string().uuid(),
-  companyId: z.string().uuid(),
-  primaryContactId: z.string().uuid().nullable().optional(),
+const schema = z.object({
+  expectedRowVersion: z.number().int().positive(),
   amountMinor: moneySchema,
   currency: z.string().trim().regex(/^[A-Z]{3}$/u).nullable().optional(),
   probability: z.number().min(0).max(1).nullable().optional(),
   expectedCloseDate: z.string().datetime({ offset: true }).nullable().optional(),
-}).strict();
+}).strict().refine(
+  (value) =>
+    value.amountMinor !== undefined ||
+    value.currency !== undefined ||
+    value.probability !== undefined ||
+    value.expectedCloseDate !== undefined,
+  { message: "At least one mutable deal field is required." },
+);
 
-export async function GET(request: Request) {
-  const query = parseR6ListRequest(request);
-  if (!query) return invalidR6Request();
-
-  const resolved = await resolveR6TeamRequest(request);
-  if (resolved.kind === "response") return resolved.response;
-
-  try {
-    return r6Json(await listAuthorizedDeals(resolved.context, query.limit));
-  } catch {
-    return unavailableR6Request();
-  }
-}
-
-export async function POST(request: Request) {
+export async function PATCH(
+  request: Request,
+  route: { params: Promise<{ dealId: string }> },
+) {
   if (!requireSameOrigin(request)) {
     return authorizationProblem(403, "AUTHZ_DENIED");
   }
-  const input = await parseAuthenticationJson(request, createDealSchema);
+  const input = await parseAuthenticationJson(request, schema);
   if (!input) return invalidR6Request();
 
   const resolved = await resolveR6TeamRequest(request);
   if (resolved.kind === "response") return resolved.response;
+  const { dealId } = await route.params;
+  if (!z.string().uuid().safeParse(dealId).success) return invalidR6Request();
 
-  const requestedFields = [
-    "companyId",
-    ...(input.primaryContactId !== undefined ? ["primaryContactId"] : []),
-    ...(input.amountMinor !== undefined ? ["amountMinor"] : []),
-    ...(input.currency !== undefined ? ["currency"] : []),
-    ...(input.probability !== undefined ? ["probability"] : []),
-    ...(input.expectedCloseDate !== undefined ? ["expectedCloseDate"] : []),
-  ];
+  const resource = await loadR6DealResource(resolved.context, dealId);
+  if (!resource) return authorizationProblem(404, "AUTHZ_NOT_FOUND");
+
+  const requestedFields = ([
+    "amountMinor",
+    "currency",
+    "probability",
+    "expectedCloseDate",
+  ] as const).filter((field) => input[field] !== undefined);
   const authorization = await authorizeTrustedHttpOperation({
     context: resolved.context,
     permissionKey: "deal.edit",
-    resource: buildProspectiveR6Resource(
-      resolved.context,
-      "deal",
-      "FINANCIAL",
-      "ACTIVE",
-    ),
-    command: { action: "create", requestedFields },
+    resource,
+    command: { action: "update", requestedFields },
+    concealResource: true,
   });
   if (authorization.kind === "response") return authorization.response;
 
-  const result = await createDeal(resolved.context, {
-    pipelineId: input.pipelineId,
-    companyId: input.companyId,
-    primaryContactId: input.primaryContactId,
+  const result = await updateDealFields(resolved.context, {
+    dealId,
+    expectedRowVersion: input.expectedRowVersion,
     amountMinor:
       typeof input.amountMinor === "number"
         ? BigInt(input.amountMinor)
@@ -100,5 +89,5 @@ export async function POST(request: Request) {
           : new Date(input.expectedCloseDate),
   });
   if (result.kind === "error") return r6CommandError(result.code);
-  return r6Json({ deal: result.value }, 201);
+  return r6Json({ deal: result.value });
 }
