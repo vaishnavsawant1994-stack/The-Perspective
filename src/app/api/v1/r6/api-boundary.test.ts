@@ -4,6 +4,12 @@ import { POST as createCompany } from "./crm/companies/route";
 import { POST as createContact } from "./crm/contacts/route";
 import { POST as createLead } from "./crm/leads/route";
 import { PATCH as updateDeal } from "./deals/[dealId]/route";
+import { POST as createLeadSource } from "./crm/lead-sources/route";
+import { POST as createExtractionJob } from "./crm/extraction-jobs/route";
+import { POST as requestEnrichment } from "./crm/enrichment-jobs/route";
+import { POST as createLeadList } from "./crm/lead-lists/route";
+import { POST as addLeadListMember } from "./crm/lead-lists/[leadListId]/members/route";
+import { GET as listCompanies } from "./crm/companies/route";
 
 const origin = "https://app.example.test";
 
@@ -99,6 +105,136 @@ describe("R6 CRM direct-call API boundary", () => {
       { params: Promise.resolve({ dealId }) },
     );
 
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "R6_INVALID_REQUEST",
+    });
+  });
+
+  it("returns 401 for an anonymous valid CRM mutation", async () => {
+    const response = await createLeadSource(
+      request("/api/v1/r6/crm/lead-sources", {
+        sourceType: "PUBLIC_WEB",
+        name: "Anonymous source",
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "AUTHZ_AUTH_REQUIRED",
+    });
+  });
+
+  it("rejects cross-origin extraction requests before execution", async () => {
+    const response = await createExtractionJob(
+      request(
+        "/api/v1/r6/crm/extraction-jobs",
+        {
+          leadSourceId: "00000000-0000-4000-8000-000000000011",
+          querySnapshot: { query: "test" },
+        },
+        "https://attacker.example",
+      ),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "AUTHZ_DENIED",
+    });
+  });
+
+  it.each([
+    [
+      "lead-source authority",
+      createLeadSource,
+      "/api/v1/r6/crm/lead-sources",
+      {
+        sourceType: "PUBLIC_WEB",
+        name: "Injected",
+        organizationId: "00000000-0000-4000-8000-000000000012",
+      },
+    ],
+    [
+      "extraction server-owned status",
+      createExtractionJob,
+      "/api/v1/r6/crm/extraction-jobs",
+      {
+        leadSourceId: "00000000-0000-4000-8000-000000000013",
+        querySnapshot: {},
+        status: "COMPLETED",
+      },
+    ],
+    [
+      "enrichment server-owned request hash",
+      requestEnrichment,
+      "/api/v1/r6/crm/enrichment-jobs",
+      {
+        targetResourceId: "00000000-0000-4000-8000-000000000014",
+        provider: "provider.test",
+        requestedFields: ["title"],
+        requestHash: "browser-forged",
+      },
+    ],
+    [
+      "lead-list authority",
+      createLeadList,
+      "/api/v1/r6/crm/lead-lists",
+      {
+        name: "Injected list",
+        memberCount: 999,
+        ownerMembershipId: "00000000-0000-4000-8000-000000000015",
+      },
+    ],
+  ] as const)(
+    "rejects forged/server-owned CRM input: %s",
+    async (_name, handler, path, body) => {
+      const response = await handler(request(path, body));
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "R6_INVALID_REQUEST",
+      });
+    },
+  );
+
+  it("rejects forged lead-list membership authority fields", async () => {
+    const leadListId = "00000000-0000-4000-8000-000000000016";
+    const response = await addLeadListMember(
+      request(`/api/v1/r6/crm/lead-lists/${leadListId}/members`, {
+        leadId: "00000000-0000-4000-8000-000000000017",
+        scope: "ORG",
+      }),
+      { params: Promise.resolve({ leadListId }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "R6_INVALID_REQUEST",
+    });
+  });
+
+  it("rejects malformed extraction and enrichment identifiers", async () => {
+    const extraction = await createExtractionJob(
+      request("/api/v1/r6/crm/extraction-jobs", {
+        leadSourceId: "not-a-uuid",
+        querySnapshot: {},
+      }),
+    );
+    expect(extraction.status).toBe(400);
+
+    const enrichment = await requestEnrichment(
+      request("/api/v1/r6/crm/enrichment-jobs", {
+        targetResourceId: "not-a-uuid",
+        provider: "provider.test",
+        requestedFields: ["title"],
+      }),
+    );
+    expect(enrichment.status).toBe(400);
+  });
+
+  it("rejects out-of-range CRM list pagination before authorization", async () => {
+    const response = await listCompanies(
+      new Request(`${origin}/api/v1/r6/crm/companies?limit=101`),
+    );
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       code: "R6_INVALID_REQUEST",
