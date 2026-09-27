@@ -319,6 +319,10 @@ export async function stageExtractedRecord(
   input: StageExtractedRecordInput,
   database: PrismaClient = getPrismaClient(),
 ) {
+  if (!input.sourceRecordKey.trim()) {
+    return error("INVALID");
+  }
+
   return run(
     context,
     (transaction) =>
