@@ -1957,3 +1957,500 @@ describe("R6 commercial deal falsification", () => {
   });
 
 });
+
+describe("R6 commercial deeper falsification", () => {
+  it("reuses one canonical existing CLIENT organization by domain instead of manufacturing a second tenant identity", async () => {
+    const token = crypto.randomUUID().replaceAll("-", "");
+    const domain = "existing-" + token + ".example";
+    const existingClientOrganizationId = crypto.randomUUID();
+
+    await database.organization.create({
+      data: {
+        id: existingClientOrganizationId,
+        organizationType: "CLIENT",
+        legalName: "Existing Canonical Client " + token,
+        displayName: "Existing Canonical Client " + token,
+        slug: "existing-client-" + token,
+        normalizedDomain: domain,
+        status: "ACTIVE",
+      },
+    });
+
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Canonical Reuse " + token, domain },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Canonical reuse contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "canonical-reuse-" + token,
+    });
+
+    const beforeClientOrganizations = await count(
+      `SELECT count(*)::bigint AS count
+         FROM iam.organizations
+        WHERE organization_type = 'CLIENT'`,
+    );
+
+    const converted = mustOk(
+      await convertDealToClient(
+        platform,
+        {
+          dealId: deal.id,
+          expectedRowVersion: deal.rowVersion,
+          idempotencyKey: "canonical-reuse-" + token,
+        },
+        database,
+      ),
+    );
+
+    expect(converted.clientOrganizationId).toBe(existingClientOrganizationId);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM iam.organizations
+          WHERE organization_type = 'CLIENT'`,
+      ),
+    ).toBe(beforeClientOrganizations);
+
+    const linked = await database.crmCompany.findUniqueOrThrow({
+      where: { id: company.id },
+      select: { linkedOrganizationId: true },
+    });
+    expect(linked.linkedOrganizationId).toBe(existingClientOrganizationId);
+  });
+
+  it("ignores forged client/owner/account-manager authority fields during client conversion", async () => {
+    const token = crypto.randomUUID();
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Forged Authority " + token },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Forged authority contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "forged-authority-" + token,
+    });
+
+    const attackerInput = {
+      dealId: deal.id,
+      expectedRowVersion: deal.rowVersion,
+      idempotencyKey: "forged-authority-" + token,
+      clientOrganizationId: secondaryOrganizationId,
+      ownerOrganizationId: secondaryOrganizationId,
+      ownerMembershipId: secondaryMembershipId,
+      accountManagerMembershipId: secondaryMembershipId,
+    } as never;
+
+    const converted = mustOk(
+      await convertDealToClient(platform, attackerInput, database),
+    );
+
+    expect(converted.clientOrganizationId).not.toBe(secondaryOrganizationId);
+
+    const account = await database.commercialClientAccount.findUniqueOrThrow({
+      where: { id: converted.id },
+      select: {
+        ownerOrganizationId: true,
+        ownerMembershipId: true,
+        accountManagerMembershipId: true,
+        clientOrganizationId: true,
+      },
+    });
+    expect(account.ownerOrganizationId).toBe(primaryOrganizationId);
+    expect(account.ownerMembershipId).toBe(primaryMembershipId);
+    expect(account.accountManagerMembershipId).toBe(primaryMembershipId);
+    expect(account.clientOrganizationId).toBe(converted.clientOrganizationId);
+  });
+
+  it("keeps client relationship admin/approver flags as commercial metadata and creates no IAM or portal capability", async () => {
+    const token = crypto.randomUUID();
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial No Implicit IAM " + token },
+        database,
+      ),
+    );
+    const primaryContact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Primary client contact" },
+        database,
+      ),
+    );
+    const flaggedContact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Flagged client contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: primaryContact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "no-implicit-iam-" + token,
+    });
+
+    const account = mustOk(
+      await convertDealToClient(
+        platform,
+        {
+          dealId: deal.id,
+          expectedRowVersion: deal.rowVersion,
+          idempotencyKey: "no-implicit-iam-" + token,
+        },
+        database,
+      ),
+    );
+
+    const beforeMemberships = await count(
+      `SELECT count(*)::bigint AS count
+         FROM iam.organization_memberships
+        WHERE organization_id = $1::uuid`,
+      account.clientOrganizationId,
+    );
+    const beforeRoles = await count(
+      `SELECT count(*)::bigint AS count
+         FROM iam.roles
+        WHERE organization_id = $1::uuid`,
+      account.clientOrganizationId,
+    );
+    const beforeMembershipRoles = await count(
+      `SELECT count(*)::bigint AS count
+         FROM iam.membership_roles mr
+         JOIN iam.organization_memberships m ON m.id = mr.membership_id
+        WHERE m.organization_id = $1::uuid`,
+      account.clientOrganizationId,
+    );
+    const beforeInvitations = await count(
+      `SELECT count(*)::bigint AS count
+         FROM iam.invitations
+        WHERE organization_id = $1::uuid`,
+      account.clientOrganizationId,
+    );
+
+    const relationship = mustOk(
+      await addClientRelationship(
+        platform,
+        {
+          clientAccountId: account.id,
+          contactId: flaggedContact.id,
+          relationshipRole: "ADMIN_APPROVER_METADATA",
+          isPrimary: false,
+          isBilling: true,
+          isApprover: true,
+          isAdmin: true,
+        },
+        database,
+      ),
+    );
+
+    const stored = await database.commercialClientRelationship.findUniqueOrThrow({
+      where: { id: relationship.id },
+      select: { isAdmin: true, isApprover: true, isBilling: true },
+    });
+    expect(stored).toEqual({
+      isAdmin: true,
+      isApprover: true,
+      isBilling: true,
+    });
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM iam.organization_memberships
+          WHERE organization_id = $1::uuid`,
+        account.clientOrganizationId,
+      ),
+    ).toBe(beforeMemberships);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM iam.roles
+          WHERE organization_id = $1::uuid`,
+        account.clientOrganizationId,
+      ),
+    ).toBe(beforeRoles);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM iam.membership_roles mr
+           JOIN iam.organization_memberships m ON m.id = mr.membership_id
+          WHERE m.organization_id = $1::uuid`,
+        account.clientOrganizationId,
+      ),
+    ).toBe(beforeMembershipRoles);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM iam.invitations
+          WHERE organization_id = $1::uuid`,
+        account.clientOrganizationId,
+      ),
+    ).toBe(beforeInvitations);
+  });
+
+  it("rolls back a late client-conversion conflict after canonical client resolution with zero partial link/idempotency/deal residue", async () => {
+    const token = crypto.randomUUID().replaceAll("-", "");
+    const domain = "late-conflict-" + token + ".example";
+    const existingClientOrganizationId = crypto.randomUUID();
+
+    await database.organization.create({
+      data: {
+        id: existingClientOrganizationId,
+        organizationType: "CLIENT",
+        legalName: "Late Conflict Client " + token,
+        displayName: "Late Conflict Client " + token,
+        slug: "late-conflict-client-" + token,
+        normalizedDomain: domain,
+        status: "ACTIVE",
+      },
+    });
+
+    const existingAccountResourceId = crypto.randomUUID();
+    const existingAccountId = crypto.randomUUID();
+    await database.resource.create({
+      data: {
+        id: existingAccountResourceId,
+        resourceType: "client-account",
+        title: "Existing late-conflict client account",
+        ownerOrganizationId: primaryOrganizationId,
+        clientOrganizationId: existingClientOrganizationId,
+        visibility: "INTERNAL",
+        sensitivity: "CONFIDENTIAL",
+      },
+    });
+    await database.commercialClientAccount.create({
+      data: {
+        id: existingAccountId,
+        resourceId: existingAccountResourceId,
+        ownerOrganizationId: primaryOrganizationId,
+        clientOrganizationId: existingClientOrganizationId,
+        ownerMembershipId: primaryMembershipId,
+        visibility: "INTERNAL",
+        sensitivity: "CONFIDENTIAL",
+        accountManagerMembershipId: primaryMembershipId,
+        health: "NEW",
+        onboardingState: "NOT_STARTED",
+        portalState: "NOT_PROVISIONED",
+        createdByMembershipId: primaryMembershipId,
+        updatedByMembershipId: primaryMembershipId,
+      },
+    });
+
+    const company = mustDomainOk(
+      await createCompany(
+        platform,
+        { name: "Commercial Late Conflict " + token, domain },
+        database,
+      ),
+    );
+    const contact = mustDomainOk(
+      await createContact(
+        platform,
+        { companyId: company.id, title: "Late conflict contact" },
+        database,
+      ),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "late-conflict-" + token,
+    });
+    const idempotencyKey = "late-conflict-" + token;
+
+    const beforeAccounts = await count(
+      `SELECT count(*)::bigint AS count
+         FROM commercial.client_accounts
+        WHERE client_organization_id = $1::uuid
+          AND archived_at IS NULL`,
+      existingClientOrganizationId,
+    );
+    const beforeResources = await resourceCount(
+      primaryOrganizationId,
+      "client-account",
+    );
+
+    const result = await convertDealToClient(
+      platform,
+      {
+        dealId: deal.id,
+        expectedRowVersion: deal.rowVersion,
+        idempotencyKey,
+      },
+      database,
+    );
+    expect(result).toEqual({ kind: "error", code: "CONFLICT" });
+
+    const companyAfter = await database.crmCompany.findUniqueOrThrow({
+      where: { id: company.id },
+      select: { linkedOrganizationId: true },
+    });
+    expect(companyAfter.linkedOrganizationId).toBeNull();
+
+    const dealAfter = await database.commercialDeal.findUniqueOrThrow({
+      where: { id: deal.id },
+      select: { clientOrganizationId: true, rowVersion: true },
+    });
+    expect(dealAfter.clientOrganizationId).toBeNull();
+    expect(dealAfter.rowVersion).toBe(deal.rowVersion);
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM platform.idempotency_receipts
+          WHERE owner_organization_id = $1::uuid
+            AND scope = 'commercial.client-conversion'
+            AND idempotency_key = $2::text`,
+        primaryOrganizationId,
+        idempotencyKey,
+      ),
+    ).toBe(0);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM commercial.client_accounts
+          WHERE client_organization_id = $1::uuid
+            AND archived_at IS NULL`,
+        existingClientOrganizationId,
+      ),
+    ).toBe(beforeAccounts);
+    expect(await resourceCount(primaryOrganizationId, "client-account")).toBe(
+      beforeResources,
+    );
+  });
+
+  it("prevents the restricted runtime role from rewriting versioned pipeline or stage semantics after history exists", async () => {
+    const pipeline = mustOk(
+      await createDealPipeline(
+        platform,
+        pipelineInput("Commercial Immutable Pipeline " + crypto.randomUUID()),
+        database,
+      ),
+    );
+    const firstStage = pipeline.stages.find(
+      (stage) => stage.canonicalClass === "QUALIFIED",
+    );
+    if (!firstStage) throw new Error("missing qualified stage fixture");
+
+    mustOk(
+      await createDeal(
+        platform,
+        {
+          pipelineId: pipeline.id,
+          companyId: fixture.ownCompanyId,
+          primaryContactId: fixture.ownContactId,
+          amountMinor: BigInt(1000),
+          currency: "USD",
+        },
+        database,
+      ),
+    );
+
+    let stageSemanticMutationAllowed = false;
+    try {
+      await database.$transaction(async (transaction) => {
+        await transaction.$queryRawUnsafe(
+          `SELECT set_config('app.organization_id', $1, true)`,
+          primaryOrganizationId,
+        );
+        await transaction.$executeRawUnsafe("SET LOCAL ROLE perspective_runtime");
+        const changed = await transaction.$executeRawUnsafe(
+          `UPDATE commercial.deal_stages
+              SET canonical_class = 'INTERESTED'
+            WHERE id = $1::uuid`,
+          firstStage.id,
+        );
+        stageSemanticMutationAllowed = changed === 1;
+        throw new Error("ROLLBACK_PIPELINE_STAGE_PROBE");
+      });
+    } catch {
+      // The transaction is deliberately rolled back whether the mutation is denied
+      // by production controls or the rollback probe fires after an unsafe success.
+    }
+
+    let pipelineVersionMutationAllowed = false;
+    try {
+      await database.$transaction(async (transaction) => {
+        await transaction.$queryRawUnsafe(
+          `SELECT set_config('app.organization_id', $1, true)`,
+          primaryOrganizationId,
+        );
+        await transaction.$executeRawUnsafe("SET LOCAL ROLE perspective_runtime");
+        const changed = await transaction.$executeRawUnsafe(
+          `UPDATE commercial.deal_pipelines
+              SET version = version + 1
+            WHERE id = $1::uuid`,
+          pipeline.id,
+        );
+        pipelineVersionMutationAllowed = changed === 1;
+        throw new Error("ROLLBACK_PIPELINE_VERSION_PROBE");
+      });
+    } catch {
+      // Rollback-only probe.
+    }
+
+    expect(stageSemanticMutationAllowed).toBe(false);
+    expect(pipelineVersionMutationAllowed).toBe(false);
+  });
+
+  it("keeps R7 commercial truth physically absent at the Step-4 boundary", async () => {
+    const rows = await database.$queryRawUnsafe<
+      Array<{
+        proposals: string | null;
+        products: string | null;
+        packages: string | null;
+        contracts: string | null;
+        invoices: string | null;
+        payments: string | null;
+      }>
+    >(
+      `SELECT
+         to_regclass('commercial.proposals')::text AS proposals,
+         to_regclass('commercial.products')::text AS products,
+         to_regclass('commercial.packages')::text AS packages,
+         to_regclass('commercial.contracts')::text AS contracts,
+         to_regclass('commercial.invoices')::text AS invoices,
+         to_regclass('commercial.payments')::text AS payments`,
+    );
+
+    expect(rows[0]).toEqual({
+      proposals: null,
+      products: null,
+      packages: null,
+      contracts: null,
+      invoices: null,
+      payments: null,
+    });
+  });
+});
+
