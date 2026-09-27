@@ -47,6 +47,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -58,21 +60,7 @@ jobs:
         run: npm ci
 
       - name: Validate frozen R6 scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -F 'schemas  = ["iam", "platform", "audit", "crm", "comms", "commercial"]' prisma/schema.prisma
-
-          for forbidden in             'model CommercialProposal'             'model CommercialProduct'             'model CommercialPackage'             'model CommercialContract'             'model CommercialInvoice'             'model CommercialPayment'             'model CommercialSubscription'             'model CommercialEntitlement'
-          do
-            if grep -Fq "$forbidden" prisma/schema.prisma; then
-              echo "R7-owned Prisma model present in R6: $forbidden"
-              exit 1
-            fi
-          done
-
-          grep -F 'activationStage: "R6+"' src/modules/authorization/registry.ts
-          grep -F 'key: "template.manage"' src/modules/authorization/registry.ts
+        run: node scripts/governance/verify-r6-implementation-scope.mjs
 
       - name: Validate and generate Prisma
         run: |
