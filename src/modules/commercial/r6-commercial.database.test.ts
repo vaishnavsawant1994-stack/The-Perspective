@@ -1496,9 +1496,16 @@ describe("R6 commercial deal falsification", () => {
       stages: fixture.ownStages,
       key: "archived",
     });
-    await database.commercialDeal.update({
-      where: { id: deal.id },
-      data: { archivedAt: new Date() },
+    const archivedAt = new Date();
+    await database.$transaction(async (transaction) => {
+      await transaction.resource.update({
+        where: { id: deal.resourceId },
+        data: { archivedAt },
+      });
+      await transaction.commercialDeal.update({
+        where: { id: deal.id },
+        data: { archivedAt },
+      });
     });
 
     const archived = await convertDealToClient(
