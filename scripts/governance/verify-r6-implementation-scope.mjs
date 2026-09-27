@@ -32,6 +32,10 @@ const frozenContract = git([
   "show",
   `${FROZEN}:docs/phase-4/PHASE-4-R6-IMPLEMENTATION-CONTRACT.md`,
 ]);
+const frozenThreatModel = git([
+  "show",
+  `${FROZEN}:docs/phase-4/PHASE-4-R6-THREAT-MODEL.md`,
+]);
 
 execFileSync("git", ["merge-base", "--is-ancestor", BASELINE, "HEAD"]);
 
@@ -48,9 +52,30 @@ for (const marker of [
   "approved 37-key active-permission allowlist",
   "PROPOSAL_PREPARATION",
   "template.manage",
-  "Every applicable threat in P4-R6-THREAT-01 must have an executable disposition.",
 ]) {
   assert(frozenContract.includes(marker), `Frozen R6 contract missing marker: ${marker}`);
+}
+
+const frozenThreatIds = [
+  ...new Set(
+    [...frozenThreatModel.matchAll(/^\| (A\d{2,3}) \|/gm)].map(
+      (match) => match[1],
+    ),
+  ),
+];
+const expectedThreatIds = Array.from(
+  { length: 120 },
+  (_, index) => `A${String(index + 1).padStart(2, "0")}`,
+);
+assert(
+  frozenThreatIds.length === 120,
+  `Expected 120 frozen R6 threats, found ${frozenThreatIds.length}`,
+);
+for (const id of expectedThreatIds) {
+  assert(
+    frozenThreatIds.includes(id),
+    `Frozen R6 threat model is missing ${id}`,
+  );
 }
 
 assert(
@@ -117,7 +142,7 @@ for (const marker of [
   "FOREIGN KEY (\"resource_id\",\"owner_organization_id\")",
   "FOREIGN KEY (\"department_id\",\"owner_organization_id\")",
   "r6_reject_template_runtime_mutation",
-  "deal_stages_r6_canonical_class",
+  "deal_stages_canonical_class_valid",
 ]) {
   assert(migration.includes(marker), `R6 migration missing security marker: ${marker}`);
 }
@@ -155,6 +180,7 @@ process.stdout.write(JSON.stringify({
   frozenContract: FROZEN,
   r6Models: r6Models.length,
   r6Tables: createTables.length,
+  frozenThreatCount: frozenThreatIds.length,
   historicalR6PermissionCount: historicalR6Keys.length,
   activeR6PermissionCount: active.length,
   proposalKeysDormant: PROPOSAL_KEYS.length,
