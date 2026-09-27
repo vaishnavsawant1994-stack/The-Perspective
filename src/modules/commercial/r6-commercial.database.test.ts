@@ -95,7 +95,7 @@ function mustDomainOk<T>(
   return result.value;
 }
 
-async function count(sql: string, ...params: readonly (string | number | Date)[]) {
+async function count(sql: string, ...params: readonly (string | number | Date | string[])[]) {
   const rows = await database.$queryRawUnsafe<Array<{ count: bigint }>>(
     sql,
     ...params,
