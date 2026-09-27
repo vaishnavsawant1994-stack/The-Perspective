@@ -431,6 +431,128 @@ describe("R5 resource policy", () => {
     });
   });
 
+  it("denies ASN authority when the actor is absent from trusted assignments", () => {
+    const context = authorizedContext([
+      grant("team.view", { scope: "ASN" }),
+    ]);
+    const command = {
+      action: "view",
+      fieldPolicy: { readableFields: [], mutableFields: [] },
+    };
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "team",
+          ownerOrganizationId: "org-1",
+          assignedMembershipIds: ["membership-1"],
+        },
+        command,
+      ).decision,
+    ).toBe("ALLOW");
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "team",
+          ownerOrganizationId: "org-1",
+          assignedMembershipIds: ["membership-2"],
+        },
+        command,
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "SCOPE_DENIED",
+    });
+  });
+
+  it("denies OWN authority when trusted ownership belongs to another actor", () => {
+    const context = authorizedContext([
+      grant("team.view", { scope: "OWN" }),
+    ]);
+    const command = {
+      action: "view",
+      fieldPolicy: { readableFields: [], mutableFields: [] },
+    };
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "team",
+          ownerOrganizationId: "org-1",
+          ownerMembershipId: "membership-1",
+        },
+        command,
+      ).decision,
+    ).toBe("ALLOW");
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "team",
+          ownerOrganizationId: "org-1",
+          ownerMembershipId: "membership-2",
+          ownerUserId: "user-2",
+        },
+        command,
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "SCOPE_DENIED",
+    });
+  });
+
+  it("does not let NONE scope authorize a generic resource", () => {
+    const context = authorizedContext([
+      grant("team.view", { scope: "NONE" }),
+    ]);
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "team",
+          ownerOrganizationId: "org-1",
+        },
+        {
+          action: "view",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "SCOPE_DENIED",
+    });
+  });
+
+  it("fails closed when a protected resource permission has no ResourceContext", () => {
+    const context = authorizedContext([grant("team.view")]);
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        undefined,
+        {
+          action: "view",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "SCOPE_DENIED",
+    });
+  });
+
   it("requires explicit client-safe projection on a Client role", () => {
     const context = authorizedContext(
       [grant("client.project.view", { scope: "CLIENT", roleKey: "R17" })],
