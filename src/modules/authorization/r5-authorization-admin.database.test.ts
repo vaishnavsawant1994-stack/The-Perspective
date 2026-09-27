@@ -211,12 +211,10 @@ async function auditActions(requestId: string) {
 }
 
 afterEach(async () => {
-  if (requestIds.length > 0) {
-    await database.auditEvent.deleteMany({
-      where: { requestId: { in: [...requestIds] } },
-    });
-    requestIds.length = 0;
-  }
+  // Audit evidence is intentionally immutable. Tests use unique request IDs and
+  // leave denial/success evidence in the ephemeral CI database rather than
+  // weakening the production immutability invariant for cleanup.
+  requestIds.length = 0;
 
   const membershipRoleConditions = [];
   if (createdMembershipRoleIds.length > 0) {
