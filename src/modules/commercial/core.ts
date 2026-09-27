@@ -384,10 +384,10 @@ async function readExistingConvertedDeal(
       existing.primaryContactId !== input.primaryContactId) ||
     existing.amountMinor !== money.amount ||
     existing.currency !== money.currency ||
-    (existing.probability == null
-      ? probability !== null
-      : Number(existing.probability) !== probability) ||
-    existingDate !== expectedDate
+    (input.probability != null &&
+      (existing.probability == null ||
+        Number(existing.probability) !== probability)) ||
+    (input.expectedCloseDate != null && existingDate !== expectedDate)
   ) {
     throw new CommercialCommandError("IDEMPOTENCY_CONFLICT");
   }
