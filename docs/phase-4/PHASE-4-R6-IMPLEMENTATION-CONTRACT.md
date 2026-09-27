@@ -70,17 +70,18 @@ Future Gate-B/falsification/qualification records become part of G0 only when cr
 P4-R6-G0 may not become frozen until:
 
 1. Proposal release ownership D01 is explicitly resolved;
-2. R6 action-family authorization binding is specified for all activated R6 permissions;
-3. all R6 resources have trusted ResourceContext definitions;
-4. R6 field policies are defined for staff and any client-safe projections;
-5. tenant/RLS policy inventory is complete for every new table;
-6. lifecycle commands and guards are mapped to canonical Phase-2D states;
-7. all applicable R6 threat cases map to executable qualification;
-8. R7+ exclusions are machine-verifiable;
-9. all BLOCKING/HIGH contract findings are closed;
-10. exact G0 candidate SHA passes enhanced contract qualification;
-11. owner explicitly freezes/accepts P4-R6-G0;
-12. owner separately authorizes implementation.
+2. Email-template permission stage ownership D15 / R6-G02 is explicitly resolved;
+3. R6 action-family authorization binding is specified for all activated R6 permissions;
+4. all R6 resources have trusted ResourceContext definitions;
+5. R6 field policies are defined for staff and any client-safe projections;
+6. tenant/RLS policy inventory is complete for every new table;
+7. lifecycle commands and guards are mapped to canonical Phase-2D states;
+8. all applicable R6 threat cases map to executable qualification;
+9. R7+ exclusions are machine-verifiable;
+10. all BLOCKING/HIGH contract findings are closed;
+11. exact G0 candidate SHA passes enhanced contract qualification;
+12. owner explicitly freezes/accepts P4-R6-G0;
+13. owner separately authorizes implementation.
 
 Until item 12: **production R6 implementation is prohibited**.
 
@@ -676,6 +677,7 @@ R1–R5: ACCEPTED
 R6 planning: AUTHORIZED
 R6 G0 candidate: DRAFT
 R6-G01 Proposal scope: OPEN
+R6-G02 Template permission stage ownership: OPEN
 R6 action-family binding: REQUIRED BEFORE ACTIVATION
 R6 production implementation: NOT AUTHORIZED
 R7+: LOCKED
