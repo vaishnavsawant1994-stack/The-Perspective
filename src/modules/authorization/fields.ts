@@ -82,6 +82,8 @@ const TEAM_FIELD_POLICIES: Record<
     readableFields: [
       "roleId",
       "permissionId",
+      "permissionKey",
+      "permissionsHash",
       "effect",
       "constraints",
       "createdAt",
