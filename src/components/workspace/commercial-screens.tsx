@@ -13,6 +13,12 @@ import {
   Users, WalletCards, XCircle,
 } from "lucide-react";
 import s from "./commercial.module.css";
+import {
+  type R6CampaignRow,
+  type R6DealRow,
+  type R6LeadRow,
+  useR6Collection,
+} from "./r6-live-data";
 
 type Icon = React.ComponentType<{ size?: number }>;
 type MetricData = { label: string; value: string; change?: string; icon: Icon };
@@ -55,8 +61,67 @@ function Status({ value }: { value: string }) { const cls = /No|Failed|Lost/.tes
 function LeadDrawer() { return <aside className={s.drawer}><header><b>Lead / Contact Context</b><button type="button">×</button></header><div className={s.drawerProfile}><Image src={portraits[0]} width={58} height={58} alt="Michael Chen" /><h3>Michael Chen</h3><p>CEO & Co-Founder at NovaAI</p><small>San Francisco, CA, USA</small></div><nav><button>Overview</button><button>Activity</button><button>Notes</button><button>Tasks</button></nav><h4>Contact information</h4><p className={s.detail}><span>Email</span><b>michael.chen@novaai.com</b></p><p className={s.detail}><span>Phone</span><b>+1 (415) 555-0123</b></p><p className={s.detail}><span>LinkedIn</span><b>Verified</b></p><h4>Company information</h4>{[["Company", "NovaAI"], ["Industry", "Artificial Intelligence"], ["Company size", "51–200 employees"], ["Revenue", "$10M–$50M"]].map(x => <p className={s.detail} key={x[0]}><span>{x[0]}</span><b>{x[1]}</b></p>)}<h4>Lead intelligence</h4><p className={s.detail}><span>Lead / Fit / Contact</span><b>92 · 96 · 95%</b></p><p className={s.detail}><span>Status</span><Status value="Interested" /></p><Button primary><Send size={14} /> Start Outreach</Button><div className={s.inlineActions}><Button><CalendarDays size={13} /> Meeting</Button><Button><Briefcase size={13} /> Convert</Button></div></aside>; }
 
 export function LeadCRM() {
-  const metrics: MetricData[] = [["Total leads", "2,842", "12.6%", Users], ["New leads", "324", "18.3%", Sparkles], ["Qualified", "612", "15.8%", ShieldCheck], ["Outreach ready", "482", "11.4%", Rocket], ["Contacted", "1,128", "8.7%", Phone], ["Replied", "364", "13.2%", Mail], ["Interested", "198", "9.8%", CheckCircle2], ["Follow up due", "312", "6.3%", Clock3], ["Converted", "86", "14.6%", TrendingUp]].map(([label, value, change, icon]) => ({ label: label as string, value: value as string, change: change as string, icon: icon as Icon }));
-  return <div className={s.page}><Header title="Lead CRM" subtitle="Manage and convert high-quality leads into meaningful opportunities."><Button><Save size={14} /> Save view</Button><Button><Filter size={14} /> Advanced filters</Button></Header><Metrics items={metrics} /><Tabs tabs={["All Leads · 2,842", "My Leads · 428", "Team Leads · 1,962", "Unassigned · 452", "Archived · 138"]} /><Filters crm /><Bulk /><div className={s.gridWithDrawer}><section><div className={s.table}><div className={s.tableHead}><span /><span>Lead / Title</span><span>Company</span><span>Contact</span><span>Lead score</span><span>Best fit</span><span>Source</span><span>Owner</span><span>Status</span><span>Next follow-up</span><span /></div>{leads.map((r, i) => <div className={s.tableRow} key={r[0]}><input type="checkbox" defaultChecked={i < 2} /><PersonCell row={r} index={i} /><b>{r[2]}</b><span>{r[0].toLowerCase().replace(" ", ".")}@example.com<small>+1 (415) 555-01{i + 20}</small></span><span className={s.score}>{r[3]}</span><Status value={r[4]} /><span>{r[5]}</span><span>{r[6]}</span><Status value={r[7]} /><span>{r[8]}</span><MoreHorizontal size={15} /></div>)}</div><div className={s.miniCharts}><Panel title="Lead Source Distribution"><div className={s.donut} /></Panel><Panel title="Lead Status Distribution"><div className={s.donut} /></Panel><Panel title="Top Lead Owners"><Ranked names={["John Smith", "Emma Davis", "Liam Brown", "Sophia Lee"]} /></Panel><Panel title="Leads by Best Fit"><Ranked names={["Personal Magazine", "Podcast Guest", "Article / Interview", "Partnership"]} /></Panel></div></section><LeadDrawer /></div></div>;
+  const live = useR6Collection<R6LeadRow>("/api/v1/r6/leads?limit=50");
+  const count = (state: string) =>
+    live.items.filter((item) => item.lifecycleState === state).length;
+  const metrics: MetricData[] = [
+    { label: "Authorized leads", value: String(live.items.length), icon: Users },
+    { label: "New leads", value: String(count("NEW")), icon: Sparkles },
+    { label: "Qualified", value: String(count("QUALIFIED")), icon: ShieldCheck },
+    { label: "Outreach ready", value: String(count("OUTREACH_READY")), icon: Rocket },
+    { label: "Contacted", value: String(count("CONTACTED")), icon: Phone },
+    { label: "Replied", value: String(count("REPLIED")), icon: Mail },
+    { label: "Interested", value: String(count("INTERESTED")), icon: CheckCircle2 },
+    { label: "Nurture", value: String(count("NURTURE")), icon: Clock3 },
+    { label: "Converted", value: String(count("CONVERTED")), icon: TrendingUp },
+  ];
+  const first = live.items[0];
+
+  return <div className={s.page}>
+    <Header title="Lead CRM" subtitle="Live R6 CRM data filtered through the current authenticated tenant and authorization scope.">
+      <Button><Save size={14} /> Save view</Button><Button><Filter size={14} /> Advanced filters</Button>
+    </Header>
+    <Metrics items={metrics} />
+    <Tabs tabs={[`All authorized · ${live.items.length}`, `Qualified · ${count("QUALIFIED")}`, `Outreach ready · ${count("OUTREACH_READY")}`, `Interested · ${count("INTERESTED")}`, `Converted · ${count("CONVERTED")}`]} />
+    <Filters crm /><Bulk />
+    <div className={s.gridWithDrawer}>
+      <section>
+        <div className={s.table}>
+          <div className={s.tableHead}><span /><span>Lead</span><span>Company</span><span>Contact</span><span>Fit score</span><span>Qualification</span><span>Source</span><span>Owner</span><span>Status</span><span>Last activity</span><span /></div>
+          {live.items.map((item, i) => <div className={s.tableRow} key={item.id}>
+            <input type="checkbox" />
+            <PersonCell row={[`Lead ${item.id.slice(0, 8)}`, item.resourceId.slice(0, 8)]} index={i} />
+            <b>{item.companyId ? item.companyId.slice(0, 8) : "—"}</b>
+            <span>{item.contactId ? item.contactId.slice(0, 8) : "—"}</span>
+            <span className={s.score}>{item.fitScore ?? "—"}</span>
+            <span>{item.qualificationState ?? "—"}</span>
+            <span>{item.leadSourceId ? item.leadSourceId.slice(0, 8) : "—"}</span>
+            <span>{item.ownerMembershipId ? item.ownerMembershipId.slice(0, 8) : "Unassigned"}</span>
+            <Status value={item.lifecycleState.replaceAll("_", " ")} />
+            <span>{item.lastActivityAt ? new Date(item.lastActivityAt).toLocaleDateString() : "—"}</span>
+            <MoreHorizontal size={15} />
+          </div>)}
+        </div>
+        <div className={s.miniCharts}>
+          <Panel title="Live data status"><p>{live.loading ? "Loading authorized CRM records…" : live.error ? "Live CRM data is unavailable for this session." : `${live.items.length} authorized records loaded.`}</p></Panel>
+          <Panel title="Lifecycle coverage"><Ranked names={["NEW", "QUALIFIED", "OUTREACH_READY", "CONTACTED", "REPLIED", "INTERESTED"].filter((state) => count(state) > 0)} /></Panel>
+        </div>
+      </section>
+      <aside className={s.drawer}>
+        <header><b>Authorized Lead Context</b></header>
+        {first ? <>
+          <h3>Lead {first.id.slice(0, 8)}</h3>
+          <Status value={first.lifecycleState.replaceAll("_", " ")} />
+          <p className={s.detail}><span>Resource</span><b>{first.resourceId.slice(0, 8)}</b></p>
+          <p className={s.detail}><span>Company</span><b>{first.companyId?.slice(0, 8) ?? "—"}</b></p>
+          <p className={s.detail}><span>Contact</span><b>{first.contactId?.slice(0, 8) ?? "—"}</b></p>
+          <p className={s.detail}><span>Fit score</span><b>{first.fitScore ?? "—"}</b></p>
+          <p className={s.detail}><span>Qualification</span><b>{first.qualificationState ?? "—"}</b></p>
+          <p className={s.detail}><span>Owner</span><b>{first.ownerMembershipId?.slice(0, 8) ?? "Unassigned"}</b></p>
+        </> : <p>{live.loading ? "Loading…" : "No authorized leads are available."}</p>}
+      </aside>
+    </div>
+  </div>;
 }
 
 function Ranked({ names }: { names: string[] }) { return <div>{names.map((x, i) => <div className={s.detail} key={x}><span>{x}</span><b>{428 - i * 72}</b></div>)}</div>; }
@@ -70,9 +135,71 @@ const campaigns = [
   ["Health Innovators Feature", "Content", "Healthcare Leaders", "Olivia Martinez", "189", "1,042", "5.8%", "15", "6", "Completed"],
 ];
 export function OutreachHub() {
-  const metrics: MetricData[] = [["Active campaigns", "18", "20%", Users], ["Leads enrolled", "2,842", "18.6%", UserPlus], ["Emails sent", "24,631", "22.4%", Mail], ["Delivered", "22,104", "89.7%", Check], ["Replies", "1,893", "7.7%", MessageSquare], ["Positive replies", "412", "2.1%", Sparkles], ["Meetings booked", "156", "14.8%", CalendarDays], ["Conversion rate", "2.6%", "0.6%", Target], ["Revenue influenced", "$128,450", "32.4%", CircleDollarSign]].map(([label, value, change, icon]) => ({ label: label as string, value: value as string, change: change as string, icon: icon as Icon }));
-  return <div className={s.page}><Header title="Outreach Campaigns / Outreach Hub" subtitle="Create, manage and optimize campaigns that turn leads into conversations."><Button>Quick start guide</Button><Button>Campaign settings</Button><Button primary href="/app/outreach/sequences/personal-magazine-q2"><Plus size={15} /> Create campaign</Button></Header><Metrics items={metrics} /><div className={s.gridWithDrawer}><section><Tabs tabs={["All Campaigns · 24", "Active · 18", "Draft · 3", "Scheduled · 2", "Paused · 1", "Completed · 8"]} /><Filters /><Bulk outreach /><div className={`${s.table} ${s.campaignTable}`}><div className={s.tableHead}><span /><span>Campaign</span><span>Offer</span><span>Audience / List</span><span>Owner</span><span>Enrolled</span><span>Sent</span><span>Reply rate</span><span>Meetings</span><span>Status</span><span /></div>{campaigns.map((r, i) => <div className={s.tableRow} key={r[0]}><input type="checkbox" /><span><b>{r[0]}</b><small>Launched May {16 - i}, 2026</small></span><Status value={r[1]} /><span>{r[2]}</span><PersonCell row={[r[3], "Campaign owner"]} index={i} /><b>{r[4]}</b><span>{r[5]}</span><b>{r[6]}</b><span>{r[8]}</span><Status value={r[9]} /><MoreHorizontal size={15} /></div>)}</div><div className={s.miniCharts}><Panel title="Campaign Performance"><MiniBars /></Panel><Panel title="Reply Rate"><Ranked names={campaigns.slice(0, 4).map(x => x[0])} /></Panel><Panel title="Positive Reply Rate"><div className={s.donut} /></Panel><Panel title="Meetings Booked"><MiniBars /></Panel><Panel title="Top Offers"><div className={s.donut} /></Panel></div></section><aside className={s.drawer}><header><b>Campaign Overview</b><Link href="#">View report</Link></header><Status value="Running" /><h3>Personal Magazine Q2</h3>{[["Launched", "Apr 28, 2026"], ["Owner", "John Smith"], ["Enrolled", "428 leads"], ["Progress", "46%"]].map(x => <p className={s.detail} key={x[0]}><span>{x[0]}</span><b>{x[1]}</b></p>)}<Button primary href="/app/outreach/sequences/personal-magazine-q2"><BarChart3 size={14} /> View Campaign</Button><h4>Recent Activity</h4><CompactList items={["Email sent to Michael Chen", "Reply received from Sarah Johnson", "Meeting booked with David Wilson", "Bounce: invalid email"]} /><h4>Quick Actions</h4>{["View campaign sequences", "View replies (356)", "Add leads to campaign", "Pause campaign", "Duplicate campaign"].map(x => <Button key={x}>{x}</Button>)}</aside></div></div>;
+  const live = useR6Collection<R6CampaignRow>("/api/v1/r6/outreach/campaigns?limit=50");
+  const sent = live.items.reduce((sum, item) => sum + item.sentCount, 0);
+  const replies = live.items.reduce((sum, item) => sum + item.replyCount, 0);
+  const positive = live.items.reduce((sum, item) => sum + item.positiveReplyCount, 0);
+  const enrolled = live.items.reduce((sum, item) => sum + item.recipientCount, 0);
+  const active = live.items.filter((item) => ["RUNNING", "SCHEDULED"].includes(item.status)).length;
+  const metrics: MetricData[] = [
+    { label: "Authorized campaigns", value: String(live.items.length), icon: Users },
+    { label: "Active campaigns", value: String(active), icon: Play },
+    { label: "Leads enrolled", value: String(enrolled), icon: UserPlus },
+    { label: "Messages sent", value: String(sent), icon: Mail },
+    { label: "Replies", value: String(replies), icon: MessageSquare },
+    { label: "Positive replies", value: String(positive), icon: Sparkles },
+    { label: "Reply rate", value: sent > 0 ? `${((replies / sent) * 100).toFixed(1)}%` : "0%", icon: Target },
+  ];
+  const first = live.items[0];
+
+  return <div className={s.page}>
+    <Header title="Outreach Campaigns / Outreach Hub" subtitle="Live R6 communications data; provider delivery truth is not inferred from browser actions.">
+      <Button>Campaign settings</Button><Button primary href="/app/outreach/sequences/personal-magazine-q2"><Plus size={15} /> Create campaign</Button>
+    </Header>
+    <Metrics items={metrics} />
+    <div className={s.gridWithDrawer}>
+      <section>
+        <Tabs tabs={[`All authorized · ${live.items.length}`, `Active · ${active}`, `Draft · ${live.items.filter((x) => x.status === "DRAFT").length}`, `Scheduled · ${live.items.filter((x) => x.status === "SCHEDULED").length}`, `Paused · ${live.items.filter((x) => x.status === "PAUSED").length}`]} />
+        <Filters /><Bulk outreach />
+        <div className={`${s.table} ${s.campaignTable}`}>
+          <div className={s.tableHead}><span /><span>Campaign</span><span>Lead list</span><span>Sequence</span><span>Owner</span><span>Enrolled</span><span>Sent</span><span>Reply rate</span><span>Positive</span><span>Status</span><span /></div>
+          {live.items.map((item) => {
+            const rate = item.sentCount > 0 ? `${((item.replyCount / item.sentCount) * 100).toFixed(1)}%` : "0%";
+            return <div className={s.tableRow} key={item.id}>
+              <input type="checkbox" />
+              <span><b>{item.name}</b><small>{item.id.slice(0, 8)}</small></span>
+              <span>{item.leadListId.slice(0, 8)}</span>
+              <span>{item.sequenceId.slice(0, 8)}</span>
+              <span>{item.sendingAccountId.slice(0, 8)}</span>
+              <b>{item.recipientCount}</b>
+              <span>{item.sentCount}</span>
+              <b>{rate}</b>
+              <span>{item.positiveReplyCount}</span>
+              <Status value={item.status} />
+              <MoreHorizontal size={15} />
+            </div>;
+          })}
+        </div>
+        <div className={s.miniCharts}>
+          <Panel title="Live data status"><p>{live.loading ? "Loading authorized campaign records…" : live.error ? "Live communications data is unavailable for this session." : `${live.items.length} authorized campaigns loaded.`}</p></Panel>
+          <Panel title="Current outcomes"><p>{replies} replies · {positive} positive replies · {sent} sent events recorded</p></Panel>
+        </div>
+      </section>
+      <aside className={s.drawer}>
+        <header><b>Campaign Overview</b></header>
+        {first ? <>
+          <Status value={first.status} /><h3>{first.name}</h3>
+          <p className={s.detail}><span>Recipients</span><b>{first.recipientCount}</b></p>
+          <p className={s.detail}><span>Sent</span><b>{first.sentCount}</b></p>
+          <p className={s.detail}><span>Replies</span><b>{first.replyCount}</b></p>
+          <p className={s.detail}><span>Positive replies</span><b>{first.positiveReplyCount}</b></p>
+          <p className={s.detail}><span>Row version</span><b>{first.rowVersion}</b></p>
+        </> : <p>{live.loading ? "Loading…" : "No authorized campaigns are available."}</p>}
+      </aside>
+    </div>
+  </div>;
 }
+
 function MiniBars() { return <div className={s.bars}>{[38, 52, 46, 65, 73, 69, 84, 91].map((x, i) => <i key={i} style={{ height: `${x}%` }} />)}</div>; }
 function CompactList({ items }: { items: string[] }) { return <div className={s.list}>{items.map((x, i) => <div key={x}><span className={s.pill}>{i + 1}</span><p><b>{x}</b><small>{i * 18 + 2}m ago</small></p></div>)}</div>; }
 
@@ -85,7 +212,65 @@ export function UnifiedInbox() { return <div className={s.page}><Header title="U
 export function MeetingsFollowups() { return <div className={s.page}><Header title="Meetings & Follow-ups" subtitle="Manage meetings, calls, outcomes and controlled next actions."><Button>Meeting Settings</Button><Button primary><Plus size={14} /> Schedule Meeting</Button></Header><Metrics items={[["Upcoming meetings", "14", "16%", CalendarDays], ["Completed this week", "9", "12%", CheckCircle2], ["Follow-ups due today", "7", "40%", Clock3], ["Overdue follow-ups", "5", undefined, AlertTriangle], ["No shows", "2", undefined, XCircle], ["Cancelled", "3", undefined, XCircle]].map(([label, value, change, icon]) => ({ label: label as string, value: value as string, change: change as string | undefined, icon: icon as Icon }))} /><div className={s.calendarLayout}><Panel title="May 2026"><div className={s.miniCalendar}>{["M", "T", "W", "T", "F", "S", "S", ...Array.from({ length: 31 }, (_, i) => `${i + 1}`)].map((x, i) => <b key={`${x}${i}`}>{x}</b>)}</div><h2>My Calendars</h2>{["My Meetings", "Team Meetings", "Editorial Meetings", "Client Meetings", "Personal"].map(x => <p key={x}><input type="checkbox" defaultChecked /> {x}</p>)}</Panel><section><Tabs tabs={["Calendar", "Agenda", "Day", "Week", "Month", "Timeline"]} /><div className={s.week}><div className={s.weekGrid}>{Array.from({ length: 80 }, (_, i) => <span key={i}>{i < 8 ? ["", "Mon 13", "Tue 14", "Wed 15", "Thu 16", "Fri 17", "Sat 18", "Sun 19"][i] : i % 8 === 0 ? `${Math.floor(i / 8) + 7}:00` : ""}</span>)}{[["Discovery Call", 18, ""], ["Intro Call", 27, ""], ["Product Demo", 36, "green"], ["Proposal Discussion", 45, "orange"], ["Client Meeting", 54, "green"], ["Partnership Call", 63, "orange"]].map(([x, p, c]) => <div className={`${s.event} ${c ? s[c] : ""}`} style={{ gridColumn: (Number(p) % 7) + 2, gridRow: Math.floor(Number(p) / 8) + 2 }} key={x}>{x}<small>10:00 AM</small></div>)}</div></div><Panel title="Follow-ups" action="Add follow-up" className={s.followTable}><div className={s.table}><div className={s.tableHead}><span /><span>Follow-up</span><span>Related To</span><span>Owner</span><span>Due</span><span>Status</span><span /></div>{["Follow up on proposal feedback", "Send pricing & packages", "Check availability for next call", "Share editorial calendar", "Prepare case study"].map((x, i) => <div className={s.tableRow} key={x}><input type="checkbox" /><b>{x}</b><span>{leads[i][0]}<small>{leads[i][2]}</small></span><span>John Smith</span><span>May {16 + i}, 2026</span><Status value={i < 4 ? "Due Today" : "Upcoming"} /><MoreHorizontal size={14} /></div>)}</div></Panel></section><aside><Panel title="Meeting Detail"><Status value="Upcoming" /><h3>Discovery Call with Arjun Mehta</h3><CompactList items={["Thursday, May 16, 2026", "9:00 AM – 10:00 AM (PDT)", "Google Meet", "2 attendees"]} /><h2>Preparation Notes</h2><p>Focus on brand visibility, thought leadership and reach. Discuss the timeline for the Q3 edition.</p><h2>Agenda</h2>{["Introduction & rapport", "Company background", "Business goals", "How The Perspective can help", "Next steps"].map(x => <p key={x}><input type="checkbox" defaultChecked /> {x}</p>)}<Button>Reschedule</Button><Button danger>Cancel Meeting</Button><Button primary>Mark as Completed</Button></Panel></aside></div></div>; }
 
 const stages = ["Qualified", "Interested", "Discovery Scheduled", "Discovery Completed", "Proposal Preparation", "Proposal Sent"];
-export function DealsPipeline() { return <div className={s.page}><Header title="Deals Pipeline" subtitle="Track every opportunity from discovery through commercial close."><Button>Import Deals</Button><Button>Pipeline Settings</Button><Button primary href="/app/deals/nextpay-personal-magazine-q2"><Plus size={14} /> Create Deal</Button></Header><Metrics items={[["Total pipeline value", "$3.24M", "16.6%", WalletCards], ["Open deals", "48", "12%", Briefcase], ["Weighted pipeline", "$1.84M", "22.4%", TrendingUp], ["Expected revenue", "$985K", "16.3%", CircleDollarSign], ["Deals won", "16", "33.3%", CheckCircle2], ["Win rate", "32%", "4.5%", Target], ["Avg. deal size", "$61,250", "8.7%", BarChart3], ["Avg. sales cycle", "42 Days", undefined, Clock3], ["Closing this month", "$428K", undefined, CalendarDays]].map(([label, value, change, icon]) => ({ label: label as string, value: value as string, change: change as string | undefined, icon: icon as Icon }))} /><div className={s.surface}><div className={s.filters}><Button>Pipeline: Sales Pipeline</Button><Button>Kanban / List</Button><Button>All Owners</Button><Button>All Products</Button><Button>All Sources</Button><Button>All Close Dates</Button><Button><Filter size={13} /> Filters</Button></div></div><div className={s.gridWithDrawer}><section><div className={s.kanban}>{stages.map((stage, i) => <section className={s.column} key={stage}><header><b>{stage}</b><span>{i + 5}</span></header><small>${245 + i * 90},000 · {10 + i * 10}%</small>{leads.slice(i % 3, i % 3 + 3).map((r, j) => <article className={s.dealCard} key={r[0]}><h3>{r[2]}</h3><p>{r[0]} · Personal Magazine Q2</p><strong>${35 + (i + j) * 10},000</strong><footer><span>{r[6]}</span><Status value={j === 2 ? "High" : "Medium"} /></footer></article>)}<Button>+ Add Deal</Button></section>)}</div><div className={s.dashboardGrid}><Panel title="Pipeline by Owner"><Ranked names={["John Smith", "Emma Davis", "Michael Chen", "Sarah Johnson", "Priya Patel"]} /></Panel><Panel title="Deals Closing This Month"><CompactList items={["Acme Corporation · $150K", "NextPay Technologies · $95K", "FutureLabs AI · $80K", "CyberShield · $60K"]} /></Panel><Panel title="Pipeline Health"><div className={s.donut} /></Panel></div></section><aside className={s.drawer}><header><b>Deal Overview</b><button>×</button></header><div className={s.drawerProfile}><span className={s.score}>N</span><h3>NextPay Technologies</h3><p>Personal Magazine Q2</p></div>{[["Value", "$150,000"], ["Probability", "50%"], ["Expected close", "May 30, 2026"], ["Owner", "John Smith"], ["Source", "Outbound campaign"], ["Lead score", "85 (High)"], ["Next action", "Discovery call"]].map(x => <p className={s.detail} key={x[0]}><span>{x[0]}</span><b>{x[1]}</b></p>)}<h4>Quick Actions</h4><div className={s.inlineActions}><Button>Meeting</Button><Button>Proposal</Button><Button>Task</Button><Button>Note</Button></div><h4>Recent Activities</h4><CompactList items={["Email replied", "Discovery call scheduled", "Proposal viewed"]} /><Button primary href="/app/deals/nextpay-personal-magazine-q2">Open Deal Workspace</Button></aside></div></div>; }
+export function DealsPipeline() {
+  const live = useR6Collection<R6DealRow>("/api/v1/r6/deals?limit=50");
+  const totalMinor = live.items.reduce((sum, item) => sum + Number(item.amountMinor ?? 0), 0);
+  const weightedMinor = live.items.reduce((sum, item) => sum + Number(item.amountMinor ?? 0) * Number(item.probability ?? 0), 0);
+  const currency = live.items.find((item) => item.currency)?.currency ?? "USD";
+  const money = (minor: number) => new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(minor / 100);
+  const groups = new Map<string, R6DealRow[]>();
+  for (const item of live.items) {
+    const group = groups.get(item.stageId) ?? [];
+    group.push(item);
+    groups.set(item.stageId, group);
+  }
+  const first = live.items[0];
+  const metrics: MetricData[] = [
+    { label: "Authorized deals", value: String(live.items.length), icon: Briefcase },
+    { label: "Pipeline value", value: money(totalMinor), icon: WalletCards },
+    { label: "Weighted pipeline", value: money(weightedMinor), icon: TrendingUp },
+    { label: "With expected close", value: String(live.items.filter((x) => Boolean(x.expectedCloseDate)).length), icon: CalendarDays },
+  ];
+
+  return <div className={s.page}>
+    <Header title="Deals Pipeline" subtitle="Live R6 commercial data capped at the accepted PROPOSAL_PREPARATION boundary.">
+      <Button>Pipeline Settings</Button><Button primary href="/app/deals/nextpay-personal-magazine-q2"><Plus size={14} /> Create Deal</Button>
+    </Header>
+    <Metrics items={metrics} />
+    <div className={s.surface}><div className={s.filters}><Button>Authorized pipeline</Button><Button>Kanban / List</Button><Button><Filter size={13} /> Filters</Button></div></div>
+    <div className={s.gridWithDrawer}>
+      <section>
+        <div className={s.kanban}>
+          {[...groups.entries()].map(([stageId, deals]) => <section className={s.column} key={stageId}>
+            <header><b>Stage {stageId.slice(0, 8)}</b><span>{deals.length}</span></header>
+            <small>{money(deals.reduce((sum, deal) => sum + Number(deal.amountMinor ?? 0), 0))}</small>
+            {deals.map((deal) => <article className={s.dealCard} key={deal.id}>
+              <h3>Deal {deal.id.slice(0, 8)}</h3>
+              <p>Company {deal.companyId?.slice(0, 8) ?? "—"}</p>
+              <strong>{money(Number(deal.amountMinor ?? 0))}</strong>
+              <footer><span>{deal.expectedCloseDate ?? "No close date"}</span><Status value={deal.probability ? `${Number(deal.probability) * 100}%` : "No probability"} /></footer>
+            </article>)}
+          </section>)}
+        </div>
+        <div className={s.dashboardGrid}>
+          <Panel title="Live data status"><p>{live.loading ? "Loading authorized deals…" : live.error ? "Live commercial data is unavailable for this session." : `${live.items.length} authorized deals loaded.`}</p></Panel>
+          <Panel title="R6 ceiling"><p>Commercial execution remains capped at PROPOSAL_PREPARATION. Proposal production, contracts, invoices and payments are not activated.</p></Panel>
+        </div>
+      </section>
+      <aside className={s.drawer}>
+        <header><b>Deal Overview</b></header>
+        {first ? <>
+          <div className={s.drawerProfile}><span className={s.score}>D</span><h3>Deal {first.id.slice(0, 8)}</h3><p>Stage {first.stageId.slice(0, 8)}</p></div>
+          <p className={s.detail}><span>Value</span><b>{money(Number(first.amountMinor ?? 0))}</b></p>
+          <p className={s.detail}><span>Probability</span><b>{first.probability ? `${Number(first.probability) * 100}%` : "—"}</b></p>
+          <p className={s.detail}><span>Expected close</span><b>{first.expectedCloseDate ?? "—"}</b></p>
+          <p className={s.detail}><span>Owner</span><b>{first.ownerMembershipId?.slice(0, 8) ?? "Unassigned"}</b></p>
+          <p className={s.detail}><span>Row version</span><b>{first.rowVersion}</b></p>
+        </> : <p>{live.loading ? "Loading…" : "No authorized deals are available."}</p>}
+      </aside>
+    </div>
+  </div>;
+}
 
 export function DealWorkspace() { return <div className={s.page}><Header title="NextPay Technologies — Personal Magazine Q2" subtitle="360° opportunity workspace · Interested · On track"><Button><Mail size={14} /> Send Email</Button><Button><CalendarDays size={14} /> Schedule Meeting</Button><Button primary href="/app/proposals/prop-2024-0157"><FileText size={14} /> Create Proposal</Button></Header><section className={s.surface}><div className={s.summaryStrip}>{[["Deal Value", "$150,000"], ["Probability", "50%"], ["Expected Close", "May 30, 2026"], ["Owner", "John Smith"], ["Source", "Outbound"], ["Lead Score", "85 High"], ["Deal Health", "On Track"]].map(x => <div key={x[0]}><small>{x[0]}</small><strong>{x[1]}</strong></div>)}</div><div className={s.stageBar}>{["Qualified", "Interested", "Discovery Scheduled", "Discovery Completed", "Proposal Prep", "Proposal Sent", "Negotiation", "Contract Sent", "Contract Signed", "Payment Pending", "Won"].map((x, i) => <span className={i < 5 ? s.done : i === 5 ? s.current : ""} key={x}>{x}</span>)}</div></section><Tabs tabs={["Overview", "Communication · 18", "Meetings · 6", "Proposal · 1", "Contract · 0", "Invoice · 0", "Tasks · 7", "Files · 12", "Activity"]} /><div className={s.dealOverview}><Panel title="Deal Progress"><div className={s.donut} /><p className={s.detail}><span>Weighted value</span><b>$75,000</b></p><p className={s.detail}><span>Total value</span><b>$150,000</b></p></Panel><Panel title="Next Action"><h3>Proposal Discussion Call</h3><p>May 20, 2026 · 11:00 AM (PDT)</p><p>With Arjun Mehta, Founder & CEO</p><Button primary>Join Meeting</Button><h2>Preparation</h2>{["Review proposal", "Share case studies", "Confirm requirements", "Prepare pricing discussion"].map(x => <p key={x}><input type="checkbox" defaultChecked={x.length < 16} /> {x}</p>)}</Panel><Panel title="Upcoming Meeting"><CompactList items={["Proposal Discussion Call", "Google Meet", "3 attendees"]} /><Button>View all</Button></Panel><Panel title="Deal Owner & Team"><CompactList items={["John Smith · Sales Manager", "Sarah Johnson · Sales Executive", "Emma Davis · Account Manager", "Daniel Kim · Finance Manager"]} /></Panel></div><div className={s.dealBottom}><Panel title="Contact & Company"><PersonCell row={["Arjun Mehta", "Founder & CEO"]} index={2} /><h3>NextPay Technologies Inc.</h3><p>FinTech / Payments · San Francisco, USA</p></Panel><Panel title="Deal Summary">{[["Package", "Premium Package"], ["Value", "$150,000"], ["Terms", "50% upfront, 50% delivery"], ["Contract", "12 months"], ["Campaign", "Personal Magazine Q2"]].map(x => <p className={s.detail} key={x[0]}><span>{x[0]}</span><b>{x[1]}</b></p>)}</Panel><Panel title="Status Overview"><CompactList items={["Proposal · Sent", "Contract · Not Sent", "Invoice · Not Created", "Payment · Not Received", "Deal · Open"]} /></Panel><Panel title="Quick Actions"><div className={s.inlineActions}><Button>Task</Button><Button>Note</Button><Button>File</Button><Button>Call</Button><Button href="/app/proposals/prop-2024-0157">Proposal</Button><Button href="/app/contracts/cont-2024-0087">Contract</Button><Button href="/app/invoices/inv-2024-0031">Invoice</Button></div></Panel></div></div>; }
 
