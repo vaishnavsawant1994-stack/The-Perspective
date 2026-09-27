@@ -852,23 +852,26 @@ export async function replaceCustomRolePermissions(
       }));
       const currentHash = rolePermissionFingerprint(currentPermissions);
       const concurrencyMatches = currentHash === input.expectedPermissionsHash;
-      const ceiling = canMutateCustomPermissions(
-        context,
-        parsedPermissions.map((permission) => permission.permissionKey),
+      const proposedPermissionKeys = parsedPermissions.map(
+        (permission) => permission.permissionKey,
       );
       const resource = roleResource(context.tenant.organizationId, role.id);
-      const command = adminCommand(context, now, "manage", input.reason, {
-        fieldPolicyResource: "role-permission",
-        requestedFields: ["effect", "constraints"],
-        delegationCeilingSatisfied: ceiling,
-        optimisticConcurrencySatisfied: concurrencyMatches,
-      });
       const authorization = await authorizeInTransaction(
         transaction,
         context,
         "permission.manage",
         resource,
-        command,
+        (freshContext) =>
+          adminCommand(freshContext, now, "manage", input.reason, {
+            fieldPolicyResource: "role-permission",
+            requestedFields: ["effect", "constraints"],
+            delegationCeilingSatisfied: freshRolePermissionCeiling(
+              freshContext,
+              role.key,
+              proposedPermissionKeys,
+            ),
+            optimisticConcurrencySatisfied: concurrencyMatches,
+          }),
         now,
       );
       if (authorization.kind === "denied") {
@@ -876,12 +879,6 @@ export async function replaceCustomRolePermissions(
           kind: "denied" as const,
           code: "DENIED" as const,
           decision: authorization.decision,
-        };
-      }
-      if (!ceiling) {
-        return {
-          kind: "error" as const,
-          code: "DELEGATION_CEILING" as const,
         };
       }
       if (!concurrencyMatches) {
