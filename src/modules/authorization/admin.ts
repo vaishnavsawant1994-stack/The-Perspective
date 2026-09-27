@@ -24,6 +24,7 @@ import {
 import { parseRolePermissionConstraints } from "./constraints";
 import { getR5FieldPolicy } from "./fields";
 import {
+  getLaunchRoleDefinition,
   isLaunchRoleCode,
   PROTECTED_PERMISSION_KEYS,
   ROLE_DELEGATION_CEILINGS,
@@ -130,6 +131,8 @@ function tenantContext(
 }
 
 function canonicalJson(value: unknown): string {
+  if (value === undefined) return "null";
+
   if (Array.isArray(value)) {
     return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
   }
@@ -143,7 +146,7 @@ function canonicalJson(value: unknown): string {
   }
 
   if (value instanceof Date) return JSON.stringify(value.toISOString());
-  return JSON.stringify(value);
+  return JSON.stringify(value) ?? "null";
 }
 
 function fingerprint(value: unknown) {
@@ -195,9 +198,9 @@ function canAdministerLaunchRole(
 ) {
   const actorRole = actorAdminRole(context);
   if (!actorRole || !isLaunchRoleCode(roleKey)) return false;
-  return ROLE_DELEGATION_CEILINGS[
-    actorRole
-  ].assignableLaunchRoles.includes(roleKey as never);
+  return (
+    ROLE_DELEGATION_CEILINGS[actorRole].assignableLaunchRoles as readonly string[]
+  ).includes(roleKey);
 }
 
 function canMutateCustomPermissions(
@@ -940,7 +943,6 @@ export async function assignMembershipAuthorizationRole(
         : String(role.defaultScope) === input.scope;
 
       if (role.systemRole && isLaunchRoleCode(role.key)) {
-        const { getLaunchRoleDefinition } = await import("./launch-roles");
         const definition = getLaunchRoleDefinition(role.key);
         if (!definition.scopes.includes(input.scope as never)) {
           ceiling = false;
