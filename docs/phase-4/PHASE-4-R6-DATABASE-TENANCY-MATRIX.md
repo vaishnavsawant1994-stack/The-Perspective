@@ -103,18 +103,37 @@ They therefore have no R6 migration/RLS implementation and must be rejected by t
 
 ## 5. Explicitly prohibited R6 tables
 
-Under current release ownership R6 migrations must not add:
+Under owner-approved Gate-A release ownership, R6 migrations must not add:
 
-- commercial products/packages unless separately amended;
-- contracts/contract versions/signers/signature events;
-- invoices/invoice lines/credit notes;
-- payments/allocations/refunds/ledger;
-- member subscriptions;
-- entitlements;
+### R7 commercial / finance
+
+- `commercial.products`
+- `commercial.packages`
+- `commercial.proposals`
+- `commercial.proposal_versions`
+- `commercial.proposal_acceptances`
+- `commercial.contracts`
+- `commercial.contract_versions`
+- `commercial.contract_signers`
+- `commercial.signature_events`
+- `commercial.invoices`
+- `commercial.invoice_lines`
+- `commercial.credit_notes`
+- `commercial.credit_note_lines`
+- `commercial.payments`
+- `commercial.payment_allocations`
+- `commercial.refunds`
+- `commercial.ledger_transactions`
+- `commercial.ledger_entries`
+
+Also prohibited in R6:
+
+- member subscription production tables;
+- entitlement production tables;
 - R8 project/workflow production tables;
 - R11 search/analytics/renewal implementation tables.
 
-Contract qualification must compare changed schema/migration paths and fail if prohibited domains appear.
+Contract qualification must compare changed schema/migration paths and fail if any prohibited production domain appears.
 
 ## 6. Tenant claim semantics
 
