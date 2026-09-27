@@ -148,7 +148,7 @@ describe("R5 effective authority resolution", () => {
     ]);
   });
 
-  it("blocks a permission when any persisted edge has malformed constraints", () => {
+  it("keeps a valid ALLOW usable when another edge for the same permission is malformed", () => {
     const goodRole = baseState().membershipRoles[0];
     const state = baseState({
       membershipRoles: [
@@ -188,13 +188,54 @@ describe("R5 effective authority resolution", () => {
     expect([...result.authority.blockedPermissionKeys]).toEqual([
       "workspace.search",
     ]);
-    expect([...result.authority.permissionKeys]).toEqual([]);
+    expect([...result.authority.permissionKeys]).toEqual(["workspace.search"]);
+    expect(result.authority.grantPaths).toHaveLength(1);
     expect(result.authority.issues).toEqual([
       expect.objectContaining({
         code: "INVALID_CONSTRAINTS",
         permissionKey: "workspace.search",
       }),
     ]);
+  });
+
+  it("leaves a malformed-only permission blocked with no usable grant path", () => {
+    const goodRole = baseState().membershipRoles[0];
+    const state = baseState({
+      membershipRoles: [
+        {
+          ...goodRole,
+          role: {
+            ...goodRole.role,
+            rolePermissions: [
+              {
+                effect: "ALLOW",
+                constraints: { scopeOverride: "ORG" },
+                permission: { key: "workspace.search" },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const result = resolveAuthorityFromState(
+      {
+        userAccountId: "user-1",
+        membershipId: "membership-1",
+        organizationId: "org-1",
+        surface: "TEAM",
+      },
+      state,
+      now,
+    );
+
+    expect(result.kind).toBe("resolved");
+    if (result.kind !== "resolved") throw new Error("Expected resolved authority");
+    expect([...result.authority.permissionKeys]).toEqual([]);
+    expect([...result.authority.blockedPermissionKeys]).toEqual([
+      "workspace.search",
+    ]);
+    expect(result.authority.grantPaths).toEqual([]);
   });
 
   it("blocks Team permissions from a Client membership surface", () => {
