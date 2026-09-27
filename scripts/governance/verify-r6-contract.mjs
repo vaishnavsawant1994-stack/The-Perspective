@@ -178,7 +178,7 @@ for (const marker of [
 // Exclusion manifest must pin R7/R11/R12 boundaries.
 for (const marker of [
   "commercial.proposals", "commercial.contracts", "commercial.invoices",
-  "commercial.payments", "subscriptions/entitlements", "R11 exclusions",
+  "commercial.payments", "member subscription production tables", "entitlement production tables", "R11 exclusions",
   "R12 exclusions", "37",
 ]) {
   assert(exclusionText.includes(marker), `R7+ exclusion manifest missing marker: ${marker}`);
