@@ -300,7 +300,7 @@ Portal invitation/provision is a separate command under accepted IAM/tenant/secu
 
 `template.manage` remains `R6+` and dormant.
 
-R6 campaign/sequence preparation may only reference an existing approved immutable template version supplied by trusted repository lookup.
+R6 campaign/sequence preparation may only reference an existing approved immutable template version supplied by trusted repository lookup. During R6, that approved version may exist only through an explicitly reviewed immutable baseline seed/import manifest; there is no R6 runtime template-mutation path.
 
 R6 cannot:
 
