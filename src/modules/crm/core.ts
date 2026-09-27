@@ -67,6 +67,8 @@ function mapKnownFailure(value: unknown): CrmCoreResult<never> | undefined {
     case "P2002":
     case "P2034":
     case "23505":
+    case "40001":
+    case "40P01":
       return error("CONFLICT");
     case "P2025":
       return error("NOT_FOUND");
