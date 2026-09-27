@@ -1753,6 +1753,93 @@ CREATE TRIGGER "deal_stage_history_immutable"
   BEFORE UPDATE OR DELETE ON "commercial"."deal_stage_history"
   FOR EACH ROW EXECUTE FUNCTION "platform"."reject_immutable_mutation"();
 
+
+-- Commercial pipeline/stage definitions remain editable only while unused.
+-- Once a deal or immutable stage-history record depends on their semantics,
+-- runtime callers must create a new version rather than rewriting history.
+CREATE OR REPLACE FUNCTION "commercial"."r6_guard_used_stage_semantics"()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $r6$
+BEGIN
+  IF (
+    NEW.pipeline_id,
+    NEW.pipeline_version,
+    NEW.key,
+    NEW.name,
+    NEW.position,
+    NEW.canonical_class,
+    NEW.probability
+  ) IS DISTINCT FROM (
+    OLD.pipeline_id,
+    OLD.pipeline_version,
+    OLD.key,
+    OLD.name,
+    OLD.position,
+    OLD.canonical_class,
+    OLD.probability
+  ) AND (
+    EXISTS (
+      SELECT 1
+      FROM commercial.deals d
+      WHERE d.stage_id = OLD.id
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM commercial.deal_stage_history h
+      WHERE h.from_stage_id = OLD.id
+         OR h.to_stage_id = OLD.id
+    )
+  ) THEN
+    RAISE EXCEPTION 'used R6 deal stage semantics are immutable'
+      USING ERRCODE = '55000';
+  END IF;
+
+  RETURN NEW;
+END
+$r6$;
+
+CREATE OR REPLACE FUNCTION "commercial"."r6_guard_used_pipeline_semantics"()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $r6$
+BEGIN
+  IF (
+    NEW.version,
+    NEW.name
+  ) IS DISTINCT FROM (
+    OLD.version,
+    OLD.name
+  ) AND (
+    EXISTS (
+      SELECT 1
+      FROM commercial.deals d
+      WHERE d.pipeline_id = OLD.id
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM commercial.deal_stages s
+      JOIN commercial.deal_stage_history h
+        ON h.from_stage_id = s.id OR h.to_stage_id = s.id
+      WHERE s.pipeline_id = OLD.id
+    )
+  ) THEN
+    RAISE EXCEPTION 'used R6 deal pipeline semantics are immutable'
+      USING ERRCODE = '55000';
+  END IF;
+
+  RETURN NEW;
+END
+$r6$;
+
+CREATE TRIGGER "deal_stages_used_semantics_guard"
+  BEFORE UPDATE ON "commercial"."deal_stages"
+  FOR EACH ROW EXECUTE FUNCTION "commercial"."r6_guard_used_stage_semantics"();
+
+CREATE TRIGGER "deal_pipelines_used_semantics_guard"
+  BEFORE UPDATE ON "commercial"."deal_pipelines"
+  FOR EACH ROW EXECUTE FUNCTION "commercial"."r6_guard_used_pipeline_semantics"();
+
 -- D15 Resolution A: the template catalog can be seeded/imported only through an
 -- explicit reviewed import transaction. Runtime has no table mutation grants,
 -- and even privileged callers fail closed unless this transaction-local flag is
