@@ -222,6 +222,25 @@ describe("R5 resource policy", () => {
     });
   });
 
+  it("requires a field policy whenever permission metadata requires one", () => {
+    const context = authorizedContext([grant("team.view")]);
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "team",
+          ownerOrganizationId: "org-1",
+        },
+        { action: "view" },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "FIELD_DENIED",
+    });
+  });
+
   it("does not let a view permission authorize a mutation action", () => {
     const context = authorizedContext([grant("team.view")]);
 
