@@ -22,6 +22,10 @@ import {
   recordCompletedAuthorizedActionEvidence,
   recordDeniedAuthorizationEvidence,
 } from "./audit";
+import {
+  assessLaunchRoleAssignment,
+  assessRolePermissionSetMutation,
+} from "./administration-policy";
 import { parseRolePermissionConstraints } from "./constraints";
 import { getR5FieldPolicy } from "./fields";
 import {
