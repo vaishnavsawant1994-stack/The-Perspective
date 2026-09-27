@@ -11,7 +11,7 @@ const schema = z.object({
   sourceLeadId: z.string().uuid().nullable().optional(),
   amountMinor: z.string().regex(/^\d{1,18}$/u).nullable().optional(),
   currency: z.string().trim().regex(/^[A-Z]{3}$/u).nullable().optional(),
-  probability: z.number().int().min(0).max(100).nullable().optional(),
+  probability: z.number().min(0).max(1).nullable().optional(),
   expectedCloseDate: z.string().datetime({ offset: true }).nullable().optional(),
 }).strict();
 
