@@ -1,0 +1,47 @@
+name: R6 Contract Enhanced Qualification
+
+on:
+  push:
+    branches:
+      - phase4/r6-crm-commercial-g0-20260927
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r6-contract-enhanced-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify R6 planning contract
+        run: node scripts/governance/verify-r6-contract.mjs
+
+      - name: Verify planning-only branch scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline="2372418d80fa07f633a0e4adc99a21b1f7d8300a"
+          unexpected="$(
+            git diff --name-only "$baseline"...HEAD               | grep -Ev '^(docs/phase-4/PHASE-4-R6-.*\.md|scripts/governance/verify-r6-contract\.mjs|\.github/workflows/r6-contract-enhanced-qualification\.yml)$'               || true
+          )"
+          if [[ -n "$unexpected" ]]; then
+            printf 'Unexpected production/out-of-scope files:\n%s\n' "$unexpected"
+            exit 1
+          fi
+          echo "R6 branch remains planning/contract/qualification-only."
