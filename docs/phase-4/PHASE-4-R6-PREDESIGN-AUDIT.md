@@ -429,7 +429,7 @@ Therefore R6 vocabulary is currently dormant.
 
 Planning must not activate R6.
 
-Future implementation must use server-owned R6 stage activation only after:
+Future implementation must use server-owned R6 stage activation plus the approved 37-key active-permission allowlist only after:
 
 - P4-R6-G0 is frozen;
 - implementation is explicitly authorized;
@@ -471,7 +471,7 @@ Expected R6 resource-backed aggregates include at minimum:
 - meeting;
 - deal;
 - client account;
-- proposal only if R6-G01 resolves into R6.
+- proposal excluded from active R6 resources under owner-approved D01 Resolution A.
 
 ## 13. Idempotency / concurrency / evidence
 
