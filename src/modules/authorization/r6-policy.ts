@@ -275,7 +275,9 @@ export function isR6ActivePermissionKey(
   return activeKeySet.has(permissionKey);
 }
 
-export function getR6PermissionBinding(permissionKey: R6ActivePermissionKey) {
+export function getR6PermissionBinding(
+  permissionKey: R6ActivePermissionKey,
+): R6PermissionBinding {
   return R6_PERMISSION_BINDINGS[permissionKey];
 }
 
