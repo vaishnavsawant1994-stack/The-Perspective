@@ -120,9 +120,9 @@ describe("R5 authorization administration", () => {
   });
 
   it("rejects invalid custom role keys before any database operation", async () => {
-    const database = { $transaction: vi.fn() } as unknown as Parameters<
-      typeof createCustomAuthorizationRole
-    >[2];
+    const database = { $transaction: vi.fn() } as unknown as NonNullable<
+      Parameters<typeof createCustomAuthorizationRole>[2]
+    >;
 
     await expect(
       createCustomAuthorizationRole(
@@ -177,9 +177,9 @@ describe("R5 authorization administration", () => {
   });
 
   it("rejects malformed or duplicate permission requests before mutation", async () => {
-    const database = { $transaction: vi.fn() } as unknown as Parameters<
-      typeof replaceCustomRolePermissions
-    >[3];
+    const database = { $transaction: vi.fn() } as unknown as NonNullable<
+      Parameters<typeof replaceCustomRolePermissions>[3]
+    >;
 
     const result = await replaceCustomRolePermissions(
       authorizedContext(["R01"]),
