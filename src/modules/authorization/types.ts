@@ -111,6 +111,7 @@ export interface AuthorizationResourceContext {
   readonly ownerOrganizationId?: string;
   readonly clientOrganizationId?: string | null;
   readonly projectId?: string | null;
+  readonly projectType?: string | null;
   readonly departmentId?: string | null;
   readonly ownerUserId?: string | null;
   readonly ownerMembershipId?: string | null;
@@ -121,6 +122,28 @@ export interface AuthorizationResourceContext {
   readonly version?: string | number | null;
   readonly contentHash?: string | null;
   readonly targetMembershipId?: string | null;
+}
+
+
+export interface AuthorizationFieldPolicy {
+  readonly readableFields: readonly string[];
+  readonly mutableFields: readonly string[];
+}
+
+export interface AuthorizationCommandContext {
+  readonly action: string;
+  readonly requestedFields?: readonly string[];
+  readonly fieldPolicy?: AuthorizationFieldPolicy;
+  readonly workflowSatisfied?: boolean;
+  readonly clientSafeProjection?: boolean;
+  readonly reason?: string;
+  readonly recentAuthenticationSatisfied?: boolean;
+  readonly mfaSatisfied?: boolean;
+  readonly exactVersionMatches?: boolean;
+  readonly separationOfDutySatisfied?: boolean;
+  readonly delegationCeilingSatisfied?: boolean;
+  readonly optimisticConcurrencySatisfied?: boolean;
+  readonly financialEvidencePresent?: boolean;
 }
 
 export const AUTHORIZATION_REASON_CODES = [
