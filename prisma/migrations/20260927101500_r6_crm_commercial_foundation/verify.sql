@@ -178,6 +178,51 @@ BEGIN
     END IF;
   END LOOP;
 
+  -- D15: template catalog is runtime read-only and privileged mutation is
+  -- gated by explicit reviewed import mode.
+  IF to_regprocedure('platform.r6_reject_template_runtime_mutation()') IS NULL THEN
+    RAISE EXCEPTION 'R6 verification failed: reviewed template-import guard function is missing';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger t
+    JOIN pg_class c ON c.oid = t.tgrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE NOT t.tgisinternal
+      AND n.nspname = 'comms'
+      AND c.relname = 'message_templates'
+      AND t.tgname = 'message_templates_reviewed_import_only'
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger t
+    JOIN pg_class c ON c.oid = t.tgrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE NOT t.tgisinternal
+      AND n.nspname = 'comms'
+      AND c.relname = 'message_template_versions'
+      AND t.tgname = 'message_template_versions_reviewed_import_only'
+  ) THEN
+    RAISE EXCEPTION 'R6 verification failed: reviewed template-import trigger is missing';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'commercial'
+      AND c.relname = 'deal_stages'
+      AND con.conname = 'deal_stages_canonical_class_valid'
+      AND pg_get_constraintdef(con.oid) LIKE '%PROPOSAL_PREPARATION%'
+      AND pg_get_constraintdef(con.oid) NOT LIKE '%PROPOSAL_SENT%'
+      AND pg_get_constraintdef(con.oid) NOT LIKE '%CONTRACT_SENT%'
+      AND pg_get_constraintdef(con.oid) NOT LIKE '%PAYMENT_PENDING%'
+      AND pg_get_constraintdef(con.oid) NOT LIKE '%WON%'
+  ) THEN
+    RAISE EXCEPTION 'R6 verification failed: deal stage ceiling is not enforced at PROPOSAL_PREPARATION';
+  END IF;
+
   -- D15: template catalog is runtime read-only.
   IF has_table_privilege('perspective_runtime', 'comms.message_templates', 'INSERT')
     OR has_table_privilege('perspective_runtime', 'comms.message_templates', 'UPDATE')
