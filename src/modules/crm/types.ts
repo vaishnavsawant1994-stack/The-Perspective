@@ -53,12 +53,10 @@ export interface CreateContactInput {
   readonly personId?: string | null;
   readonly title?: string | null;
   readonly relationshipState?: string | null;
-  readonly consentState?: string | null;
   readonly preferredChannel?: string | null;
   readonly emailOriginal?: string | null;
   readonly emailNormalized?: string | null;
   readonly phoneNormalized?: string | null;
-  readonly contactabilityState?: string | null;
 }
 
 export interface CreateLeadInput {
@@ -66,8 +64,6 @@ export interface CreateLeadInput {
   readonly contactId?: string | null;
   readonly leadSourceId?: string | null;
   readonly sourceRecordKey?: string | null;
-  readonly legalBasis?: string | null;
-  readonly consentState?: string | null;
 }
 
 export interface CreateExtractionJobInput {
@@ -133,4 +129,41 @@ export interface CreateSuppressionEntryInput {
   readonly source: string;
   readonly effectiveAt?: Date;
   readonly expiresAt?: Date | null;
+}
+
+
+export interface RecordLeadScoreInput {
+  readonly leadId: string;
+  readonly modelVersion: string;
+  readonly score: number;
+  readonly components?: Readonly<Record<string, unknown>>;
+  readonly calculatedAt?: Date;
+}
+
+export interface TransitionLeadLifecycleInput {
+  readonly leadId: string;
+  readonly to: LeadLifecycleState;
+  readonly expectedRowVersion: number;
+  readonly reason?: string | null;
+}
+
+export interface SuppressLeadInput {
+  readonly leadId: string;
+  readonly expectedRowVersion: number;
+  readonly channel: string;
+  readonly normalizedDestinationHash: string;
+  readonly reason: string;
+  readonly source: string;
+  readonly effectiveAt?: Date;
+  readonly expiresAt?: Date | null;
+}
+
+export interface AddLeadListMemberInput {
+  readonly leadListId: string;
+  readonly leadId: string;
+}
+
+export interface RemoveLeadListMemberInput {
+  readonly leadListId: string;
+  readonly leadId: string;
 }
