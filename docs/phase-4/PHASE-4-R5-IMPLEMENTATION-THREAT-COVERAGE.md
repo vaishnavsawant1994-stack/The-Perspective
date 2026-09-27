@@ -9,7 +9,7 @@
 **Independent external review:** NOT PERFORMED  
 **Independent-review requirement:** OWNER-WAIVED under GOV-REVIEW-01  
 **Replacement control:** ENHANCED QUALIFICATION  
-**P4-R5-C1:** OWNER-ACCEPTED — IMPLEMENTATION MERGED  
+**P4-R5-C1:** ACCEPTED — MERGED  
 **R6+:** LOCKED
 
 ## 1. Classification rule
@@ -127,12 +127,13 @@ Current technical disposition:
 production authorization defect demonstrated by Q01-Q07: NO
 qualification / executable-proof gap remaining: NO
 blocking/high R5 finding remaining from this closure pass: NO
-P4-R5-C1: OWNER-ACCEPTED — IMPLEMENTATION MERGED
+P4-R5-C1: ACCEPTED + MERGED
 implementation merge: COMPLETE — 748f6af4ce4c9868c2441125cd0480cf8abc34d4
+closure-documentation merge: COMPLETE — 6add999609736e788d9bdaf8ddc690445f6d36e7
 R6+: LOCKED
 ```
 
-Owner acceptance remains a separate human control gate. This evidence record does not perform or imply that acceptance.
+Owner acceptance was explicitly granted for exact SHA `8823c63c1a03281d91d5085bba07206186380f6c`; implementation and closure-documentation merges are complete.
 
 ## 5. Future-stage carry-forward
 
@@ -144,4 +145,4 @@ DEFERRED rows are not waived. They become mandatory implementation attacks when 
 - R13 provider-backed file/storage/signed URL behavior;
 - later worker/integration stages.
 
-R6 remains locked until P4-R5-C1 is accepted through the separate owner gate.
+R6 remains locked after P4-R5-C1 acceptance and merge; R6 requires a separate owner authorization.
