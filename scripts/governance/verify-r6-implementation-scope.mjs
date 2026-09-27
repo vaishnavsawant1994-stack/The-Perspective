@@ -111,8 +111,11 @@ for (const marker of [
   "ENABLE ROW LEVEL SECURITY",
   "FORCE ROW LEVEL SECURITY",
   "perspective_runtime",
-  "r6_assert_resource_envelope",
-  "r6_assert_same_tenant_reference",
+  "register_r6_resource",
+  "update_r6_resource",
+  "assert_r6_resource_envelope",
+  "FOREIGN KEY (\"resource_id\",\"owner_organization_id\")",
+  "FOREIGN KEY (\"department_id\",\"owner_organization_id\")",
   "r6_reject_template_runtime_mutation",
   "deal_stages_r6_canonical_class",
 ]) {
