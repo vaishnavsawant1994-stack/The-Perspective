@@ -203,9 +203,9 @@ for (const marker of [
 }
 
 // Adversarial audit must close planning findings without claiming external review.
-assert(adversarialText.includes("Independent external review: NOT PERFORMED"), "Adversarial audit must not imply independent review");
-assert(adversarialText.includes("BLOCKING/HIGH findings remaining: NONE OPEN"), "Adversarial audit has unresolved BLOCKING/HIGH findings");
-assert(adversarialText.includes("Production implementation: NOT AUTHORIZED"), "Adversarial audit unlocks production implementation");
+assert(adversarialText.includes("not independent external review"), "Adversarial audit must explicitly state that it is not independent external review");
+assert(adversarialText.includes("BLOCKING G0 contract findings open: 0") && adversarialText.includes("HIGH G0 contract findings open: 0"), "Adversarial audit has unresolved BLOCKING/HIGH findings");
+assert(adversarialText.includes("R6 implementation: NOT AUTHORIZED"), "Adversarial audit unlocks production implementation");
 
 // Planning must not modify production schema/code.
 const schemaText = read("prisma/schema.prisma");
