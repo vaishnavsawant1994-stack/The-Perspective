@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { POST as createCompany } from "./crm/companies/route";
 import { POST as createContact } from "./crm/contacts/route";
-import { POST as createLead } from "./crm/leads/route";
+import { POST as createLead } from "./leads/route";
 import { PATCH as updateDeal } from "./deals/[dealId]/route";
 import { POST as createLeadSource } from "./crm/lead-sources/route";
 import { POST as createExtractionJob } from "./crm/extraction-jobs/route";
@@ -10,6 +10,9 @@ import { POST as requestEnrichment } from "./crm/enrichment-jobs/route";
 import { POST as createLeadList } from "./crm/lead-lists/route";
 import { POST as addLeadListMember } from "./crm/lead-lists/[leadListId]/members/route";
 import { GET as listCompanies } from "./crm/companies/route";
+import { GET as getCompany } from "./crm/companies/[companyId]/route";
+import { GET as getContact } from "./crm/contacts/[contactId]/route";
+import { GET as getLead } from "./leads/[leadId]/route";
 
 const origin = "https://app.example.test";
 
@@ -75,7 +78,7 @@ describe("R6 CRM direct-call API boundary", () => {
     [
       "lead",
       createLead,
-      "/api/v1/r6/crm/leads",
+      "/api/v1/r6/leads",
       {
         companyId: "00000000-0000-4000-8000-000000000003",
         ownerOrganizationId: "00000000-0000-4000-8000-000000000004",
@@ -231,6 +234,64 @@ describe("R6 CRM direct-call API boundary", () => {
     expect(enrichment.status).toBe(400);
   });
 
+  it("rejects server-owned contact PII at the browser schema", async () => {
+    const response = await createContact(
+      request("/api/v1/r6/crm/contacts", {
+        title: "CFO",
+        emailOriginal: "browser@example.test",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "R6_INVALID_REQUEST",
+    });
+  });
+
+  it("rejects server-owned lead sourceRecordKey at the canonical lead API", async () => {
+    const response = await createLead(
+      request("/api/v1/r6/leads", {
+        companyId: "00000000-0000-4000-8000-000000000018",
+        sourceRecordKey: "browser-forged-source-key",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "R6_INVALID_REQUEST",
+    });
+  });
+
+  it.each([
+    [
+      "company detail",
+      getCompany,
+      { params: Promise.resolve({ companyId: "not-a-uuid" }) },
+    ],
+    [
+      "contact detail",
+      getContact,
+      { params: Promise.resolve({ contactId: "not-a-uuid" }) },
+    ],
+    [
+      "lead detail",
+      getLead,
+      { params: Promise.resolve({ leadId: "not-a-uuid" }) },
+    ],
+  ] as const)(
+    "rejects malformed %s identifiers before database access",
+    async (_name, handler, route) => {
+      const response = await handler(
+        new Request(`${origin}/api/v1/r6/malformed-detail`),
+        route,
+      );
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "R6_INVALID_REQUEST",
+      });
+    },
+  );
+
   it("rejects out-of-range CRM list pagination before authorization", async () => {
     const response = await listCompanies(
       new Request(`${origin}/api/v1/r6/crm/companies?limit=101`),
@@ -251,7 +312,7 @@ describe("R6 CRM direct-call API boundary", () => {
     [
       "lead source id",
       createLead,
-      "/api/v1/r6/crm/leads",
+      "/api/v1/r6/leads",
       { leadSourceId: "not-a-uuid" },
     ],
   ] as const)(
