@@ -6,10 +6,10 @@
 **Date:** September 27, 2026  
 **Frozen substantive contract:** 2914e76b22468137630a4d444adb5431209fb5aa  
 **Historical pre-falsification qualified checkpoint:** ccfdf61897106661439f2bee4626f8d065e718f3  
-**Qualified post-falsification implementation candidate:** 1d6ccc8c3ddb52c539c268e10527378ddb2529a3  
+**Qualified post-falsification implementation candidate:** 8823c63c1a03281d91d5085bba07206186380f6c  
 **Implementation branch:** phase4/r5-authorization-implementation-20260927  
 **Closure-evidence branch:** phase4/r5-closure-evidence-20260927  
-**P4-R5-C1:** CANDIDATE — NOT ACCEPTED  
+**P4-R5-C1:** READY FOR OWNER ACCEPTANCE — NOT ACCEPTED  
 **Merge authorization:** NOT AUTHORIZED  
 **R6+:** LOCKED  
 **Design 154:** NOT AUTHORIZED
@@ -27,20 +27,32 @@ ccfdf61897106661439f2bee4626f8d065e718f3
         ↓
 adversarial falsification
         ↓
-demonstrated findings + narrow repair/test commits
+demonstrated findings + controlled repairs
         ↓
 1d6ccc8c3ddb52c539c268e10527378ddb2529a3
-  exact post-falsification implementation candidate
-  all four exact-head qualification workflows green
+  qualified post-falsification production-code candidate
         ↓
-closure evidence review
+closure falsification found Q01-Q07 executable-proof gaps
         ↓
-Q01-Q07 qualification-evidence gaps remain open
+test-only proof completion
+  f78b667d...  Q01
+  cfdbe350...  Q02/Q03/Q04/Q07
+  8823c63c...  Q05/Q06
         ↓
-P4-R5-C1 CANDIDATE — NOT ACCEPTED
+8823c63c1a03281d91d5085bba07206186380f6c
+  exact implementation head
+  production delta from 1d6ccc8c...: NONE
+  test-only delta: 3 files / 239 added lines
+  Q01-Q07: CLOSED
+  all four exact-head qualification workflows: SUCCESS
+        ↓
+P4-R5-C1 READY FOR OWNER ACCEPTANCE
+  NOT YET ACCEPTED
+  MERGE NOT AUTHORIZED
+  R6 LOCKED
 ~~~
 
-ccfdf61897106661439f2bee4626f8d065e718f3 remains permanently recorded as the historical pre-falsification qualified checkpoint. Later findings do not rewrite the fact that it passed the qualification gates that existed at that time.
+`ccfdf61897106661439f2bee4626f8d065e718f3` remains permanently recorded as the historical pre-falsification qualified checkpoint. `1d6ccc8c3ddb52c539c268e10527378ddb2529a3` remains the qualified post-falsification production-code candidate before proof-only closure tests. The current exact implementation candidate `8823c63c1a03281d91d5085bba07206186380f6c` adds executable evidence only.
 
 ## 2. Frozen-contract traceability
 
@@ -103,8 +115,11 @@ The post-ccfdf618… repair sequence contains 17 commits and is intentionally na
 | f02eef56e88e97b86eb42e264f914c85d1c691cd | DB-proof correction: keep database tests projection-explicit. |
 | 70e94d0f32668d8ae9a16e10cfb42dd44b3f609b | Final field-group repair: enforce frozen allowed/denied groups through trusted server field-group maps and fail closed on unknown mapping. |
 | 1d6ccc8c3ddb52c539c268e10527378ddb2529a3 | Repair + regression: default active stage set becomes R5 only; R5+ vocabulary such as workspace.search remains dormant unless explicitly server-activated. |
+| f78b667d5f17c953bf75787e47e614966c973ff4 | Test-only proof: inactive role cannot supply otherwise-valid authority. |
+| cfdbe3501fdf1b3bba1446ef334897a1dbe40cfd | Test-only proofs: ASN non-assignment, OWN non-ownership, NONE generic resource, and missing ResourceContext all fail closed. |
+| 8823c63c1a03281d91d5085bba07206186380f6c | Test-only live PostgreSQL proofs: protected R01 self-revocation denied with grant preserved; duplicate live MembershipRole returns conflict with one live grant remaining. |
 
-No production commit has been added after 1d6ccc8c3ddb52c539c268e10527378ddb2529a3.
+No production source, schema, migration, workflow, or runtime configuration changed after 1d6ccc8c3ddb52c539c268e10527378ddb2529a3. The three later commits are executable tests only.
 
 ## 5. Stage-activation falsification result
 
@@ -131,14 +146,14 @@ Registered vocabulary is therefore distinct from active authority.
 
 ## 6. Exact-head qualification evidence
 
-All four workflows executed against exact implementation SHA 1d6ccc8c3ddb52c539c268e10527378ddb2529a3 and completed successfully.
+All four workflows executed against exact implementation SHA `8823c63c1a03281d91d5085bba07206186380f6c` and completed successfully.
 
 | Gate | Run | Job | Result |
 |---|---:|---:|---|
-| R5 Implementation Qualification | 36305317140 / #101 | 108580712959 | SUCCESS |
-| R5 Browser Qualification | 36305317106 / #30 | 108580721433 | SUCCESS |
-| R4 Browser Qualification | 36305317107 / #64 | 108580720247 | SUCCESS |
-| R3 Browser Qualification | 36305317109 / #66 | 108580721623 | SUCCESS |
+| R5 Implementation Qualification | 36306713541 / #104 | 108584694201 | SUCCESS |
+| R5 Browser Qualification | 36306713535 / #33 | exact-head browser job | SUCCESS |
+| R4 Browser Qualification | 36306713578 / #67 | 108584697255 | SUCCESS |
+| R3 Browser Qualification | 36306713539 / #69 | exact-head browser job | SUCCESS |
 
 The R5 implementation gate passed:
 
@@ -149,13 +164,15 @@ The R5 implementation gate passed:
 - migration status;
 - database verification;
 - drift detection;
-- unit tests;
+- unit tests, including Q01/Q02/Q03/Q04/Q07 executable attacks;
 - deterministic fixture seed + seed assertion;
-- live database tests;
+- live database tests, including Q05/Q06 executable attacks;
 - lint;
 - strict TypeScript;
 - production Next.js build;
 - production dependency audit at high severity.
+
+No Q01–Q07 attack succeeded. No production-code repair was required.
 
 ## 7. Browser/regression evidence
 
@@ -164,40 +181,30 @@ The R5 implementation gate passed:
 Artifact:
 
 - name: r5-browser-evidence
-- artifact ID: 10926962822
-- digest: sha256:b4602aa3b0a0f4c1bcd2be56152d5f983cc2bf77e7fe0315b97416cf01dcf405
+- artifact ID: 10927886289
+- digest: sha256:dc1eadb34b596373c2e431c675278313121e927ae5c889cefb09497cbc4b42b2
 
-The production Chromium harness verifies, through direct API/browser execution:
-
-- anonymous role-admin denial;
-- MFA-backed R01 authentication;
-- forged organization field rejection;
-- legitimate audited custom-role creation;
-- foreign-role ID concealment;
-- self-assignment denial;
-- custom-role access-admin escalation denial with unchanged permission hash;
-- stale write denial with unchanged role;
-- R02→R01 assignment denial.
+The production Chromium harness remains green after proof completion and verifies direct authorization-admin attacks including anonymous denial, MFA-backed R01 authentication, forged organization rejection, legitimate audited role creation, foreign-role concealment, self-assignment denial, custom-role access-admin escalation denial, stale-write denial, and R02→R01 denial.
 
 ### R4 regression
 
 Artifact:
 
 - name: r4-browser-evidence
-- artifact ID: 10927515523
-- digest: sha256:4d1b7317148f31280f5f67f85bae2f6a57873ccd356373ca091ae75580e44535
+- artifact ID: 10928150203
+- digest: sha256:9767b563bb093b2211554386efdcb5ec47c3980e412e456fc5e43708667db3a4
 
-R4 tenancy browser qualification is green at the R5 candidate, preserving selected-organization context and tenant isolation behavior.
+R4 tenancy browser qualification is green at the final R5 candidate.
 
 ### R3 regression
 
 Artifact:
 
 - name: r3-browser-evidence
-- artifact ID: 10926768533
-- digest: sha256:169a8c35d8a480cf47f3f2537cba48deed07dad0c74e937c5117ff654b69804c
+- artifact ID: 10927129268
+- digest: sha256:cfca95af1a05c6c7b546faf867f0ea04b60862a4491e94b51786ce645ed498c1
 
-R3 authentication browser qualification is green at the R5 candidate, preserving password/session/MFA and protected-route behavior.
+R3 authentication browser qualification is green at the final R5 candidate.
 
 ## 8. Database/security evidence
 
@@ -230,31 +237,35 @@ R4 restricted runtime-role/RLS database tests remain part of the repository qual
 
 The full A01–A60 disposition is recorded in:
 
-PHASE-4-R5-IMPLEMENTATION-THREAT-COVERAGE.md
+`PHASE-4-R5-IMPLEMENTATION-THREAT-COVERAGE.md`
 
-The closure review found no newly demonstrated production authorization bypass after the existing repair sequence.
+The seven closure gaps discovered during final falsification are now closed:
 
-However, seven applicable R5 attack cases do not yet have sufficiently exact executable negative coverage:
-
-| Finding | Threat case | Current control | Missing proof |
+| Finding | Threat | Exact executable proof | Status |
 |---|---|---|---|
-| Q01 | A09 inactive role | Resolver requires ACTIVE role | Negative test with inactive role and otherwise-valid grant. |
-| Q02 | A17 ASN forged assignment | Policy uses trusted assignedMembershipIds | Negative policy attack where actor is not in trusted assignment set. |
-| Q03 | A18 OWN forged owner | Policy uses trusted owner membership/user | Negative policy attack where trusted owner differs from actor. |
-| Q04 | A20 NONE generic resource | NONE only matches absence of resource | Explicit NONE + generic resource DENY test. |
-| Q05 | A32 protected last admin | Revoke uses fresh no-self + delegation ceiling | Direct protected-admin self/last-revocation attack test with zero residue. |
-| Q06 | A33 duplicate MembershipRole | App duplicate check + partial unique DB index | Executable duplicate-live-grant attack test. |
-| Q07 | A60 missing resource context | Resource scopes fail without resource | Explicit protected permission + undefined ResourceContext DENY test. |
+| Q01 | A09 | `resolver.test.ts` inactive-role attack | CLOSED |
+| Q02 | A17 | `policy.test.ts` ASN non-assignment attack | CLOSED |
+| Q03 | A18 | `policy.test.ts` OWN non-owner attack | CLOSED |
+| Q04 | A20 | `policy.test.ts` NONE + generic-resource attack | CLOSED |
+| Q05 | A32 | live DB protected administrator self-revocation attack | CLOSED |
+| Q06 | A33 | live DB duplicate MembershipRole attack | CLOSED |
+| Q07 | A60 | `policy.test.ts` missing-ResourceContext attack | CLOSED |
 
-Classification of Q01–Q07:
+Final classification:
 
 ~~~text
-production authorization defect demonstrated: NO
-qualification / executable-proof gap demonstrated: YES
-P4-R5-C1 acceptance blocker: YES
+production authorization defect demonstrated by Q01-Q07: NO
+production code modified for Q01-Q07: NO
+qualification / executable-proof gap remaining: NO
+blocking/high R5 finding remaining from closure review: NO
+final focused falsification: PASS
 ~~~
 
-These gaps were discovered during closure falsification, not during feature development.
+The proof-completion delta from `1d6ccc8c…` to `8823c63c…` modifies only:
+
+- `src/modules/authorization/resolver.test.ts`;
+- `src/modules/authorization/policy.test.ts`;
+- `src/modules/authorization/r5-authorization-admin.database.test.ts`.
 
 ## 10. Remaining risks and deliberate deferrals
 
@@ -274,50 +285,43 @@ They are not waived. They must be attacked again when their owning production st
 
 ## 11. Required closure sequence
 
-The correct next control sequence is:
+Technical closure prerequisites are now satisfied for the current candidate.
+
+The next valid transition is:
 
 ~~~text
-1d6ccc8c... qualified implementation candidate
+8823c63c... fully exact-head qualified
        ↓
-close Q01-Q07 with narrowly scoped executable negative proofs
+Q01-Q07 CLOSED
        ↓
-if any proof exposes a production defect:
-    minimal production repair + regression
-else:
-    test/evidence-only repair
+focused reattack PASS
        ↓
-full exact-head requalification
-    R5 Implementation
-    R5 Browser
-    R4 Browser
-    R3 Browser
+P4-R5-C1 READY FOR OWNER ACCEPTANCE
        ↓
-reattack affected boundaries
+explicit owner acceptance
        ↓
-update this closure package with new exact head and run/artifact IDs
-       ↓
-owner acceptance decision
-       ↓
-P4-R5-C1 ACCEPTED
+permanent P4-R5-C1 ACCEPTED control record
        ↓
 controlled merge
+       ↓
+verify merged result / required regressions
        ↓
 R6 separately authorized
 ~~~
 
-No R6 work is authorized by this record.
+No merge or R6 work is authorized by this record.
 
 ## 12. Proposed P4-R5-C1 acceptance record
 
-The following text is deliberately **not yet active**. It is the proposed checkpoint language after Q01–Q07 are closed and the resulting exact head is fully green.
+The following text is still **proposed**, not active. The technical blockers are closed, but owner acceptance remains mandatory.
 
 ### Proposed checkpoint metadata
 
 **Checkpoint:** P4-R5-C1  
 **Stage:** R5 Authorization / RBAC / Resource Policy  
-**Status:** PROPOSED — BLOCKED PENDING Q01–Q07  
+**Status:** READY FOR OWNER ACCEPTANCE — NOT ACCEPTED  
 **Frozen contract:** 2914e76b22468137630a4d444adb5431209fb5aa  
-**Accepted implementation SHA:** PENDING  
+**Accepted implementation SHA:** 8823c63c1a03281d91d5085bba07206186380f6c  
 **Independent external review:** NOT PERFORMED  
 **Independent-review requirement:** OWNER-WAIVED under GOV-REVIEW-01  
 **Replacement control:** ENHANCED QUALIFICATION  
@@ -325,17 +329,11 @@ The following text is deliberately **not yet active**. It is the proposed checkp
 **Merge:** NOT AUTHORIZED  
 **R6:** LOCKED
 
-### Proposed acceptance statement after blockers close
+### Proposed acceptance statement
 
-> P4-R5-C1 is accepted only for the exact implementation SHA recorded in this checkpoint. The accepted implementation conforms to frozen P4-R5-G0, preserves R3 authentication and R4 tenant isolation, resolves authority from current server-side database state, evaluates complete same-grant authorization paths, enforces explicit DENY, scope/resource/field/action/obligation policy, prevents access-administration self-escalation, records required immutable evidence, and keeps future-stage permission vocabulary dormant until separately activated by its owning accepted stage. Independent external review was not performed for R5; the requirement was owner-waived under GOV-REVIEW-01 and replaced by enhanced adversarial, database, browser and exact-head qualification. This acceptance does not authorize R6+, Design 154, or final production certification.
+> P4-R5-C1 is accepted only for exact implementation SHA `8823c63c1a03281d91d5085bba07206186380f6c`. The accepted implementation conforms to frozen P4-R5-G0, preserves R3 authentication and R4 tenant isolation, resolves authority from current server-side database state, evaluates complete same-grant authorization paths, enforces explicit DENY, scope/resource/field/action/obligation policy, prevents access-administration self-escalation, records required immutable evidence, and keeps future-stage permission vocabulary dormant until separately activated by its owning accepted stage. Q01–Q07 are closed by executable negative proofs, and no production authorization repair was required during proof completion. Independent external review was not performed for R5; the requirement was owner-waived under GOV-REVIEW-01 and replaced by enhanced adversarial, database, browser and exact-head qualification. This acceptance does not authorize R6+, Design 154, or final production certification.
 
-This statement must not be changed to ACCEPTED until:
-
-1. Q01–Q07 are closed;
-2. all affected negative tests pass;
-3. all four exact-head workflow gates are green on the resulting implementation SHA;
-4. the affected repaired surfaces are reattacked;
-5. the owner explicitly accepts P4-R5-C1.
+This statement becomes active only after explicit owner acceptance.
 
 ## 13. Current disposition
 
@@ -344,9 +342,16 @@ As of this closure package:
 ~~~text
 P4-R5-G0: FROZEN
 ccfdf618...: HISTORICAL QUALIFIED PRE-FALSIFICATION CHECKPOINT
-1d6ccc8c...: QUALIFIED POST-FALSIFICATION IMPLEMENTATION CANDIDATE
-P4-R5-C1: CANDIDATE — NOT ACCEPTED
-Q01-Q07: OPEN QUALIFICATION-EVIDENCE BLOCKERS
+1d6ccc8c...: QUALIFIED POST-FALSIFICATION PRODUCTION-CODE CANDIDATE
+8823c63c...: FINAL TEST-EVIDENCED IMPLEMENTATION CANDIDATE
+Q01-Q07: CLOSED
+R5 IMPLEMENTATION #104: SUCCESS
+R5 BROWSER #33: SUCCESS
+R4 BROWSER #67: SUCCESS
+R3 BROWSER #69: SUCCESS
+FINAL FALSIFICATION: PASS
+BLOCKING/HIGH R5 FINDINGS: NONE OPEN
+P4-R5-C1: READY FOR OWNER ACCEPTANCE — NOT ACCEPTED
 MERGE: NOT AUTHORIZED
 R6+: LOCKED
 ~~~
