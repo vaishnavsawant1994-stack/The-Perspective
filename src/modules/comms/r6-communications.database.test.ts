@@ -41,6 +41,8 @@ const primaryOrganizationId = crypto.randomUUID();
 const secondaryOrganizationId = crypto.randomUUID();
 const primaryMembershipId = crypto.randomUUID();
 const secondaryMembershipId = crypto.randomUUID();
+const primaryUserId = seedIds.user.asteriaAdmin;
+const foreignUserId = seedIds.user.northstarAdmin;
 
 function teamContext(input: {
   organizationId: string;
