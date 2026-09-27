@@ -179,6 +179,7 @@ export interface AuthorityResolutionIssue<K extends string = string> {
 
 export interface ResolvedAuthority<K extends string = string> {
   readonly roleKeys: readonly string[];
+  readonly actorDepartmentId?: string;
   /**
    * Coarse capability summary only. Policy evaluation MUST inspect grantPaths.
    */
