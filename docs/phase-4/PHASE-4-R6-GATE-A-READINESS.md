@@ -4,7 +4,7 @@
 **Date:** September 27, 2026  
 **Planning baseline:** `main@2372418d80fa07f633a0e4adc99a21b1f7d8300a`  
 **Planning branch:** `phase4/r6-crm-commercial-g0-20260927`  
-**Status:** P4-R6-G0 OWNER-FREEZE CANDIDATE — NOT FROZEN  
+**Status:** P4-R6-G0 FROZEN — OWNER ACCEPTED  
 **R6 production implementation:** NOT AUTHORIZED
 
 ## 1. Gate-A authority state
@@ -105,39 +105,60 @@ That SHA is a pre-final checkpoint because this readiness/candidate record is be
 
 The final owner-freeze candidate is valid only if the exact branch head carrying the completed candidate record and current verifier also passes the same enhanced qualification workflow.
 
-## 7. Remaining control before owner freeze
+## 7. Owner freeze
 
-Before one exact SHA can be classified **P4-R6-G0 READY FOR OWNER FREEZE**:
+The owner explicitly accepted and froze P4-R6-G0 for exact contract candidate:
 
-1. complete adversarial/falsification review of the planning package;
-2. repair any BLOCKING/HIGH contract finding;
-3. ensure all 120 threats have exactly one qualification disposition;
-4. machine-prove R7 Proposal/contract/finance exclusions;
-5. machine-prove the 37-key R6 active subset and dormant historical keys;
-6. machine-prove planning-only branch scope;
-7. run exact-head enhanced G0 qualification successfully;
-8. record the exact qualified candidate SHA and evidence.
+`730d2280fafe29c756ba7e0b09ff7e8e5c9496a6`
 
-Even after those steps, P4-R6-G0 remains unfrozen until the owner explicitly freezes/accepts that exact SHA.
+against planning baseline:
 
-After freeze, R6 implementation remains locked until the owner separately authorizes implementation.
+`main@2372418d80fa07f633a0e4adc99a21b1f7d8300a`
 
-## 8. Current control state
+The permanent frozen record is:
+
+`PHASE-4-R6-G0-FREEZE.md`
+
+The exact contract candidate had already passed R6 Contract Enhanced Qualification #35.
+
+The later owner-freeze candidate wrapper at `47aeb5249cd951892bcb356340dadb172ea7bd53` also passed R6 Contract Enhanced Qualification #38 before the owner freeze was recorded.
+
+No post-candidate documentation commit changes the exact frozen contract SHA.
+
+## 8. Implementation control
+
+P4-R6-G0 freeze does **not** authorize production implementation.
+
+The next legitimate R6 transition is a separate explicit owner authorization for implementation under the frozen contract.
+
+Until that occurs:
+
+- no R6 Prisma/domain schema or migration work;
+- no CRM/comms/commercial production modules;
+- no R6 production APIs;
+- no R6 permission activation;
+- no production UI binding;
+- no provider/worker implementation;
+- no implementation PR/merge claiming R6 completion.
+
+R7+, Design 154 and V1.0 production certification remain unauthorized.
+
+## 9. Current control state
 
 ~~~text
-R1–R5                         ACCEPTED
-R6 planning                   AUTHORIZED
+R1–R5                         ACCEPTED + MERGED
+R6 planning                   COMPLETE
 R6 repository audit           COMPLETE
 Gate A D01–D15                OWNER-APPROVED
-D01 Proposal ownership        CLOSED — Resolution A / R7
-D15 Template ownership        CLOSED — Resolution A / R6+ dormant
-D16 action binding            REQUIRED G0 TECHNICAL CONTROL
+D01 Proposal ownership        FROZEN — Resolution A / R7
+D15 Template ownership        FROZEN — Resolution A / R6+ dormant
+Post-Gate action binding      FROZEN G0 REQUIREMENT
 R6 threat model               120/120 PLANNED
 R6 threat qualification map   120/120 PLANNED
-P4-R6-G0 candidate            OWNER-FREEZE CANDIDATE / FINAL EXACT-HEAD REQUALIFICATION REQUIRED
-P4-R6-G0                      NOT FROZEN
+P4-R6-G0 contract SHA         730d2280fafe29c756ba7e0b09ff7e8e5c9496a6
+P4-R6-G0                      FROZEN — OWNER ACCEPTED
 R6 production implementation NOT AUTHORIZED
-R7+                           LOCKED
-Design 154                    LOCKED
+R7+                           NOT AUTHORIZED
+Design 154                    NOT AUTHORIZED
 V1.0 certification            NOT AUTHORIZED
 ~~~
