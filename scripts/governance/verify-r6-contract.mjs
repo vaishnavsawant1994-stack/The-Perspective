@@ -87,7 +87,13 @@ for (const id of expectedThreatIds) {
 }
 assert(threatText.includes("DEFERRED TO R7 under approved Gate-A D01"), "A86-A95 are not explicitly deferred to R7");
 assert(threatQualificationText.includes("A86–A95 are R7 behavioral threats"), "R7 deferred threat disposition is missing");
-assert(!threatQualificationText.includes("waived/pass"), "Deferred R7 threats are incorrectly described as waived/pass");
+for (const id of Array.from({ length: 10 }, (_, index) => `A${86 + index}`)) {
+  const row = threatQualificationText
+    .split("\n")
+    .find((line) => line.startsWith(`| ${id} |`));
+  assert(row?.includes("G0 SCOPE EXCLUSION + R7 FUTURE"), `${id} is not mapped to R7 exclusion proof`);
+  assert(!/\b(WAIVED|PASS)\b/i.test(row ?? ""), `${id} is incorrectly waived or pre-passed`);
+}
 
 // Accepted permission registry: 41 historical R6-stage keys, 37 active subset after D01.
 const registryText = read("src/modules/authorization/registry.ts");
