@@ -151,9 +151,9 @@ All four workflows executed against exact implementation SHA `8823c63c1a03281d91
 | Gate | Run | Job | Result |
 |---|---:|---:|---|
 | R5 Implementation Qualification | 36306713541 / #104 | 108584694201 | SUCCESS |
-| R5 Browser Qualification | 36306713535 / #33 | exact-head browser job | SUCCESS |
+| R5 Browser Qualification | 36306713535 / #33 | 108584825643 | SUCCESS |
 | R4 Browser Qualification | 36306713578 / #67 | 108584697255 | SUCCESS |
-| R3 Browser Qualification | 36306713539 / #69 | exact-head browser job | SUCCESS |
+| R3 Browser Qualification | 36306713539 / #69 | 108584724092 | SUCCESS |
 
 The R5 implementation gate passed:
 
