@@ -94,6 +94,7 @@ describe("R5 resource policy", () => {
       },
       {
         action: "manage",
+        fieldPolicy: { readableFields: [], mutableFields: [] },
         reason: "Owner-approved access administration",
         recentAuthenticationSatisfied: true,
         mfaSatisfied: true,
@@ -169,7 +170,10 @@ describe("R5 resource policy", () => {
           resourceType: "team",
           ownerOrganizationId: "org-1",
         },
-        { action: "view" },
+        {
+          action: "view",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
+        },
       ),
     ).toMatchObject({
       decision: "ALLOW",
@@ -336,7 +340,10 @@ describe("R5 resource policy", () => {
           ownerOrganizationId: "org-1",
           departmentId: "dept-1",
         },
-        { action: "search" },
+        {
+          action: "search",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
+        },
       ).decision,
     ).toBe("ALLOW");
 
@@ -375,6 +382,7 @@ describe("R5 resource policy", () => {
         resource,
         {
           action: "view",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
           clientSafeProjection: false,
         },
         { activeStages: new Set(["R12"]) },
@@ -391,6 +399,7 @@ describe("R5 resource policy", () => {
         resource,
         {
           action: "view",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
           clientSafeProjection: true,
         },
         { activeStages: new Set(["R12"]) },
@@ -440,6 +449,7 @@ describe("R5 resource policy", () => {
         resource,
         {
           action: "manage",
+          fieldPolicy: { readableFields: [], mutableFields: [] },
           reason: "",
           recentAuthenticationSatisfied: true,
           mfaSatisfied: true,
