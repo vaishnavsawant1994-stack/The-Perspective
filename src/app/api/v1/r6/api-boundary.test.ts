@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as createCompany } from "./crm/companies/route";
 import { POST as createContact } from "./crm/contacts/route";
 import { POST as createLead } from "./crm/leads/route";
+import { PATCH as updateDeal } from "./deals/[dealId]/route";
 
 const origin = "https://app.example.test";
 
@@ -86,6 +87,23 @@ describe("R6 CRM direct-call API boundary", () => {
       });
     },
   );
+
+  it("rejects pipeline reassignment through the deal PATCH boundary", async () => {
+    const dealId = "00000000-0000-4000-8000-000000000020";
+    const response = await updateDeal(
+      request(`/api/v1/r6/deals/${dealId}`, {
+        expectedRowVersion: 1,
+        amountMinor: "1000",
+        pipelineId: "00000000-0000-4000-8000-000000000021",
+      }),
+      { params: Promise.resolve({ dealId }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "R6_INVALID_REQUEST",
+    });
+  });
 
   it.each([
     [
