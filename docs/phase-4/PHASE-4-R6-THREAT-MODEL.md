@@ -213,8 +213,15 @@ A86–A95 are **DEFERRED TO R7, NOT WAIVED**. R6 qualification must prove no R6 
 
 Before P4-R6-G0 may be frozen:
 
-- D01 must be resolved;
-- every applicable threat must map to a planned executable test surface;
-- no BLOCKING/HIGH design finding may remain open;
-- R7+ attacks remain explicitly deferred, never silently omitted;
-- the contract verifier must prove R6 planning changes contain no production implementation.
+- owner-approved D01 Resolution A and D15 Resolution A remain authoritative;
+- the active R6 permission subset is exactly 37 keys and all four historical `proposal.*` R6-stage keys remain dormant;
+- `template.manage` remains `R6+` and dormant;
+- every A01–A120 threat ID appears exactly once in the threat-to-qualification matrix;
+- A86–A95 remain DEFERRED TO R7, NOT WAIVED, with R6 machine exclusion proof;
+- every applicable R6 threat maps to a planned executable test surface;
+- no BLOCKING/HIGH design finding remains open;
+- R7+ surfaces remain explicitly excluded;
+- the contract verifier proves the planning branch contains no production implementation;
+- exact-head enhanced G0 qualification succeeds;
+- owner separately freezes/accepts the exact qualified P4-R6-G0 SHA;
+- implementation remains prohibited until a later, separate owner authorization.
