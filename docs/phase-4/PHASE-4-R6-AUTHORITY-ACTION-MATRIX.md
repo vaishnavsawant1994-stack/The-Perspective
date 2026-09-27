@@ -74,7 +74,6 @@ The following substitutions are prohibited:
 - `client.contact.manage` → client IAM privilege;
 - `client.portal.manage` → unrestricted Client Portal read;
 - `message.send` → bypass suppression/contactability;
-- `proposal.edit` → approve/send;
 - ordinary read permission → aggregate/count/export unless explicitly contracted.
 
 ## 3. R6 stage-policy implementation rule
