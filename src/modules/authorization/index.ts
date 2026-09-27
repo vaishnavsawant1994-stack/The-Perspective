@@ -107,3 +107,23 @@ export {
   type DelegationAssessment,
   type DelegationDenialReason,
 } from "./administration-policy";
+
+export {
+  assignMembershipAuthorizationRole,
+  createCustomAuthorizationRole,
+  listAuthorizationRoles,
+  readRolePermissions,
+  replaceCustomRolePermissions,
+  revokeMembershipAuthorizationRole,
+  rolePermissionFingerprint,
+  updateCustomAuthorizationRole,
+  type AssignMembershipRoleInput,
+  type AuthorizationAdminErrorCode,
+  type AuthorizationAdminResult,
+  type CreateCustomRoleInput,
+  type ReplaceRolePermissionsInput,
+  type RevokeMembershipRoleInput,
+  type RolePermissionMutation,
+  type UpdateCustomRoleInput,
+} from "./admin";
+export { authorizationAdminErrorResponse } from "./admin-http";
