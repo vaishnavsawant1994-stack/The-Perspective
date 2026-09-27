@@ -14,6 +14,7 @@ import {
   loadR6CampaignResource,
   loadR6DealResource,
   loadR6LeadResource,
+  loadR6LeadListResource,
 } from "./resources";
 
 function context(): AuthorizedRequestContext {
@@ -77,6 +78,11 @@ describe("R6 API trusted resource derivation", () => {
       "lead",
       loadR6LeadResource,
       "crmLead",
+    ],
+    [
+      "lead-list",
+      loadR6LeadListResource,
+      "crmLeadList",
     ],
     [
       "campaign",
