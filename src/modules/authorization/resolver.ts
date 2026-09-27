@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
 import type {
   AuthorizedRequestContext,
   EffectiveAuthorizationGrant,
@@ -215,7 +216,10 @@ export function resolveAuthorityFromState(
   };
 }
 
-type AuthorizationDatabase = ReturnType<typeof getPrismaClient>;
+type AuthorizationDatabase = Pick<
+  Prisma.TransactionClient,
+  "organizationMembership"
+>;
 
 export async function resolveEffectiveAuthority(
   context: TenantScopedRequestContext,
