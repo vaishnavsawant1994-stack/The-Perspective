@@ -98,8 +98,6 @@ export interface TransitionCampaignInput {
 
 export interface EvaluateDispatchSafetyInput {
   readonly campaignRecipientId: string;
-  readonly normalizedDestinationHash: string;
-  readonly channel: string;
 }
 
 export interface RecordDeliveryEventInput {
