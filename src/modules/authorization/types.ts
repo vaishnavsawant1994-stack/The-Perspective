@@ -155,8 +155,46 @@ export interface AuthorizationDecision<K extends string = string> {
   readonly mutableFields?: readonly string[];
 }
 
+export const AUTHORITY_RESOLUTION_ISSUE_CODES = [
+  "MEMBERSHIP_NOT_ACTIVE",
+  "CROSS_TENANT_ROLE",
+  "ROLE_NOT_ACTIVE",
+  "GRANT_NOT_ACTIVE",
+  "UNKNOWN_PERMISSION",
+  "SURFACE_MISMATCH",
+  "SCOPE_INCOMPATIBLE",
+  "INVALID_CONSTRAINTS",
+] as const;
+
+export type AuthorityResolutionIssueCode =
+  (typeof AUTHORITY_RESOLUTION_ISSUE_CODES)[number];
+
+export interface AuthorityResolutionIssue<K extends string = string> {
+  readonly code: AuthorityResolutionIssueCode;
+  readonly roleKey?: string;
+  readonly permissionKey?: K | string;
+  readonly membershipRoleId?: string;
+  readonly details?: readonly string[];
+}
+
 export interface ResolvedAuthority<K extends string = string> {
   readonly roleKeys: readonly string[];
+  /**
+   * Coarse capability summary only. Policy evaluation MUST inspect grantPaths.
+   */
   readonly permissionKeys: ReadonlySet<K>;
+  readonly blockedPermissionKeys: ReadonlySet<K>;
   readonly grantPaths: readonly EffectiveGrantPath<K>[];
+  readonly issues: readonly AuthorityResolutionIssue<K>[];
 }
+
+export type AuthorityResolutionResult<K extends string = string> =
+  | {
+      readonly kind: "resolved";
+      readonly authority: ResolvedAuthority<K>;
+    }
+  | {
+      readonly kind: "denied";
+      readonly reasonCode: "MEMBERSHIP_INACTIVE";
+      readonly issues: readonly AuthorityResolutionIssue<K>[];
+    };
