@@ -71,6 +71,7 @@ function mapKnownFailure(value: unknown): CrmCoreResult<never> | undefined {
       return error("NOT_FOUND");
     case "P2003":
     case "P2004":
+    case "P2007":
     case "23503":
     case "23514":
     case "22023":
@@ -724,6 +725,15 @@ export async function createSuppressionEntry(
   input: CreateSuppressionEntryInput,
   database: PrismaClient = getPrismaClient(),
 ) {
+  if (
+    !input.channel.trim() ||
+    !input.normalizedDestinationHash.trim() ||
+    !input.reason.trim() ||
+    !input.source.trim()
+  ) {
+    return error("INVALID");
+  }
+
   return run(
     context,
     async (transaction) => {
@@ -763,6 +773,15 @@ export async function suppressLead(
   input: SuppressLeadInput,
   database: PrismaClient = getPrismaClient(),
 ) {
+  if (
+    !input.channel.trim() ||
+    !input.normalizedDestinationHash.trim() ||
+    !input.reason.trim() ||
+    !input.source.trim()
+  ) {
+    return error("INVALID");
+  }
+
   return run(
     context,
     async (transaction) => {
@@ -781,7 +800,7 @@ export async function suppressLead(
       }
 
       const from = lead.lifecycleState as LeadLifecycleState;
-      if (!canTransitionLeadLifecycle(from, "SUPPRESSED")) {
+      if (!canTransitionLeadLifecycle(from, "DO_NOT_CONTACT")) {
         throw new CrmCommandError("TRANSITION_DENIED");
       }
 
@@ -819,7 +838,7 @@ export async function suppressLead(
           rowVersion: input.expectedRowVersion,
         },
         data: {
-          lifecycleState: "SUPPRESSED",
+          lifecycleState: "DO_NOT_CONTACT",
           rowVersion: { increment: 1 },
           lastActivityAt: now,
           updatedByMembershipId: context.membership.membershipId,
@@ -834,7 +853,7 @@ export async function suppressLead(
           ownerOrganizationId: context.tenant.organizationId,
           leadId: input.leadId,
           fromState: from,
-          toState: "SUPPRESSED",
+          toState: "DO_NOT_CONTACT",
           actorMembershipId: context.membership.membershipId,
           reason: input.reason.trim(),
           requestId: context.requestId,
@@ -846,7 +865,7 @@ export async function suppressLead(
         leadId: input.leadId,
         suppressionId,
         from,
-        to: "SUPPRESSED" as const,
+        to: "DO_NOT_CONTACT" as const,
         rowVersion: input.expectedRowVersion + 1,
       };
     },
