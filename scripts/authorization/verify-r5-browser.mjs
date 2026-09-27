@@ -52,10 +52,11 @@ async function contextFor(browser, token) {
   });
   await context.addCookies([
     {
-      name: "perspective-session",
+      name: "__Host-perspective-session",
       value: token,
       url: baseUrl,
       httpOnly: true,
+      secure: true,
       sameSite: "Lax",
     },
   ]);
