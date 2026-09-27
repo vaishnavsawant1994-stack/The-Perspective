@@ -48,7 +48,7 @@ for (const marker of [
   "approved 37-key active-permission allowlist",
   "PROPOSAL_PREPARATION",
   "template.manage",
-  "A01–A120",
+  "Every applicable threat in P4-R6-THREAT-01 must have an executable disposition.",
 ]) {
   assert(frozenContract.includes(marker), `Frozen R6 contract missing marker: ${marker}`);
 }
