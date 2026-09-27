@@ -156,8 +156,29 @@ describe("R5 resource policy", () => {
     });
   });
 
-  it("blocks a permission flagged by malformed persisted authority", () => {
+  it("allows an independent valid path despite another malformed edge", () => {
     const context = authorizedContext([grant("team.view")], {
+      blocked: ["team.view"],
+    });
+
+    expect(
+      evaluateAuthorization(
+        context,
+        "team.view",
+        {
+          resourceType: "team",
+          ownerOrganizationId: "org-1",
+        },
+        { action: "view" },
+      ),
+    ).toMatchObject({
+      decision: "ALLOW",
+      effectiveScope: "ORG",
+    });
+  });
+
+  it("fails closed when malformed edges are the only evidence for a permission", () => {
+    const context = authorizedContext([], {
       blocked: ["team.view"],
     });
 
