@@ -60,6 +60,9 @@ export async function POST(request: Request) {
   if (resolved.kind === "response") return resolved.response;
 
   const requestedFields = [
+    // pipelineId is browser-supplied and therefore must be evaluated against
+    // the canonical field policy rather than silently treated as trusted.
+    "pipelineId",
     "companyId",
     ...(input.primaryContactId !== undefined ? ["primaryContactId"] : []),
     ...(input.amountMinor !== undefined ? ["amountMinor"] : []),
