@@ -1519,9 +1519,8 @@ ALTER TABLE "commercial"."deal_stages" ADD CONSTRAINT "deal_stages_values_valid"
   CHECK ("pipeline_version" > 0 AND "position" > 0 AND ("probability" IS NULL OR ("probability" >= 0 AND "probability" <= 1)));
 ALTER TABLE "commercial"."deal_stages" ADD CONSTRAINT "deal_stages_canonical_class_valid"
   CHECK ("canonical_class" IN (
-    'QUALIFIED','INTERESTED','DISCOVERY_SCHEDULED','DISCOVERY_COMPLETED','PROPOSAL_PREPARATION',
-    'PROPOSAL_SENT','NEGOTIATION','VERBAL_CONFIRMATION','CONTRACT_SENT','CONTRACT_SIGNED',
-    'PAYMENT_PENDING','WON','LOST','ON_HOLD','FOLLOW_UP_LATER','DISQUALIFIED'
+    'QUALIFIED','INTERESTED','DISCOVERY_SCHEDULED','DISCOVERY_COMPLETED',
+    'PROPOSAL_PREPARATION','LOST','ON_HOLD','FOLLOW_UP_LATER','DISQUALIFIED'
   ));
 ALTER TABLE "commercial"."deals" ADD CONSTRAINT "deals_probability_valid"
   CHECK ("probability" IS NULL OR ("probability" >= 0 AND "probability" <= 1));
@@ -1753,6 +1752,32 @@ CREATE TRIGGER "messages_immutable"
 CREATE TRIGGER "deal_stage_history_immutable"
   BEFORE UPDATE OR DELETE ON "commercial"."deal_stage_history"
   FOR EACH ROW EXECUTE FUNCTION "platform"."reject_immutable_mutation"();
+
+-- D15 Resolution A: the template catalog can be seeded/imported only through an
+-- explicit reviewed import transaction. Runtime has no table mutation grants,
+-- and even privileged callers fail closed unless this transaction-local flag is
+-- deliberately set by the reviewed import path.
+CREATE OR REPLACE FUNCTION "platform"."r6_reject_template_runtime_mutation"()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $
+BEGIN
+  IF current_setting('app.r6_template_import', true) IS DISTINCT FROM 'on' THEN
+    RAISE EXCEPTION 'R6 template catalog mutation requires reviewed import mode'
+      USING ERRCODE = '55000';
+  END IF;
+
+  RETURN COALESCE(NEW, OLD);
+END
+$;
+
+CREATE TRIGGER "message_templates_reviewed_import_only"
+  BEFORE INSERT OR UPDATE OR DELETE ON "comms"."message_templates"
+  FOR EACH ROW EXECUTE FUNCTION "platform"."r6_reject_template_runtime_mutation"();
+
+CREATE TRIGGER "message_template_versions_reviewed_import_only"
+  BEFORE INSERT OR UPDATE OR DELETE ON "comms"."message_template_versions"
+  FOR EACH ROW EXECUTE FUNCTION "platform"."r6_reject_template_runtime_mutation"();
 
 -- ---------------------------------------------------------------------------
 -- RLS: every R6 row carries owner_organization_id. Child/evidence owner IDs are
