@@ -60,6 +60,8 @@ No R6 table may be “tenant neutral” merely because it is a child table.
 | `comms.sending_accounts` | owner org | DIRECT RLS | yes | provider connection same org; unique connection+address |
 | `comms.message_templates` | owner org | DIRECT RLS | yes | unique live org+owner+name |
 | `comms.message_template_versions` | template | EVIDENCE / PARENT | no | immutable version; unique template+version |
+
+D15 Resolution A makes the two template tables R6 **read-only reference/catalog storage** if they are implemented at all. The R6 runtime role receives no template mutation path through `template.manage`; baseline rows must come only from an explicitly reviewed immutable seed/import manifest, and missing approved versions fail campaign readiness.
 | `comms.outreach_campaigns` | owner org | DIRECT RLS | yes | list/sequence/sender same org |
 | `comms.sequences` | owner org | DIRECT RLS | yes | unique live org+owner+name |
 | `comms.sequence_steps` | sequence | PARENT RLS + FK | no | unique sequence+version+position; template version same org |
