@@ -11,6 +11,9 @@ export {
   type RolePermissionConstraintParseResult,
 } from "./constraints";
 export type {
+  AuthorityResolutionIssue,
+  AuthorityResolutionIssueCode,
+  AuthorityResolutionResult,
   AuthorizationDecision,
   AuthorizationObligation,
   AuthorizationReasonCode,
@@ -27,3 +30,12 @@ export type {
   RolePermissionConstraints,
   SensitivityLevel,
 } from "./types";
+
+export {
+  resolveAuthorityFromState,
+  resolveAuthorizedRequestContext,
+  resolveEffectiveAuthority,
+  type AuthorizedContextResolution,
+  type PersistedAuthorityState,
+  type ResolveAuthorityInput,
+} from "./resolver";
