@@ -204,7 +204,9 @@ export async function authorizeTrustedHttpOperation(input: {
   if (decision.decision === "ALLOW") {
     return {
       kind: "allowed",
-      decision,
+      decision: decision as AuthorizationDecision<CanonicalPermissionKey> & {
+        readonly decision: "ALLOW";
+      },
     };
   }
 
@@ -215,11 +217,15 @@ export async function authorizeTrustedHttpOperation(input: {
     input.command,
   );
 
+  const deniedDecision = decision as AuthorizationDecision<CanonicalPermissionKey> & {
+    readonly decision: "DENY";
+  };
+
   return {
     kind: "response",
-    decision,
+    decision: deniedDecision,
     response:
-      authorizationDecisionProblem(decision, {
+      authorizationDecisionProblem(deniedDecision, {
         concealResource: input.concealResource,
       }) ?? authorizationProblem(403, "AUTHZ_DENIED"),
   };
