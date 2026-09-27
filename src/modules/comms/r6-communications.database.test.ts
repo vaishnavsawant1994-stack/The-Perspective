@@ -646,7 +646,7 @@ describe("R6 communications command-layer falsification", () => {
       platform,
       {
         campaignRecipientId: fixture.ownRecipientId,
-        provider: "provider-a",
+        provider: "test",
         externalEventId: "evt-sent-1",
         eventType: "SENT",
         occurredAt: epoch,
@@ -659,7 +659,7 @@ describe("R6 communications command-layer falsification", () => {
       platform,
       {
         campaignRecipientId: fixture.ownRecipientId,
-        provider: "provider-a",
+        provider: "test",
         externalEventId: "evt-opened-1",
         eventType: "OPENED",
         occurredAt: new Date(epoch.getTime() + 1000),
@@ -672,7 +672,7 @@ describe("R6 communications command-layer falsification", () => {
       platform,
       {
         campaignRecipientId: fixture.ownRecipientId,
-        provider: "provider-a",
+        provider: "test",
         externalEventId: "evt-delivered-late",
         eventType: "DELIVERED",
         occurredAt: new Date(epoch.getTime() + 2000),
@@ -691,7 +691,7 @@ describe("R6 communications command-layer falsification", () => {
       platform,
       {
         campaignRecipientId: fixture.ownRecipientId,
-        provider: "provider-a",
+        provider: "test",
         externalEventId: "evt-opened-1",
         eventType: "OPENED",
         occurredAt: new Date(epoch.getTime() + 3000),
@@ -703,7 +703,7 @@ describe("R6 communications command-layer falsification", () => {
       await count(
         `SELECT count(*)::bigint AS count
            FROM comms.message_deliveries
-          WHERE provider = 'provider-a'
+          WHERE provider = 'test'
             AND external_event_id = 'evt-opened-1'`,
       ),
     ).toBe(1);
@@ -837,40 +837,106 @@ describe("R6 communications command-layer falsification", () => {
     expect(skip).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
   });
 
-  it("derives suppression identity from the canonical contact destination", async () => {
-    const canonicalHash = hashNormalizedDestination(
-      "EMAIL",
-      "COMMS-OWN@EXAMPLE.INVALID",
+  it("derives suppression identity from persisted contact data and ignores forged caller claims", async () => {
+    const company = mustCrmOk(
+      await createCompany(
+        platform,
+        { name: "COMMS Canonical Suppression Company " + crypto.randomUUID() },
+        database,
+      ),
     );
-    const suppression = await createSuppressionEntry(
-      platform,
-      {
-        channel: "EMAIL",
-        normalizedDestinationHash: canonicalHash,
-        reason: "canonical suppression",
-        source: "recipient",
-      },
-      database,
+    const email = "canonical-" + crypto.randomUUID() + "@example.invalid";
+    const contact = mustCrmOk(
+      await createContact(
+        platform,
+        {
+          companyId: company.id,
+          title: "COMMS Canonical Suppression Contact",
+          emailOriginal: email,
+          emailNormalized: email,
+        },
+        database,
+      ),
     );
-    if (suppression.kind === "error") {
-      expect(suppression.code).toBe("CONFLICT");
-      expect(
-        await count(
-          `SELECT count(*)::bigint AS count
-             FROM crm.suppression_entries
-            WHERE owner_organization_id = $1::uuid
-              AND channel = 'EMAIL'
-              AND normalized_destination_hash = $2::text
-              AND archived_at IS NULL`,
-          primaryOrganizationId,
-          canonicalHash,
-        ),
-      ).toBe(1);
-    }
+    const lead = mustCrmOk(
+      await createLead(
+        platform,
+        {
+          companyId: company.id,
+          contactId: contact.id,
+          sourceRecordKey: "comms-canonical-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+    const campaign = mustOk(
+      await createCampaign(
+        platform,
+        {
+          name: "COMMS Canonical Suppression Campaign " + crypto.randomUUID(),
+          leadListId: fixture.ownLeadListId,
+          sequenceId: fixture.ownSequenceId,
+          sendingAccountId: fixture.ownSendingAccountId,
+        },
+        database,
+      ),
+    );
+    const recipient = mustOk(
+      await addCampaignRecipient(
+        platform,
+        { campaignId: campaign.id, leadId: lead.id },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        {
+          campaignId: campaign.id,
+          to: "READY",
+          expectedRowVersion: 1,
+          audienceSnapshotHash: "snapshot-canonical-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "APPROVED", expectedRowVersion: 2 },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "SCHEDULED", expectedRowVersion: 3 },
+        database,
+      ),
+    );
+
+    mustCrmOk(
+      await createSuppressionEntry(
+        platform,
+        {
+          channel: "EMAIL",
+          normalizedDestinationHash: hashNormalizedDestination("EMAIL", email),
+          reason: "canonical suppression",
+          source: "recipient",
+        },
+        database,
+      ),
+    );
+
+    const attackerInput = {
+      campaignRecipientId: recipient.id,
+      channel: "SMS",
+      normalizedDestinationHash: "attacker-controlled-nonmatching-hash",
+    } as never;
 
     const result = await evaluateDispatchSafety(
       platform,
-      { campaignRecipientId: fixture.ownRecipientId },
+      attackerInput,
       database,
     );
 
@@ -980,4 +1046,571 @@ describe("R6 communications command-layer falsification", () => {
     );
     expect(result).toEqual({ kind: "error", code: "SENDER_NOT_READY" });
   });
+
+  it("treats exact provider callback replay as idempotent and rejects changed-payload reuse", async () => {
+    const eventId = "evt-replay-" + crypto.randomUUID();
+    const input = {
+      campaignRecipientId: fixture.ownRecipientId,
+      provider: "test",
+      externalEventId: eventId,
+      eventType: "OPENED",
+      occurredAt: epoch,
+      payloadHash: "payload-a",
+      metadata: { source: "callback" },
+    } as const;
+
+    const first = await recordDeliveryEvent(platform, input, database);
+    expect(first.kind).toBe("ok");
+    if (first.kind !== "ok") return;
+
+    const replay = await recordDeliveryEvent(platform, input, database);
+    expect(replay).toEqual(first);
+
+    const changed = await recordDeliveryEvent(
+      platform,
+      { ...input, payloadHash: "payload-b" },
+      database,
+    );
+    expect(changed).toEqual({ kind: "error", code: "CONFLICT" });
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM comms.message_deliveries
+          WHERE provider = 'test'
+            AND external_event_id = $1::text`,
+        eventId,
+      ),
+    ).toBe(1);
+  });
+
+  it("rejects forged provider identities and unknown provider event states with zero evidence residue", async () => {
+    const forgedEventId = "evt-forged-provider-" + crypto.randomUUID();
+    const forged = await recordDeliveryEvent(
+      platform,
+      {
+        campaignRecipientId: fixture.ownRecipientId,
+        provider: "attacker-provider",
+        externalEventId: forgedEventId,
+        eventType: "SENT",
+        occurredAt: epoch,
+      },
+      database,
+    );
+    expect(forged).toEqual({ kind: "error", code: "INVALID" });
+
+    const unknownEventId = "evt-forged-status-" + crypto.randomUUID();
+    const unknown = await recordDeliveryEvent(
+      platform,
+      {
+        campaignRecipientId: fixture.ownRecipientId,
+        provider: "test",
+        externalEventId: unknownEventId,
+        eventType: "ROOTED",
+        occurredAt: epoch,
+      },
+      database,
+    );
+    expect(unknown).toEqual({ kind: "error", code: "INVALID" });
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM comms.message_deliveries
+          WHERE external_event_id IN ($1::text, $2::text)`,
+        forgedEventId,
+        unknownEventId,
+      ),
+    ).toBe(0);
+  });
+
+  it("stops future dispatch after a positive reply arrives for a queued recipient", async () => {
+    const company = mustCrmOk(
+      await createCompany(
+        platform,
+        { name: "COMMS Reply Stop Company " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const email = "reply-stop-" + crypto.randomUUID() + "@example.invalid";
+    const contact = mustCrmOk(
+      await createContact(
+        platform,
+        {
+          companyId: company.id,
+          title: "COMMS Reply Stop Contact",
+          emailOriginal: email,
+          emailNormalized: email,
+        },
+        database,
+      ),
+    );
+    const lead = mustCrmOk(
+      await createLead(
+        platform,
+        {
+          companyId: company.id,
+          contactId: contact.id,
+          sourceRecordKey: "comms-reply-stop-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+    const campaign = mustOk(
+      await createCampaign(
+        platform,
+        {
+          name: "COMMS Reply Stop Campaign " + crypto.randomUUID(),
+          leadListId: fixture.ownLeadListId,
+          sequenceId: fixture.ownSequenceId,
+          sendingAccountId: fixture.ownSendingAccountId,
+        },
+        database,
+      ),
+    );
+    const recipient = mustOk(
+      await addCampaignRecipient(
+        platform,
+        { campaignId: campaign.id, leadId: lead.id },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        {
+          campaignId: campaign.id,
+          to: "READY",
+          expectedRowVersion: 1,
+          audienceSnapshotHash: "snapshot-reply-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "APPROVED", expectedRowVersion: 2 },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "SCHEDULED", expectedRowVersion: 3 },
+        database,
+      ),
+    );
+
+    const reply = await recordDeliveryEvent(
+      platform,
+      {
+        campaignRecipientId: recipient.id,
+        provider: "test",
+        externalEventId: "evt-reply-" + crypto.randomUUID(),
+        eventType: "REPLIED",
+        occurredAt: epoch,
+      },
+      database,
+    );
+    expect(reply.kind).toBe("ok");
+
+    const dispatch = await evaluateDispatchSafety(
+      platform,
+      { campaignRecipientId: recipient.id },
+      database,
+    );
+    expect(dispatch).toEqual({ kind: "error", code: "CONTACT_BLOCKED" });
+  });
+
+  it("prevents sequence mutation after an approved campaign has frozen that sequence", async () => {
+    const sequence = mustOk(
+      await createSequence(
+        platform,
+        { name: "COMMS Frozen Sequence " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    mustOk(
+      await addSequenceStep(
+        platform,
+        {
+          sequenceId: sequence.id,
+          expectedSequenceVersion: 1,
+          position: 1,
+          channel: "EMAIL",
+          templateVersionId: fixture.ownTemplateVersionId,
+        },
+        database,
+      ),
+    );
+    const campaign = mustOk(
+      await createCampaign(
+        platform,
+        {
+          name: "COMMS Frozen Sequence Campaign " + crypto.randomUUID(),
+          leadListId: fixture.ownLeadListId,
+          sequenceId: sequence.id,
+          sendingAccountId: fixture.ownSendingAccountId,
+        },
+        database,
+      ),
+    );
+    mustOk(
+      await addCampaignRecipient(
+        platform,
+        { campaignId: campaign.id, leadId: fixture.ownLeadId },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        {
+          campaignId: campaign.id,
+          to: "READY",
+          expectedRowVersion: 1,
+          audienceSnapshotHash: "snapshot-frozen-sequence-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "APPROVED", expectedRowVersion: 2 },
+        database,
+      ),
+    );
+
+    const before = await count(
+      `SELECT count(*)::bigint AS count
+         FROM comms.sequence_steps
+        WHERE sequence_id = $1::uuid`,
+      sequence.id,
+    );
+
+    const mutation = await addSequenceStep(
+      platform,
+      {
+        sequenceId: sequence.id,
+        expectedSequenceVersion: 1,
+        position: 2,
+        channel: "EMAIL",
+        templateVersionId: fixture.ownTemplateVersionId,
+      },
+      database,
+    );
+
+    expect(mutation).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM comms.sequence_steps
+          WHERE sequence_id = $1::uuid`,
+        sequence.id,
+      ),
+    ).toBe(before);
+  });
+
+  it("contains concurrent duplicate-recipient retries to one canonical row", async () => {
+    const campaign = mustOk(
+      await createCampaign(
+        platform,
+        {
+          name: "COMMS Recipient Race " + crypto.randomUUID(),
+          leadListId: fixture.ownLeadListId,
+          sequenceId: fixture.ownSequenceId,
+          sendingAccountId: fixture.ownSendingAccountId,
+        },
+        database,
+      ),
+    );
+
+    const settled = await Promise.all([
+      addCampaignRecipient(
+        platform,
+        { campaignId: campaign.id, leadId: fixture.ownLeadId },
+        database,
+      ),
+      addCampaignRecipient(
+        platform,
+        { campaignId: campaign.id, leadId: fixture.ownLeadId },
+        database,
+      ),
+    ]);
+
+    expect(settled.filter((result) => result.kind === "ok")).toHaveLength(1);
+    expect(
+      settled.filter(
+        (result) => result.kind === "error" && result.code === "CONFLICT",
+      ),
+    ).toHaveLength(1);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM comms.campaign_recipients
+          WHERE campaign_id = $1::uuid
+            AND lead_id = $2::uuid`,
+        campaign.id,
+        fixture.ownLeadId,
+      ),
+    ).toBe(1);
+  });
+
+  it("rechecks contactability changes that occur after campaign scheduling", async () => {
+    const company = mustCrmOk(
+      await createCompany(
+        platform,
+        { name: "COMMS Contactability Company " + crypto.randomUUID() },
+        database,
+      ),
+    );
+    const email = "contactability-" + crypto.randomUUID() + "@example.invalid";
+    const contact = mustCrmOk(
+      await createContact(
+        platform,
+        {
+          companyId: company.id,
+          title: "COMMS Contactability Contact",
+          emailOriginal: email,
+          emailNormalized: email,
+        },
+        database,
+      ),
+    );
+    const lead = mustCrmOk(
+      await createLead(
+        platform,
+        {
+          companyId: company.id,
+          contactId: contact.id,
+          sourceRecordKey: "comms-contactability-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+    const campaign = mustOk(
+      await createCampaign(
+        platform,
+        {
+          name: "COMMS Contactability Campaign " + crypto.randomUUID(),
+          leadListId: fixture.ownLeadListId,
+          sequenceId: fixture.ownSequenceId,
+          sendingAccountId: fixture.ownSendingAccountId,
+        },
+        database,
+      ),
+    );
+    const recipient = mustOk(
+      await addCampaignRecipient(
+        platform,
+        { campaignId: campaign.id, leadId: lead.id },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        {
+          campaignId: campaign.id,
+          to: "READY",
+          expectedRowVersion: 1,
+          audienceSnapshotHash: "snapshot-contactability-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "APPROVED", expectedRowVersion: 2 },
+        database,
+      ),
+    );
+    mustOk(
+      await transitionCampaign(
+        platform,
+        { campaignId: campaign.id, to: "SCHEDULED", expectedRowVersion: 3 },
+        database,
+      ),
+    );
+
+    await database.crmContact.update({
+      where: { id: contact.id },
+      data: { contactabilityState: "BLOCKED" },
+    });
+
+    const dispatch = await evaluateDispatchSafety(
+      platform,
+      { campaignRecipientId: recipient.id },
+      database,
+    );
+    expect(dispatch).toEqual({ kind: "error", code: "CONTACT_BLOCKED" });
+  });
+
+  it("rejects direct external message truth even when provider identifiers are forged", async () => {
+    const conversation = mustOk(
+      await createConversation(
+        platform,
+        {
+          channel: "EMAIL",
+          subject: "Forged provider message",
+          leadId: fixture.ownLeadId,
+        },
+        database,
+      ),
+    );
+
+    const beforeMessages = await count(
+      `SELECT count(*)::bigint AS count
+         FROM comms.messages
+        WHERE conversation_id = $1::uuid`,
+      conversation.id,
+    );
+    const beforeOutbox = await count(
+      `SELECT count(*)::bigint AS count
+         FROM platform.outbox_events
+        WHERE owner_organization_id = $1::uuid`,
+      primaryOrganizationId,
+    );
+
+    const outbound = await recordMessage(
+      platform,
+      {
+        conversationId: conversation.id,
+        direction: "OUTBOUND",
+        bodyText: "forged sent truth",
+        provider: "test",
+        externalId: "forged-outbound-" + crypto.randomUUID(),
+        occurredAt: epoch,
+      },
+      database,
+    );
+    expect(outbound).toEqual({ kind: "error", code: "INVALID" });
+
+    const inbound = await recordMessage(
+      platform,
+      {
+        conversationId: conversation.id,
+        direction: "INBOUND",
+        bodyText: "forged inbound truth",
+        provider: "test",
+        externalId: "forged-inbound-" + crypto.randomUUID(),
+        occurredAt: epoch,
+      },
+      database,
+    );
+    expect(inbound).toEqual({ kind: "error", code: "INVALID" });
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM comms.messages
+          WHERE conversation_id = $1::uuid`,
+        conversation.id,
+      ),
+    ).toBe(beforeMessages);
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM platform.outbox_events
+          WHERE owner_organization_id = $1::uuid`,
+        primaryOrganizationId,
+      ),
+    ).toBe(beforeOutbox);
+  });
+
+  it("rejects cross-tenant meeting linkage and rolls back the meeting resource envelope", async () => {
+    const foreignResourceId = crypto.randomUUID();
+    const foreignAccountId = crypto.randomUUID();
+
+    await database.$transaction(async (transaction) => {
+      await transaction.$executeRawUnsafe(
+        `INSERT INTO platform.resources (
+           id, resource_type, title, owner_organization_id,
+           client_organization_id, visibility, sensitivity, created_at
+         ) VALUES (
+           $1::uuid, 'client-account', 'Foreign client account', $2::uuid,
+           $2::uuid, 'INTERNAL', 'CONFIDENTIAL', CURRENT_TIMESTAMP
+         )`,
+        foreignResourceId,
+        secondaryOrganizationId,
+      );
+      await transaction.$executeRawUnsafe(
+        `INSERT INTO commercial.client_accounts (
+           id, resource_id, owner_organization_id, client_organization_id,
+           owner_membership_id, visibility, sensitivity, health,
+           onboarding_state, portal_state, row_version,
+           created_by_membership_id, updated_by_membership_id,
+           created_at, updated_at
+         ) VALUES (
+           $1::uuid, $2::uuid, $3::uuid, $3::uuid,
+           $4::uuid, 'INTERNAL', 'CONFIDENTIAL', 'NEW',
+           'NOT_STARTED', 'NOT_PROVISIONED', 1,
+           $4::uuid, $4::uuid, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+         )`,
+        foreignAccountId,
+        foreignResourceId,
+        secondaryOrganizationId,
+        secondaryMembershipId,
+      );
+    });
+
+    const before = await resourceCount(primaryOrganizationId, "meeting");
+    const result = await createMeeting(
+      platform,
+      {
+        title: "Cross tenant meeting",
+        meetingType: "DISCOVERY",
+        startsAt: new Date("2026-09-29T10:00:00Z"),
+        endsAt: new Date("2026-09-29T11:00:00Z"),
+        timezone: "UTC",
+        clientAccountId: foreignAccountId,
+      },
+      database,
+    );
+
+    expect(result.kind).toBe("error");
+    expect(await resourceCount(primaryOrganizationId, "meeting")).toBe(before);
+  });
+
+  it("prevents runtime deletion of active suppression evidence", async () => {
+    const suppression = mustCrmOk(
+      await createSuppressionEntry(
+        platform,
+        {
+          channel: "EMAIL",
+          normalizedDestinationHash: "suppression-delete-" + crypto.randomUUID(),
+          reason: "legal hold",
+          source: "falsification",
+        },
+        database,
+      ),
+    );
+
+    await expect(
+      database.$transaction(async (transaction) => {
+        await transaction.$queryRawUnsafe(
+          `SELECT set_config('app.organization_id', $1, true)`,
+          primaryOrganizationId,
+        );
+        await transaction.$executeRawUnsafe("SET LOCAL ROLE perspective_runtime");
+        await transaction.$executeRawUnsafe(
+          `DELETE FROM crm.suppression_entries WHERE id = $1::uuid`,
+          suppression.id,
+        );
+      }),
+    ).rejects.toBeTruthy();
+
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM crm.suppression_entries
+          WHERE id = $1::uuid`,
+        suppression.id,
+      ),
+    ).toBe(1);
+  });
+
 });
