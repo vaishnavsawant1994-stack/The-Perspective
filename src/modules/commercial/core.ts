@@ -1,10 +1,13 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import { getPrismaClient } from "@/modules/persistence/client";
 
 import {
   canMoveDeal,
+  isR6ClientConversionStage,
   isR6DealStageClass,
   isR6LeadToDealConversionState,
   requiresDealMoveReason,
@@ -14,13 +17,16 @@ import {
   CommercialTenantBoundaryError,
   newCommercialId,
   registerCommercialResource,
+  updateCommercialResource,
   type CommercialContext,
   type CommercialTransaction,
   withCommercialTenantTransaction,
 } from "./persistence";
 import type {
+  AddClientRelationshipInput,
   CommercialErrorCode,
   CommercialResult,
+  ConvertDealToClientInput,
   CreateDealInput,
   CreateDealPipelineInput,
   MoveDealInput,
@@ -111,6 +117,17 @@ function owner(context: CommercialContext) {
 
 function json(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function clientConversionRequestHash(input: ConvertDealToClientInput) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        dealId: input.dealId,
+        expectedRowVersion: input.expectedRowVersion,
+      }),
+    )
+    .digest("hex");
 }
 
 function validateMoney(input: {
@@ -773,6 +790,390 @@ export async function moveDeal(
         to,
         rowVersion: input.expectedRowVersion + 1,
       };
+    },
+    database,
+  );
+}
+
+
+async function claimClientConversion(
+  transaction: CommercialTransaction,
+  input: ConvertDealToClientInput,
+  requestHash: string,
+) {
+  const rows = await transaction.$queryRawUnsafe<Array<{ status: string }>>(
+    `SELECT "platform"."claim_r6_client_conversion"(
+       $1::uuid,
+       $2::text,
+       $3::text,
+       $4::timestamptz
+     ) AS status`,
+    newCommercialId(),
+    input.idempotencyKey.trim(),
+    requestHash,
+    new Date(Date.now() + 24 * 60 * 60 * 1000),
+  );
+
+  return rows[0]?.status ?? "IN_PROGRESS";
+}
+
+async function resolveClientOrganization(
+  transaction: CommercialTransaction,
+  companyId: string,
+) {
+  const rows = await transaction.$queryRawUnsafe<Array<{ id: string }>>(
+    `SELECT "platform"."resolve_r6_client_organization"(
+       $1::uuid,
+       $2::uuid
+     ) AS id`,
+    companyId,
+    newCommercialId(),
+  );
+
+  const id = rows[0]?.id;
+  if (!id) throw new CommercialCommandError("CONFLICT");
+  return id;
+}
+
+async function completeClientConversion(
+  transaction: CommercialTransaction,
+  idempotencyKey: string,
+  requestHash: string,
+  clientAccountId: string,
+) {
+  const responseHash = createHash("sha256")
+    .update(clientAccountId)
+    .digest("hex");
+
+  await transaction.$queryRawUnsafe(
+    `SELECT "platform"."complete_r6_client_conversion"(
+       $1::text,
+       $2::text,
+       $3::text
+     )`,
+    idempotencyKey.trim(),
+    requestHash,
+    responseHash,
+  );
+}
+
+async function readConvertedClientAccount(
+  transaction: CommercialTransaction,
+  context: CommercialContext,
+  dealId: string,
+) {
+  const deal = await transaction.commercialDeal.findFirst({
+    where: {
+      id: dealId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: { clientOrganizationId: true },
+  });
+
+  if (!deal?.clientOrganizationId) {
+    throw new CommercialCommandError("CONFLICT");
+  }
+
+  const account = await transaction.commercialClientAccount.findFirst({
+    where: {
+      ownerOrganizationId: context.tenant.organizationId,
+      clientOrganizationId: deal.clientOrganizationId,
+      archivedAt: null,
+    },
+    select: {
+      id: true,
+      resourceId: true,
+      clientOrganizationId: true,
+      rowVersion: true,
+    },
+  });
+
+  if (!account) throw new CommercialCommandError("CONFLICT");
+  return account;
+}
+
+async function convertDealToClientInTransaction(
+  transaction: CommercialTransaction,
+  context: CommercialContext,
+  input: ConvertDealToClientInput,
+) {
+  const idempotencyKey = input.idempotencyKey.trim();
+  if (!idempotencyKey) throw new CommercialCommandError("INVALID");
+
+  const requestHash = clientConversionRequestHash(input);
+  const claim = await claimClientConversion(transaction, input, requestHash);
+
+  if (claim === "MISMATCH") {
+    throw new CommercialCommandError("IDEMPOTENCY_CONFLICT");
+  }
+  if (claim === "REPLAY") {
+    return readConvertedClientAccount(transaction, context, input.dealId);
+  }
+  if (claim !== "CLAIMED") {
+    throw new CommercialCommandError("CONFLICT");
+  }
+
+  const deal = await transaction.commercialDeal.findFirst({
+    where: {
+      id: input.dealId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      id: true,
+      resourceId: true,
+      companyId: true,
+      primaryContactId: true,
+      sourceLeadId: true,
+      clientOrganizationId: true,
+      pipelineId: true,
+      stageId: true,
+      amountMinor: true,
+      currency: true,
+      rowVersion: true,
+    },
+  });
+
+  if (!deal) throw new CommercialCommandError("NOT_FOUND");
+  if (deal.clientOrganizationId) throw new CommercialCommandError("CONFLICT");
+  if (deal.rowVersion !== input.expectedRowVersion) {
+    throw new CommercialCommandError("STALE_WRITE");
+  }
+  if (!deal.companyId || !deal.primaryContactId || deal.amountMinor === null || !deal.currency) {
+    throw new CommercialCommandError("TRANSITION_DENIED");
+  }
+
+  const stage = await transaction.commercialDealStage.findFirst({
+    where: {
+      id: deal.stageId,
+      ownerOrganizationId: context.tenant.organizationId,
+      pipelineId: deal.pipelineId,
+    },
+    select: { canonicalClass: true },
+  });
+  if (
+    !stage ||
+    !isR6DealStageClass(stage.canonicalClass) ||
+    !isR6ClientConversionStage(stage.canonicalClass)
+  ) {
+    throw new CommercialCommandError("TRANSITION_DENIED");
+  }
+
+  const company = await transaction.crmCompany.findFirst({
+    where: {
+      id: deal.companyId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: { id: true, name: true },
+  });
+  if (!company) throw new CommercialCommandError("NOT_FOUND");
+
+  const contact = await transaction.crmContact.findFirst({
+    where: {
+      id: deal.primaryContactId,
+      ownerOrganizationId: context.tenant.organizationId,
+      companyId: deal.companyId,
+      archivedAt: null,
+    },
+    select: { id: true, personId: true },
+  });
+  if (!contact) throw new CommercialCommandError("NOT_FOUND");
+
+  const qualification = await transaction.crmQualification.findFirst({
+    where: {
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+      OR: [
+        { dealId: deal.id },
+        ...(deal.sourceLeadId ? [{ leadId: deal.sourceLeadId }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+  if (!qualification) throw new CommercialCommandError("TRANSITION_DENIED");
+
+  const clientOrganizationId = await resolveClientOrganization(
+    transaction,
+    company.id,
+  );
+
+  const existingAccount = await transaction.commercialClientAccount.findFirst({
+    where: {
+      ownerOrganizationId: context.tenant.organizationId,
+      clientOrganizationId,
+      archivedAt: null,
+    },
+    select: { id: true },
+  });
+  if (existingAccount) throw new CommercialCommandError("CONFLICT");
+
+  const clientAccountId = newCommercialId();
+  const clientAccountResourceId = newCommercialId();
+
+  await registerCommercialResource(transaction, {
+    id: clientAccountResourceId,
+    type: "client-account",
+    title: company.name + " Client Account",
+    clientOrganizationId,
+    sensitivity: "CONFIDENTIAL",
+  });
+
+  const account = await transaction.commercialClientAccount.create({
+    data: {
+      id: clientAccountId,
+      resourceId: clientAccountResourceId,
+      ownerOrganizationId: context.tenant.organizationId,
+      clientOrganizationId,
+      ownerMembershipId: context.membership.membershipId,
+      visibility: "INTERNAL",
+      sensitivity: "CONFIDENTIAL",
+      accountManagerMembershipId: context.membership.membershipId,
+      health: "NEW",
+      onboardingState: "NOT_STARTED",
+      portalState: "NOT_PROVISIONED",
+      customerSince: new Date(),
+      createdByMembershipId: context.membership.membershipId,
+      updatedByMembershipId: context.membership.membershipId,
+    },
+    select: {
+      id: true,
+      resourceId: true,
+      clientOrganizationId: true,
+      rowVersion: true,
+    },
+  });
+
+  await transaction.commercialClientRelationship.create({
+    data: {
+      id: newCommercialId(),
+      ownerOrganizationId: context.tenant.organizationId,
+      clientAccountId: account.id,
+      personId: contact.personId,
+      contactId: contact.id,
+      relationshipRole: "PRIMARY_CONTACT",
+      isPrimary: true,
+    },
+  });
+
+  const dealResource = await transaction.resource.findFirst({
+    where: {
+      id: deal.resourceId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: { title: true },
+  });
+  if (!dealResource) throw new CommercialCommandError("NOT_FOUND");
+
+  await updateCommercialResource(transaction, {
+    id: deal.resourceId,
+    title: dealResource.title ?? "Deal",
+    clientOrganizationId,
+    sensitivity: "FINANCIAL",
+  });
+
+  const updatedDeal = await transaction.commercialDeal.updateMany({
+    where: {
+      id: deal.id,
+      ownerOrganizationId: context.tenant.organizationId,
+      rowVersion: input.expectedRowVersion,
+      clientOrganizationId: null,
+    },
+    data: {
+      clientOrganizationId,
+      rowVersion: { increment: 1 },
+      updatedByMembershipId: context.membership.membershipId,
+    },
+  });
+  if (updatedDeal.count !== 1) throw new CommercialCommandError("STALE_WRITE");
+
+  await completeClientConversion(
+    transaction,
+    idempotencyKey,
+    requestHash,
+    account.id,
+  );
+
+  return account;
+}
+
+export async function convertDealToClient(
+  context: CommercialContext,
+  input: ConvertDealToClientInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const first = await run(
+    context,
+    (transaction) =>
+      convertDealToClientInTransaction(transaction, context, input),
+    database,
+  );
+
+  if (first.kind === "error" && first.code === "CONFLICT") {
+    return run(
+      context,
+      (transaction) =>
+        convertDealToClientInTransaction(transaction, context, input),
+      database,
+    );
+  }
+
+  return first;
+}
+
+export async function addClientRelationship(
+  context: CommercialContext,
+  input: AddClientRelationshipInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(
+    context,
+    async (transaction) => {
+      const relationshipRole = input.relationshipRole.trim();
+      if (!relationshipRole) throw new CommercialCommandError("INVALID");
+
+      const account = await transaction.commercialClientAccount.findFirst({
+        where: {
+          id: input.clientAccountId,
+          ownerOrganizationId: context.tenant.organizationId,
+          archivedAt: null,
+        },
+        select: { id: true },
+      });
+      if (!account) throw new CommercialCommandError("NOT_FOUND");
+
+      const contact = await transaction.crmContact.findFirst({
+        where: {
+          id: input.contactId,
+          ownerOrganizationId: context.tenant.organizationId,
+          archivedAt: null,
+        },
+        select: { id: true, personId: true },
+      });
+      if (!contact) throw new CommercialCommandError("NOT_FOUND");
+
+      return transaction.commercialClientRelationship.create({
+        data: {
+          id: newCommercialId(),
+          ownerOrganizationId: context.tenant.organizationId,
+          clientAccountId: account.id,
+          personId: contact.personId,
+          contactId: contact.id,
+          relationshipRole,
+          isPrimary: input.isPrimary ?? false,
+          isBilling: input.isBilling ?? false,
+          isApprover: input.isApprover ?? false,
+          isAdmin: input.isAdmin ?? false,
+        },
+        select: {
+          id: true,
+          clientAccountId: true,
+          contactId: true,
+          relationshipRole: true,
+        },
+      });
     },
     database,
   );
