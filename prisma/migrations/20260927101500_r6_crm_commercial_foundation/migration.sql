@@ -2003,7 +2003,7 @@ DECLARE
   company_name text;
   company_legal_name text;
   company_domain text;
-  linked_organization_id uuid;
+  company_linked_organization_id uuid;
   linked_type "iam"."OrganizationType";
   linked_status "iam"."RecordStatus";
   matching_count bigint;
@@ -2016,16 +2016,16 @@ BEGIN
     name,
     legal_name,
     domain::text,
-    linked_organization_id
+    c.linked_organization_id
   INTO
     company_name,
     company_legal_name,
     company_domain,
-    linked_organization_id
-  FROM "crm"."companies"
-  WHERE id = p_company_id
-    AND owner_organization_id = owner_id
-    AND archived_at IS NULL
+    company_linked_organization_id
+  FROM "crm"."companies" AS c
+  WHERE c.id = p_company_id
+    AND c.owner_organization_id = owner_id
+    AND c.archived_at IS NULL
   FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -2033,11 +2033,11 @@ BEGIN
       USING ERRCODE = '23503';
   END IF;
 
-  IF linked_organization_id IS NOT NULL THEN
+  IF company_linked_organization_id IS NOT NULL THEN
     SELECT organization_type, status
       INTO linked_type, linked_status
       FROM "iam"."organizations"
-     WHERE id = linked_organization_id;
+     WHERE id = company_linked_organization_id;
 
     IF NOT FOUND
        OR linked_type <> 'CLIENT'
@@ -2047,7 +2047,7 @@ BEGIN
         USING ERRCODE = '23514';
     END IF;
 
-    RETURN linked_organization_id;
+    RETURN company_linked_organization_id;
   END IF;
 
   IF NULLIF(btrim(company_domain), '') IS NOT NULL THEN
