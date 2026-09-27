@@ -152,6 +152,113 @@ describe("R6 API canonical mutation fields", () => {
     ).toBe("ALLOW");
   });
 
+  it("treats deal pipelineId as create-only rather than generally mutable", () => {
+    expect(
+      evaluateAuthorization(
+        context("deal.edit"),
+        "deal.edit",
+        {
+          ...resource("deal", "CONFIDENTIAL"),
+          sensitivity: "FINANCIAL",
+        },
+        {
+          action: "update",
+          requestedFields: ["pipelineId"],
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "FIELD_DENIED",
+    });
+  });
+
+  it("allows lead-source sourceType only while creating the source", () => {
+    expect(
+      evaluateAuthorization(
+        context("source.manage"),
+        "source.manage",
+        resource("lead-source", "CONFIDENTIAL"),
+        {
+          action: "create",
+          requestedFields: ["sourceType", "name"],
+        },
+      ).decision,
+    ).toBe("ALLOW");
+
+    expect(
+      evaluateAuthorization(
+        context("source.manage"),
+        "source.manage",
+        resource("lead-source", "CONFIDENTIAL"),
+        {
+          action: "update",
+          requestedFields: ["sourceType"],
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "FIELD_DENIED",
+    });
+  });
+
+  it("allows lead-list listType only on create and keeps memberCount server-owned", () => {
+    expect(
+      evaluateAuthorization(
+        context("lead.list.manage"),
+        "lead.list.manage",
+        resource("lead-list", "CONFIDENTIAL"),
+        {
+          action: "create",
+          requestedFields: ["name", "listType", "filterDefinition"],
+        },
+      ).decision,
+    ).toBe("ALLOW");
+
+    expect(
+      evaluateAuthorization(
+        context("lead.list.manage"),
+        "lead.list.manage",
+        resource("lead-list", "CONFIDENTIAL"),
+        {
+          action: "update",
+          requestedFields: ["listType"],
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "FIELD_DENIED",
+    });
+
+    expect(
+      evaluateAuthorization(
+        context("lead.list.manage"),
+        "lead.list.manage",
+        resource("lead-list", "CONFIDENTIAL"),
+        {
+          action: "create",
+          requestedFields: ["name", "memberCount"],
+        },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "FIELD_DENIED",
+    });
+  });
+
+  it("keeps authorized reads of server-owned fields available", () => {
+    expect(
+      evaluateAuthorization(
+        context("lead.view"),
+        "lead.view",
+        resource("lead", "CONFIDENTIAL"),
+        {
+          action: "view",
+          requestedFields: ["lifecycleState", "fitScore"],
+        },
+      ).decision,
+    ).toBe("ALLOW");
+  });
+
   it("rejects authority fields even if a route accidentally forwards them", () => {
     expect(
       evaluateAuthorization(
