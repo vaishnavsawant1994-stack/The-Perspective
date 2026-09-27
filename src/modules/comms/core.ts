@@ -477,15 +477,19 @@ export async function evaluateDispatchSafety(
   database: PrismaClient = getPrismaClient(),
 ) {
   return run(context, async (transaction) => {
-    const channel = input.channel.trim().toUpperCase();
-    if (!channel) throw new CommsCommandError("INVALID");
-
     const recipient = await transaction.commsCampaignRecipient.findFirst({
       where: {
         id: input.campaignRecipientId,
         ownerOrganizationId: context.tenant.organizationId,
       },
-      select: { id: true, leadId: true, contactId: true, state: true, campaignId: true },
+      select: {
+        id: true,
+        leadId: true,
+        contactId: true,
+        state: true,
+        campaignId: true,
+        currentStep: true,
+      },
     });
     if (!recipient) throw new CommsCommandError("NOT_FOUND");
     if (["BOUNCED", "UNSUBSCRIBED", "STOPPED", "CONVERTED"].includes(recipient.state)) {
@@ -498,7 +502,7 @@ export async function evaluateDispatchSafety(
         ownerOrganizationId: context.tenant.organizationId,
         archivedAt: null,
       },
-      select: { sendingAccountId: true, status: true },
+      select: { sendingAccountId: true, status: true, sequenceId: true },
     });
     if (!campaign) throw new CommsCommandError("NOT_FOUND");
     if (!["SCHEDULED", "RUNNING"].includes(campaign.status)) {
@@ -516,6 +520,28 @@ export async function evaluateDispatchSafety(
     if (!sender || sender.health !== "HEALTHY" || sender.syncState !== "CONNECTED") {
       throw new CommsCommandError("SENDER_NOT_READY");
     }
+
+    const sequence = await transaction.commsSequence.findFirst({
+      where: {
+        id: campaign.sequenceId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { currentVersion: true },
+    });
+    if (!sequence) throw new CommsCommandError("NOT_FOUND");
+
+    const sequenceStep = await transaction.commsSequenceStep.findFirst({
+      where: {
+        ownerOrganizationId: context.tenant.organizationId,
+        sequenceId: campaign.sequenceId,
+        sequenceVersion: sequence.currentVersion,
+        position: recipient.currentStep > 0 ? recipient.currentStep : 1,
+      },
+      select: { channel: true },
+    });
+    const channel = sequenceStep?.channel.trim().toUpperCase() ?? "";
+    if (!channel) throw new CommsCommandError("INVALID");
 
     let contactId = recipient.contactId ?? null;
 
