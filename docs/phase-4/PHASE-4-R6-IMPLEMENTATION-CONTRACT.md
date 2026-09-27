@@ -136,7 +136,7 @@ src/modules/
 - client relationships;
 - idempotent client conversion.
 
-Proposal ownership remains controlled by Gate-A D01.
+Gate-A D01 is OWNER-APPROVED as Resolution A. Proposal persistence/versioning/send/acceptance remain R7-owned and inactive in R6.
 
 ### Prohibited parallel architecture
 
@@ -256,7 +256,7 @@ Required candidate tables:
 - `commercial.client_accounts`
 - `commercial.client_relationships`
 
-Conditional on D01:
+Explicitly prohibited in R6 under approved D01:
 
 - `commercial.proposals`
 - `commercial.proposal_versions`
@@ -316,7 +316,7 @@ Persist the canonical state vocabulary but enforce a release-owned command ceili
 
 R6 cannot cross into states whose truth depends on R7 artifacts.
 
-If D01=A, transitions past `PROPOSAL_PREPARATION` remain dormant in R6.
+Under approved D01 Resolution A, transitions past `PROPOSAL_PREPARATION` remain dormant in R6.
 
 ### 7.7 Client conversion
 
@@ -382,7 +382,7 @@ The exact matrix must be frozen before implementation, but categories include:
 - `meeting.view/edit`;
 - `deal.view/edit/move/manage`;
 - client account/contact/portal permissions;
-- proposal permissions only if D01 assigns them to R6.
+- proposal permissions remain dormant in R6 under approved D01.
 
 ### 8.5 ResourceContext
 
@@ -480,9 +480,7 @@ Candidate routes:
 
 ### 10.4 Proposal routes
 
-Conditional on D01.
-
-If proposal is R7, R6 routes/screens may remain prototype/readiness only and proposal permissions remain inactive.
+Gate-A D01 Resolution A is authoritative. Proposal persistence/versioning/send/acceptance routes are R7-owned. R6 proposal screens may remain prototype/readiness only and all proposal production permissions remain inactive.
 
 ## 11. Idempotency contract
 
@@ -561,7 +559,7 @@ R6 must not implement or activate:
 - R7 provider side effects;
 - R7 permissions.
 
-Products/packages and Proposal follow Gate-A D01/current R7 release ownership.
+Products/packages and Proposal are R7-owned under approved Gate-A D01 Resolution A.
 
 ## 17. R11/R12+ boundary
 
@@ -675,9 +673,9 @@ No progress-only commit may claim a stage complete.
 ~~~text
 R1–R5: ACCEPTED
 R6 planning: AUTHORIZED
-R6 G0 candidate: DRAFT
-R6-G01 Proposal scope: OPEN
-R6-G02 Template permission stage ownership: OPEN
+R6 G0 candidate: DRAFT — GATE-A APPROVED
+R6-G01 Proposal scope: CLOSED — D01 Resolution A
+R6-G02 Template permission stage ownership: CLOSED — D15 Resolution A
 R6 action-family binding: REQUIRED BEFORE ACTIVATION
 R6 production implementation: NOT AUTHORIZED
 R7+: LOCKED
