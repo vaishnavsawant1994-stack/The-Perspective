@@ -29,6 +29,7 @@ const requiredDocs = [
   "docs/phase-4/PHASE-4-R6-R7-EXCLUSION-MANIFEST.md",
   "docs/phase-4/PHASE-4-R6-G0-ADVERSARIAL-AUDIT.md",
   "docs/phase-4/PHASE-4-R6-IMPLEMENTATION-CONTRACT.md",
+  "docs/phase-4/PHASE-4-R6-G0-FREEZE-CANDIDATE.md",
 ];
 
 const docs = new Map(requiredDocs.map((path) => [path, read(path)]));
@@ -45,6 +46,7 @@ const threatQualificationText = docs.get(requiredDocs[9]);
 const exclusionText = docs.get(requiredDocs[10]);
 const adversarialText = docs.get(requiredDocs[11]);
 const contractText = docs.get(requiredDocs[12]);
+const candidateText = docs.get(requiredDocs[13]);
 
 // Planning authority and hard locks.
 assert(authText.includes(BASELINE), "R6 planning authorization does not pin the exact authorized baseline");
@@ -65,7 +67,7 @@ assert(gateText.includes("### D15 approved resolution"), "D15 approved Resolutio
 assert(gateText.includes("## Post-Gate security prerequisite — R6 action-family enforcement"), "Post-Gate R6 action-binding prerequisite is missing");
 assert(gateText.includes("REQUIRED G0 SECURITY CONTROL — NOT A GATE-A SCOPE DECISION"), "Action binding must remain a technical G0 control, not inferred owner scope approval");
 assert(!gateText.includes("OPEN — BLOCKS P4-R6-G0 FREEZE"), "Gate A still contains an open blocking decision");
-assert(readinessText.includes("GATE-A OWNER-APPROVED"), "Gate-A readiness does not reflect owner approval");
+assert(readinessText.includes("P4-R6-G0 OWNER-FREEZE CANDIDATE"), "Readiness does not reflect the owner-freeze candidate state");
 assert(readinessText.includes("P4-R6-G0"), "Gate-A readiness does not track the G0 gate");
 assert(readinessText.includes("R6 production implementation:** NOT AUTHORIZED"), "Readiness document unlocks R6 implementation");
 
