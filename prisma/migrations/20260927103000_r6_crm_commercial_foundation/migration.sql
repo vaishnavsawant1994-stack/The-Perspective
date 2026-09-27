@@ -1874,6 +1874,40 @@ CREATE POLICY "client_relationships_r6_owner_mutate" ON "commercial"."client_rel
   FOR ALL USING ("owner_organization_id" = "platform"."current_organization_id"())
   WITH CHECK ("owner_organization_id" = "platform"."current_organization_id"());
 
--- The restricted role remains read-only on R6 tables. Authorized writes use
--- server-owned transactions with trusted tenant claims; no browser/client value
--- can elevate the runtime role into broad DML.
+-- Restricted DML is granted only where the frozen R6 repository contract needs it.
+GRANT INSERT, UPDATE ON TABLE "crm"."lead_sources" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."extraction_jobs" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."staged_records" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."enrichment_jobs" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."enrichment_facts" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."companies" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."contacts" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."leads" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."lead_lists" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."lead_list_members" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."qualifications" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."duplicate_candidates" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "crm"."suppression_entries" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."sending_accounts" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."outreach_campaigns" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."sequences" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."sequence_steps" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."campaign_recipients" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."conversations" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."conversation_participants" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."meetings" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."meeting_participants" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "comms"."meeting_notes" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "commercial"."deal_pipelines" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "commercial"."deal_stages" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "commercial"."deals" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "commercial"."client_accounts" TO perspective_runtime;
+GRANT INSERT, UPDATE ON TABLE "commercial"."client_relationships" TO perspective_runtime;
+GRANT INSERT ON TABLE "crm"."lead_scores" TO perspective_runtime;
+GRANT INSERT ON TABLE "crm"."lead_status_history" TO perspective_runtime;
+GRANT INSERT ON TABLE "comms"."message_deliveries" TO perspective_runtime;
+GRANT INSERT ON TABLE "comms"."messages" TO perspective_runtime;
+GRANT INSERT ON TABLE "commercial"."deal_stage_history" TO perspective_runtime;
+
+-- D15 catalog tables remain SELECT-only for perspective_runtime.
+-- No R6 table grants DELETE or TRUNCATE.
