@@ -1,4 +1,4 @@
-# Phase 4 — R5 Closure Package Candidate
+# Phase 4 — R5 Closure Package
 
 ## Authorization / RBAC / Resource Policy
 
@@ -9,8 +9,9 @@
 **Qualified post-falsification implementation candidate:** 8823c63c1a03281d91d5085bba07206186380f6c  
 **Implementation branch:** phase4/r5-authorization-implementation-20260927  
 **Closure-evidence branch:** phase4/r5-closure-evidence-20260927  
-**P4-R5-C1:** OWNER-ACCEPTED — IMPLEMENTATION MERGED  
+**P4-R5-C1:** ACCEPTED — MERGED  
 **Implementation merge:** COMPLETE — `748f6af4ce4c9868c2441125cd0480cf8abc34d4`  
+**Closure-documentation merge:** COMPLETE — `6add999609736e788d9bdaf8ddc690445f6d36e7`  
 **R6+:** LOCKED  
 **Design 154:** NOT AUTHORIZED
 
@@ -283,75 +284,75 @@ The following future-stage cases remain frozen but are not current R5 production
 
 They are not waived. They must be attacked again when their owning production stage is implemented.
 
-## 11. Required closure sequence
+## 11. Final closure sequence
 
-Technical closure prerequisites are now satisfied for the current candidate.
-
-The next valid transition is:
+The R5 closure sequence is complete:
 
 ~~~text
-8823c63c... fully exact-head qualified
+8823c63c... exact accepted implementation
        ↓
 Q01-Q07 CLOSED
        ↓
-focused reattack PASS
+focused falsification PASS
        ↓
-P4-R5-C1 READY FOR OWNER ACCEPTANCE
+owner acceptance
        ↓
-explicit owner acceptance
+P4-R5-C1 ACCEPTED
        ↓
-permanent P4-R5-C1 ACCEPTED control record
+implementation PR #6 merged
        ↓
-controlled merge
+main@748f6af4...
        ↓
-verify merged result / required regressions
+closure PR #7 merged
        ↓
-R6 separately authorized
+main@6add9996...
+       ↓
+prospective/actual merge tree EXACT MATCH
+       ↓
+P4-R5-C1 ACCEPTED + MERGED
+       ↓
+R6 remains separately locked
 ~~~
 
-No merge or R6 work is authorized by this record.
+No R6, Design 154, or V1.0 production-certification authority is created by this closure.
 
-## 12. Proposed P4-R5-C1 acceptance record
-
-The following text is still **proposed**, not active. The technical blockers are closed, but owner acceptance remains mandatory.
-
-### Proposed checkpoint metadata
+## 12. Active P4-R5-C1 acceptance record
 
 **Checkpoint:** P4-R5-C1  
 **Stage:** R5 Authorization / RBAC / Resource Policy  
-**Status:** READY FOR OWNER ACCEPTANCE — NOT ACCEPTED  
+**Status:** ACCEPTED — MERGED  
 **Frozen contract:** 2914e76b22468137630a4d444adb5431209fb5aa  
 **Accepted implementation SHA:** 8823c63c1a03281d91d5085bba07206186380f6c  
+**Implementation merge:** 748f6af4ce4c9868c2441125cd0480cf8abc34d4  
+**Closure-documentation merge:** 6add999609736e788d9bdaf8ddc690445f6d36e7  
 **Independent external review:** NOT PERFORMED  
 **Independent-review requirement:** OWNER-WAIVED under GOV-REVIEW-01  
 **Replacement control:** ENHANCED QUALIFICATION  
-**Owner acceptance:** PENDING  
-**Merge:** NOT AUTHORIZED  
+**Owner acceptance:** COMPLETE  
 **R6:** LOCKED
-
-### Proposed acceptance statement
 
 > P4-R5-C1 is accepted only for exact implementation SHA `8823c63c1a03281d91d5085bba07206186380f6c`. The accepted implementation conforms to frozen P4-R5-G0, preserves R3 authentication and R4 tenant isolation, resolves authority from current server-side database state, evaluates complete same-grant authorization paths, enforces explicit DENY, scope/resource/field/action/obligation policy, prevents access-administration self-escalation, records required immutable evidence, and keeps future-stage permission vocabulary dormant until separately activated by its owning accepted stage. Q01–Q07 are closed by executable negative proofs, and no production authorization repair was required during proof completion. Independent external review was not performed for R5; the requirement was owner-waived under GOV-REVIEW-01 and replaced by enhanced adversarial, database, browser and exact-head qualification. This acceptance does not authorize R6+, Design 154, or final production certification.
 
-This statement becomes active only after explicit owner acceptance.
-
 ## 13. Current disposition
-
-As of this closure package:
 
 ~~~text
 P4-R5-G0: FROZEN
 ccfdf618...: HISTORICAL QUALIFIED PRE-FALSIFICATION CHECKPOINT
-1d6ccc8c...: QUALIFIED POST-FALSIFICATION PRODUCTION-CODE CANDIDATE
-8823c63c...: FINAL TEST-EVIDENCED IMPLEMENTATION CANDIDATE
+1d6ccc8c...: QUALIFIED POST-FALSIFICATION PRODUCTION-CODE CHECKPOINT
+8823c63c...: ACCEPTED R5 IMPLEMENTATION
 Q01-Q07: CLOSED
 R5 IMPLEMENTATION #104: SUCCESS
 R5 BROWSER #33: SUCCESS
 R4 BROWSER #67: SUCCESS
 R3 BROWSER #69: SUCCESS
+PR #6 APPLICABLE PROSPECTIVE-MERGE CHECKS: PASS
+PR #7 APPLICABLE PROSPECTIVE-MERGE CHECKS: PASS
 FINAL FALSIFICATION: PASS
 BLOCKING/HIGH R5 FINDINGS: NONE OPEN
-P4-R5-C1: OWNER-ACCEPTED — IMPLEMENTATION MERGED
-IMPLEMENTATION MERGE: COMPLETE — 748f6af4ce4c9868c2441125cd0480cf8abc34d4
+P4-R5-C1: ACCEPTED + MERGED
+IMPLEMENTATION MERGE: 748f6af4ce4c9868c2441125cd0480cf8abc34d4
+CLOSURE-DOCUMENTATION MERGE: 6add999609736e788d9bdaf8ddc690445f6d36e7
 R6+: LOCKED
+DESIGN 154: LOCKED
+V1.0 PRODUCTION CERTIFICATION: NOT AUTHORIZED
 ~~~
