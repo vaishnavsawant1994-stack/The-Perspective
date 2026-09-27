@@ -14,6 +14,7 @@ import {
   canTransitionMeeting,
 } from "./lifecycle";
 import { hashNormalizedDestination } from "./safety";
+import { canonicalCommsEvidenceHash } from "./snapshot";
 import {
   CommsTenantBoundaryError,
   newCommsId,
@@ -361,7 +362,7 @@ export async function addCampaignRecipient(
   }, database);
 }
 
-async function assertCampaignReady(
+async function buildCampaignApprovalSnapshot(
   transaction: CommsTransaction,
   context: CommsContext,
   campaignId: string,
@@ -373,25 +374,55 @@ async function assertCampaignReady(
       archivedAt: null,
     },
     select: {
+      id: true,
+      leadListId: true,
       sequenceId: true,
       sendingAccountId: true,
-      recipientCount: true,
+      schedule: true,
     },
   });
   if (!campaign) throw new CommsCommandError("NOT_FOUND");
 
+  const sequence = await transaction.commsSequence.findFirst({
+    where: {
+      id: campaign.sequenceId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: { id: true, currentVersion: true },
+  });
+  if (!sequence) throw new CommsCommandError("INVALID");
+
   const [steps, recipients, sender] = await Promise.all([
-    transaction.commsSequenceStep.count({
+    transaction.commsSequenceStep.findMany({
       where: {
         ownerOrganizationId: context.tenant.organizationId,
         sequenceId: campaign.sequenceId,
+        sequenceVersion: sequence.currentVersion,
+      },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        position: true,
+        channel: true,
+        templateVersionId: true,
+        delaySeconds: true,
+        conditions: true,
+        stopRules: true,
       },
     }),
-    transaction.commsCampaignRecipient.count({
+    transaction.commsCampaignRecipient.findMany({
       where: {
         ownerOrganizationId: context.tenant.organizationId,
         campaignId,
         state: "QUEUED",
+      },
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        leadId: true,
+        contactId: true,
+        currentStep: true,
       },
     }),
     transaction.commsSendingAccount.findFirst({
@@ -400,12 +431,52 @@ async function assertCampaignReady(
         ownerOrganizationId: context.tenant.organizationId,
         archivedAt: null,
       },
-      select: { id: true },
+      select: {
+        id: true,
+        provider: true,
+        address: true,
+        integrationConnectionId: true,
+      },
     }),
   ]);
 
-  if (!sender || steps < 1 || recipients < 1) throw new CommsCommandError("INVALID");
-  return recipients;
+  if (!sender || steps.length < 1 || recipients.length < 1) {
+    throw new CommsCommandError("INVALID");
+  }
+
+  const evidence = {
+    campaignId: campaign.id,
+    leadListId: campaign.leadListId,
+    sequenceId: campaign.sequenceId,
+    sequenceVersion: sequence.currentVersion,
+    sendingAccountId: campaign.sendingAccountId,
+    sender: {
+      id: sender.id,
+      provider: sender.provider,
+      address: sender.address,
+      integrationConnectionId: sender.integrationConnectionId,
+    },
+    schedule: campaign.schedule,
+    steps,
+    recipients,
+  };
+
+  return {
+    recipientCount: recipients.length,
+    hash: canonicalCommsEvidenceHash(evidence),
+  };
+}
+
+export async function computeCampaignApprovalSnapshot(
+  context: CommsContext,
+  campaignId: string,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(
+    context,
+    (transaction) => buildCampaignApprovalSnapshot(transaction, context, campaignId),
+    database,
+  );
 }
 
 export async function transitionCampaign(
@@ -445,11 +516,13 @@ export async function transitionCampaign(
     };
 
     if (from === "DRAFT" && input.to === "READY") {
-      const count = await assertCampaignReady(transaction, context, input.campaignId);
-      const snapshot = input.audienceSnapshotHash?.trim();
-      if (!snapshot) throw new CommsCommandError("INVALID");
-      data.audienceSnapshotHash = snapshot;
-      data.recipientCount = count;
+      const snapshot = await buildCampaignApprovalSnapshot(
+        transaction,
+        context,
+        input.campaignId,
+      );
+      data.audienceSnapshotHash = snapshot.hash;
+      data.recipientCount = snapshot.recipientCount;
       data.approvedSnapshotHash = null;
       data.approvedAt = null;
       data.approvedByMembershipId = null;
@@ -458,6 +531,8 @@ export async function transitionCampaign(
       data.approvedSnapshotHash = campaign.audienceSnapshotHash;
       data.approvedAt = now;
       data.approvedByMembershipId = context.membership.membershipId;
+    } else if (input.to === "SCHEDULED") {
+      data.scheduledAt = now;
     } else if (input.to === "RUNNING") {
       throw new CommsCommandError("SENDER_NOT_READY");
     } else if (input.to === "PAUSED") {
