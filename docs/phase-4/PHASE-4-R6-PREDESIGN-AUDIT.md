@@ -501,6 +501,8 @@ R6 planning must preserve:
 | R6-A08 | Deal lifecycle references R7 contract/payment evidence | Cross-release lifecycle dependency | R6 needs explicit stage ceiling |
 | R6-A09 | Client conversion exists in Master-Bible R6 and Phase-2C commercial entities | R6 requirement | Include |
 | R6-A10 | Existing prototype values include business-looking money/status data | Fake-production risk | Must not be treated as durable truth |
+| R6-G02 | Screen 27 requires template mutation but `template.manage` is frozen at activation stage `R6+`, not `R6` | Governance/registry-stage mismatch | BLOCKS G0 freeze until owner resolves release ownership |
+| R6-G03 | Current authorization policy action-family enforcement is intentionally R5-only; activating R6 without an R6 action map would omit that protection | Expected pre-R6 security implementation gap; no current exploit because R6 is dormant | R6 action/resource matrix now defines G0 requirement; BLOCKS R6 activation until implemented and tested |
 
 ## 15. Audit conclusion
 
@@ -512,6 +514,8 @@ The correct R6 mission is:
 
 > materialize canonical CRM/comms/deal/client-account persistence and guarded application behavior behind the existing operational UI, using accepted R1–R5 tenancy and authorization controls, while preventing R7 contract/finance truth from leaking backward into R6.
 
-The only current blocker to freezing P4-R6-G0 is not missing code. It is the retained governance contradiction over Proposal release ownership plus any findings later produced by contract falsification.
+The current blockers to freezing P4-R6-G0 are governance resolution of R6-G01 Proposal ownership and R6-G02 template-management activation ownership, plus any BLOCKING/HIGH findings later produced by contract falsification.
+
+R6-G03 is not a current vulnerability: R6 permissions remain dormant. The G0 contract now requires explicit R6 permission→action/resource binding before R6 can ever be activated.
 
 Production implementation remains prohibited.
