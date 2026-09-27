@@ -1963,7 +1963,7 @@ RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, platform
-AS $$
+AS $r6_complete$
 DECLARE
   owner_id uuid;
   changed integer;
@@ -1989,7 +1989,7 @@ BEGIN
 
   RETURN 'COMPLETED';
 END
-$;
+$r6_complete$;
 
 CREATE OR REPLACE FUNCTION "platform"."resolve_r6_client_organization"(
   p_company_id uuid,
