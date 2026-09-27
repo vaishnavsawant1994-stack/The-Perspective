@@ -236,3 +236,45 @@ Required controls remain:
 3. exact P4-R6-G0 candidate SHA qualified;
 4. explicit owner freeze/acceptance of P4-R6-G0;
 5. separate explicit owner authorization for R6 implementation.
+
+
+## D15 — Email-template permission stage ownership
+
+**Status:** OPEN — BLOCKS P4-R6-G0 FREEZE
+
+Frozen operational screen 27 (`/app/outreach/templates`) belongs to the R6 outreach responsibility and expects template create/edit/version behavior.
+
+Accepted P4-R5-C1 permission metadata contains:
+
+- `template.manage`
+- activation stage: `R6+`
+
+Because stage activation is exact, activating R6 does not activate `R6+`.
+
+This is a retained governance/registry-stage mismatch, not a current security defect.
+
+### Candidate resolution A — preserve frozen permission-stage ownership
+
+- keep `template.manage` dormant during R6;
+- R6 Email Templates screen remains read-only/readiness or can select already-approved template versions only;
+- R6 sequence/campaign code may reference an existing frozen template version but cannot create/edit/version templates through `template.manage`;
+- a later explicitly authorized release owns template mutation.
+
+**Default planning posture:** A, because it preserves the accepted R5 registry without silently widening R6.
+
+### Candidate resolution B — explicit owner amendment
+
+The owner may explicitly amend `template.manage` activation ownership from `R6+` to `R6`.
+
+If B is selected, the implementation must update the accepted permission metadata through a controlled amendment and re-prove stage dormancy/action binding before activation.
+
+No implementation may silently relabel or bypass the stage.
+
+## Gate-A completion condition
+
+Gate A is not complete until both open scope decisions are explicitly resolved:
+
+1. D01 — Proposal release ownership;
+2. D15 — Email-template permission stage ownership.
+
+D02–D14 remain candidate decisions pending owner approval together with D01/D15.
