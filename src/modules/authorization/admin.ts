@@ -504,19 +504,20 @@ export async function createCustomAuthorizationRole(
         context.tenant.organizationId,
         "new-custom-role",
       );
-      const ceiling = Boolean(actorAdminRole(context));
-      const command = adminCommand(context, now, "create", input.reason, {
-        fieldPolicyResource: "role",
-        requestedFields: ["name", "description", "defaultScope"],
-        delegationCeilingSatisfied: ceiling,
-        optimisticConcurrencySatisfied: true,
-      });
       const authorization = await authorizeInTransaction(
         transaction,
         context,
         "role.manage",
         resource,
-        command,
+        (freshContext) =>
+          adminCommand(freshContext, now, "create", input.reason, {
+            fieldPolicyResource: "role",
+            requestedFields: ["name", "description", "defaultScope"],
+            delegationCeilingSatisfied: Boolean(
+              actorAdminRole(freshContext),
+            ),
+            optimisticConcurrencySatisfied: true,
+          }),
         now,
       );
       if (authorization.kind === "denied") {
@@ -570,7 +571,7 @@ export async function createCustomAuthorizationRole(
         authorization.context,
         authorization.decision,
         { ...resource, resourceId: role.id },
-        command,
+        authorization.command,
         { database: transaction, occurredAt: now },
       );
 
@@ -615,24 +616,27 @@ export async function updateCustomAuthorizationRole(
 
       const concurrencyMatches =
         role.updatedAt.getTime() === input.expectedUpdatedAt.getTime();
-      const command = adminCommand(context, now, "update", input.reason, {
-        fieldPolicyResource: "role",
-        requestedFields: [
-          ...(input.name !== undefined ? ["name"] : []),
-          ...(input.description !== undefined ? ["description"] : []),
-          ...(input.defaultScope !== undefined ? ["defaultScope"] : []),
-          ...(input.status !== undefined ? ["status"] : []),
-        ],
-        delegationCeilingSatisfied: Boolean(actorAdminRole(context)),
-        optimisticConcurrencySatisfied: concurrencyMatches,
-      });
+      const requestedFields = [
+        ...(input.name !== undefined ? ["name"] : []),
+        ...(input.description !== undefined ? ["description"] : []),
+        ...(input.defaultScope !== undefined ? ["defaultScope"] : []),
+        ...(input.status !== undefined ? ["status"] : []),
+      ];
       const resource = roleResource(context.tenant.organizationId, role.id);
       const authorization = await authorizeInTransaction(
         transaction,
         context,
         "role.manage",
         resource,
-        command,
+        (freshContext) =>
+          adminCommand(freshContext, now, "update", input.reason, {
+            fieldPolicyResource: "role",
+            requestedFields,
+            delegationCeilingSatisfied: Boolean(
+              actorAdminRole(freshContext),
+            ),
+            optimisticConcurrencySatisfied: concurrencyMatches,
+          }),
         now,
       );
       if (authorization.kind === "denied") {
@@ -710,7 +714,7 @@ export async function updateCustomAuthorizationRole(
         authorization.context,
         authorization.decision,
         resource,
-        command,
+        authorization.command,
         { database: transaction, occurredAt: now },
       );
 
@@ -937,7 +941,7 @@ export async function replaceCustomRolePermissions(
         authorization.context,
         authorization.decision,
         resource,
-        command,
+        authorization.command,
         { database: transaction, occurredAt: now },
       );
 
@@ -1116,7 +1120,7 @@ export async function assignMembershipAuthorizationRole(
         authorization.context,
         authorization.decision,
         { ...resource, resourceId: membershipRole.id },
-        command,
+        authorization.command,
         { database: transaction, occurredAt: now },
       );
 
@@ -1245,7 +1249,7 @@ export async function revokeMembershipAuthorizationRole(
         authorization.context,
         authorization.decision,
         resource,
-        command,
+        authorization.command,
         { database: transaction, occurredAt: now },
       );
 
