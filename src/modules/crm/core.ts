@@ -92,6 +92,7 @@ function mapKnownFailure(value: unknown): CrmCoreResult<never> | undefined {
     case "23503":
     case "23514":
     case "22023":
+    case "22P02":
       return error("INVALID");
     default:
       return undefined;
