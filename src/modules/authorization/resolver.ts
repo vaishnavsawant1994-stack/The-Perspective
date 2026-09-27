@@ -27,6 +27,7 @@ export interface PersistedAuthorityState {
   readonly userAccountId: string;
   readonly organizationId: string;
   readonly membershipStatus: string;
+  readonly departmentId?: string | null;
   readonly membershipRoles: readonly {
     readonly id: string;
     readonly scope: AuthorizationScope;
@@ -204,6 +205,7 @@ export function resolveAuthorityFromState(
 
   const authority: ResolvedAuthority<CanonicalPermissionKey> = {
     roleKeys: [...roleKeys].sort(),
+    actorDepartmentId: state.departmentId ?? undefined,
     permissionKeys,
     blockedPermissionKeys,
     grantPaths,
@@ -230,6 +232,7 @@ export async function resolveEffectiveAuthority(
       userAccountId: true,
       organizationId: true,
       status: true,
+      departmentId: true,
       membershipRoles: {
         select: {
           id: true,
@@ -266,6 +269,7 @@ export async function resolveEffectiveAuthority(
         userAccountId: persisted.userAccountId,
         organizationId: persisted.organizationId,
         membershipStatus: persisted.status,
+        departmentId: persisted.departmentId,
         membershipRoles: persisted.membershipRoles.map((membershipRole) => ({
           id: membershipRole.id,
           scope: membershipRole.scope,
@@ -354,6 +358,7 @@ export async function resolveAuthorizedRequestContext(
         permissions,
         blockedPermissions,
         grantPaths,
+        actorDepartmentId: resolution.authority.actorDepartmentId,
       },
     },
   };
