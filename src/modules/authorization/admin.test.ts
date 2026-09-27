@@ -11,6 +11,7 @@ import type {
 
 import {
   createCustomAuthorizationRole,
+  listAuthorizationRoles,
   replaceCustomRolePermissions,
   rolePermissionFingerprint,
   updateCustomAuthorizationRole,
@@ -89,6 +90,19 @@ function transactionDatabase(transaction: Record<string, unknown>) {
 }
 
 describe("R5 authorization administration", () => {
+  it("keeps role-list projection inside the declared field policy", async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const database = {
+      role: { findMany },
+    } as unknown as Parameters<typeof listAuthorizationRoles>[1];
+
+    await listAuthorizationRoles(authorizedContext(["R01"]), database);
+
+    expect(findMany).toHaveBeenCalledOnce();
+    const query = findMany.mock.calls[0]?.[0];
+    expect(query?.select).not.toHaveProperty("_count");
+  });
+
   it("produces stable role-permission fingerprints regardless of input order", () => {
     const first = rolePermissionFingerprint([
       {
