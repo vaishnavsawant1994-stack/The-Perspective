@@ -1,6 +1,6 @@
 # Phase 4 — Engineering Implementation Reconciliation
 
-Status: **R1, R2, R3, and R4 accepted; R5 remains separately locked**
+Status: **R1–R5 accepted; R5 implementation merged; R6 remains separately locked**
 
 - [Repository-Wide Implementation Reconciliation](./PHASE-4-REPOSITORY-WIDE-IMPLEMENTATION-RECONCILIATION.md)
 - [P4-R0 Review & Remediation Gate](./PHASE-4-P4-R0-REVIEW-AND-REMEDIATION-GATE.md)
@@ -11,15 +11,31 @@ Status: **R1, R2, R3, and R4 accepted; R5 remains separately locked**
 - [R3 Checkpoint](./PHASE-4-R3-CHECKPOINT.md)
 - [R4 Implementation Contract](./PHASE-4-R4-IMPLEMENTATION-CONTRACT.md)
 - [R4 Checkpoint](./PHASE-4-R4-CHECKPOINT.md)
+- [R5 Implementation Contract](./PHASE-4-R5-IMPLEMENTATION-CONTRACT.md)
+- [R5 Authorization Threat Model](./PHASE-4-R5-AUTHORIZATION-THREAT-MODEL.md)
+- [R5 Implementation Threat Coverage](./PHASE-4-R5-IMPLEMENTATION-THREAT-COVERAGE.md)
+- [R5 Closure Package](./PHASE-4-R5-CLOSURE-CANDIDATE.md)
+- [R5 Checkpoint](./PHASE-4-R5-CHECKPOINT.md)
+
 - Frozen baseline: Designs 001–153
-- Current checkpoint: P4-R4-C1 — reviewed and accepted
-- R2: Accepted authoritative persistence baseline
-- R3: Reviewed and accepted; automated + Chromium browser qualification green
-- R4: Reviewed and accepted; organization-context selection and PostgreSQL tenant isolation proven
-- R5: Not yet authorized for implementation on the R4 branch
-- Production certification: Not ready
-- Design 154: Not authorized
+- Current checkpoint: **P4-R5-C1 — owner-accepted**
+- Frozen R5 contract: `2914e76b22468137630a4d444adb5431209fb5aa`
+- Accepted R5 implementation: `8823c63c1a03281d91d5085bba07206186380f6c`
+- R5 implementation merge on main: `748f6af4ce4c9868c2441125cd0480cf8abc34d4`
+- R2: accepted authoritative persistence baseline
+- R3: accepted authentication/session/MFA boundary with automated + Chromium qualification
+- R4: accepted organization-context selection and PostgreSQL tenant isolation
+- R5: accepted Authorization / RBAC / Resource Policy boundary; Q01–Q07 closed; exact-head and prospective-merge qualification complete
+- Independent external review for R5: not performed; owner-waived under GOV-REVIEW-01 and replaced by enhanced qualification
+- Production certification: not ready
+- R6+: **not authorized**
+- Design 154: **not authorized**
+- R14/V1.0 independent external review: still mandatory
 
-P4-R1-C1, P4-R2-C1, P4-R3-C1, and P4-R4-C1 are accepted. R4 preserves Organization as the durable tenant boundary, introduces identity-only versus tenant-scoped authenticated session state, revalidates explicit membership selection server-side, and proves tenant isolation with a restricted PostgreSQL runtime role, forced RLS, live database tests, and real Chromium production-browser qualification.
+P4-R1-C1 through P4-R5-C1 are accepted.
 
-The permitted transition after the R4 merge is to freeze the merged R4 baseline, establish the V1.0 Master Completion Bible as the single source of truth, and authorize R5 separately. R5 permissions/RBAC, domain workflows, integrations, and Design 154 remain locked until their own implementation contract and gate are established.
+R5 preserves the R3 authenticated-identity boundary and R4 tenant boundary, then adds current-database authorization resolution, complete same-grant paths, explicit DENY precedence, scope/resource/action/constraint enforcement, field and Client-safe projection policy, protected role administration controls, transactional authority revalidation, immutable/redacted authorization evidence, and dormant future-stage permission vocabulary.
+
+The accepted R5 implementation was merged with a merge commit so exact accepted SHA `8823c63c1a03281d91d5085bba07206186380f6c` remains a direct parent of `main@748f6af4ce4c9868c2441125cd0480cf8abc34d4`.
+
+R6 must be authorized separately after final R5 merged-state closure. This README does not authorize R6, Design 154, or V1.0 production certification.
