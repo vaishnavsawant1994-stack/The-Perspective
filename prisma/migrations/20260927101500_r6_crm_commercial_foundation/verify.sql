@@ -354,3 +354,44 @@ SELECT
   to_regclass('commercial.contracts') IS NOT NULL AS contract_table_exists,
   to_regclass('commercial.invoices') IS NOT NULL AS invoice_table_exists,
   to_regclass('commercial.payments') IS NOT NULL AS payment_table_exists;
+
+
+DO $$
+BEGIN
+  IF to_regprocedure('platform.claim_r6_client_conversion(uuid,text,text,timestamptz)') IS NULL
+    OR to_regprocedure('platform.complete_r6_client_conversion(text,text,text)') IS NULL
+    OR to_regprocedure('platform.resolve_r6_client_organization(uuid,uuid)') IS NULL
+  THEN
+    RAISE EXCEPTION 'R6 verification failed: constrained client conversion helpers are missing';
+  END IF;
+
+  IF NOT has_function_privilege(
+      'perspective_runtime',
+      'platform.claim_r6_client_conversion(uuid,text,text,timestamptz)',
+      'EXECUTE'
+    )
+    OR NOT has_function_privilege(
+      'perspective_runtime',
+      'platform.complete_r6_client_conversion(text,text,text)',
+      'EXECUTE'
+    )
+    OR NOT has_function_privilege(
+      'perspective_runtime',
+      'platform.resolve_r6_client_organization(uuid,uuid)',
+      'EXECUTE'
+    )
+  THEN
+    RAISE EXCEPTION 'R6 verification failed: runtime lacks constrained client conversion helper execution';
+  END IF;
+
+  IF has_table_privilege('perspective_runtime', 'iam.organizations', 'INSERT')
+    OR has_table_privilege('perspective_runtime', 'iam.organizations', 'UPDATE')
+    OR has_table_privilege('perspective_runtime', 'iam.organizations', 'DELETE')
+    OR has_table_privilege('perspective_runtime', 'platform.idempotency_receipts', 'INSERT')
+    OR has_table_privilege('perspective_runtime', 'platform.idempotency_receipts', 'UPDATE')
+    OR has_table_privilege('perspective_runtime', 'platform.idempotency_receipts', 'DELETE')
+  THEN
+    RAISE EXCEPTION 'R6 verification failed: client conversion weakened IAM/idempotency table privileges';
+  END IF;
+END
+$$;
