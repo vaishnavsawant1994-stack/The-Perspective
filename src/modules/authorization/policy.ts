@@ -33,6 +33,17 @@ const READ_ACTIONS = new Set([
   "download",
 ]);
 
+const R5_PERMISSION_ACTIONS: Partial<
+  Record<CanonicalPermissionKey, ReadonlySet<string>>
+> = {
+  "audit.view": new Set(["read", "view", "list", "search"]),
+  "department.manage": new Set(["manage"]),
+  "permission.manage": new Set(["manage"]),
+  "role.manage": new Set(["create", "update", "assign", "revoke", "manage"]),
+  "team.manage": new Set(["manage"]),
+  "team.view": new Set(["read", "view", "list", "search"]),
+};
+
 const sensitivityRank: Record<SensitivityLevel, number> = {
   STANDARD: 0,
   CONFIDENTIAL: 1,
@@ -322,6 +333,14 @@ export function evaluateAuthorization(
   const activeStages = options.activeStages ?? DEFAULT_ACTIVE_STAGES;
 
   if (!activeStages.has(definition.activationStage)) {
+    return deny(permissionKey, "WORKFLOW_DENIED");
+  }
+
+  const permittedActions = R5_PERMISSION_ACTIONS[permissionKey];
+  if (
+    definition.activationStage === "R5" &&
+    (!permittedActions || !permittedActions.has(command.action))
+  ) {
     return deny(permissionKey, "WORKFLOW_DENIED");
   }
 
