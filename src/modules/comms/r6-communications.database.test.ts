@@ -32,6 +32,7 @@ import {
   transitionConversation,
   transitionMeeting,
 } from "./core";
+import { hashNormalizedDestination } from "./safety";
 import type { CommsResult } from "./types";
 
 const database = createPrismaClient();
@@ -74,14 +75,14 @@ function teamContext(input: {
 const platform = teamContext({
   organizationId: primaryOrganizationId,
   membershipId: primaryMembershipId,
-  userId: seedIds.user.operator,
+  userId: primaryUserId,
   requestId: "r6-comms-platform",
 });
 
 const foreign = teamContext({
   organizationId: secondaryOrganizationId,
   membershipId: secondaryMembershipId,
-  userId: seedIds.user.asteriaAdmin,
+  userId: foreignUserId,
   requestId: "r6-comms-foreign",
 });
 
@@ -218,7 +219,7 @@ beforeAll(async () => {
       {
         id: primaryMembershipId,
         organizationId: primaryOrganizationId,
-        userAccountId: seedIds.user.operator,
+        userAccountId: primaryUserId,
         membershipType: "STAFF",
         status: "ACTIVE",
         joinedAt: epoch,
@@ -226,7 +227,7 @@ beforeAll(async () => {
       {
         id: secondaryMembershipId,
         organizationId: secondaryOrganizationId,
-        userAccountId: seedIds.user.asteriaAdmin,
+        userAccountId: foreignUserId,
         membershipType: "STAFF",
         status: "ACTIVE",
         joinedAt: epoch,
@@ -791,6 +792,132 @@ describe("R6 communications command-layer falsification", () => {
       database,
     );
     expect(skip).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
+  });
+
+  it("does not let a caller-supplied suppression hash bypass canonical destination normalization", async () => {
+    const canonicalHash = hashNormalizedDestination(
+      "EMAIL",
+      "COMMS-OWN@EXAMPLE.INVALID",
+    );
+    mustCrmOk(
+      await createSuppressionEntry(
+        platform,
+        {
+          channel: "EMAIL",
+          normalizedDestinationHash: canonicalHash,
+          reason: "canonical suppression",
+          source: "recipient",
+        },
+        database,
+      ),
+    );
+
+    const result = await evaluateDispatchSafety(
+      platform,
+      {
+        campaignRecipientId: fixture.ownRecipientId,
+        channel: "EMAIL",
+        normalizedDestinationHash: "attacker-controlled-nonmatching-hash",
+      },
+      database,
+    );
+
+    expect(result).toEqual({ kind: "error", code: "CONTACT_BLOCKED" });
+  });
+
+  it("rejects recipient mutation after campaign approval so the frozen audience cannot drift", async () => {
+    const company = mustCrmOk(
+      await createCompany(platform, { name: "COMMS Frozen Audience Company" }, database),
+    );
+    const lead = mustCrmOk(
+      await createLead(
+        platform,
+        { companyId: company.id, sourceRecordKey: "comms-frozen-audience" },
+        database,
+      ),
+    );
+
+    const before = await count(
+      `SELECT count(*)::bigint AS count
+         FROM comms.campaign_recipients
+        WHERE campaign_id = $1::uuid`,
+      fixture.ownCampaignId,
+    );
+
+    const result = await addCampaignRecipient(
+      platform,
+      { campaignId: fixture.ownCampaignId, leadId: lead.id },
+      database,
+    );
+
+    expect(result).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM comms.campaign_recipients
+          WHERE campaign_id = $1::uuid`,
+        fixture.ownCampaignId,
+      ),
+    ).toBe(before);
+  });
+
+  it("fails dispatch closed when a queued campaign is paused", async () => {
+    await database.commsOutreachCampaign.update({
+      where: { id: fixture.ownCampaignId },
+      data: { status: "PAUSED" },
+    });
+
+    const result = await evaluateDispatchSafety(
+      platform,
+      {
+        campaignRecipientId: fixture.ownRecipientId,
+        channel: "EMAIL",
+        normalizedDestinationHash: "sha256:paused-campaign",
+      },
+      database,
+    );
+    expect(result).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
+
+    await database.commsOutreachCampaign.update({
+      where: { id: fixture.ownCampaignId },
+      data: { status: "SCHEDULED" },
+    });
+  });
+
+  it("does not create an outbound sent message without provider evidence", async () => {
+    const conversation = mustOk(
+      await createConversation(
+        platform,
+        { channel: "EMAIL", subject: "Provider evidence guard", leadId: fixture.ownLeadId },
+        database,
+      ),
+    );
+    const before = await count(
+      `SELECT count(*)::bigint AS count
+         FROM comms.messages
+        WHERE conversation_id = $1::uuid`,
+      conversation.id,
+    );
+
+    const result = await recordMessage(
+      platform,
+      {
+        conversationId: conversation.id,
+        direction: "OUTBOUND",
+        bodyText: "caller claims this was sent",
+      },
+      database,
+    );
+
+    expect(result).toEqual({ kind: "error", code: "INVALID" });
+    expect(
+      await count(
+        `SELECT count(*)::bigint AS count
+           FROM comms.messages
+          WHERE conversation_id = $1::uuid`,
+        conversation.id,
+      ),
+    ).toBe(before);
   });
 
   it("does not allow Step 3 to activate provider launch implicitly", async () => {
