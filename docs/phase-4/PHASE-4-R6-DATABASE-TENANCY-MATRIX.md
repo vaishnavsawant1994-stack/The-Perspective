@@ -83,13 +83,13 @@ No R6 table may be “tenant neutral” merely because it is a child table.
 | `commercial.client_accounts` | Platform owner org + `client_organization_id` | DIRECT RLS | yes | one active per client org |
 | `commercial.client_relationships` | client account | PARENT RLS + FK | no or resource if independently actionable | unique active client+person+role; person/contact linkage valid |
 
-Conditional on D01:
+Gate-A D01 is approved as Resolution A. The following tables are explicitly **not R6 tables** and remain R7-owned:
 
-| Table | Tenant source | RLS class | Resource-backed | Critical DB invariants |
-|---|---|---|---|---|
-| `commercial.proposals` | owner org + optional client org | DIRECT RLS | yes | deal/client same tenant graph; unique proposal number |
-| `commercial.proposal_versions` | proposal | EVIDENCE / PARENT | no | immutable exact version/hash |
-| `commercial.proposal_acceptances` | proposal version | EVIDENCE / PARENT | no | exact version/org terminal decision uniqueness |
+- `commercial.proposals`
+- `commercial.proposal_versions`
+- `commercial.proposal_acceptances`
+
+They therefore have no R6 migration/RLS implementation and must be rejected by the R6 exclusion verifier.
 
 ## 5. Explicitly prohibited R6 tables
 
