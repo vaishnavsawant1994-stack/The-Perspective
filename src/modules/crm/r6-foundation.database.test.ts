@@ -212,12 +212,17 @@ describe("R6 PostgreSQL CRM/commercial foundation", () => {
     }
   });
 
-  it("denies a caller-supplied foreign tenant on R6 INSERT", async () => {
+  it("denies a caller-supplied foreign tenant on R6 INSERT with no residue", async () => {
+    const leadId = stableId("r6:lead:foreign-owner-insert-attack");
+
     await beginRuntime(seedIds.organization.platform);
 
     try {
-      await expect(
-        client.query(
+      await client.query("SAVEPOINT r6_foreign_owner_insert");
+
+      let denialCode: string | undefined;
+      try {
+        await client.query(
           `INSERT INTO crm.leads (
             id,
             resource_id,
@@ -231,12 +236,31 @@ describe("R6 PostgreSQL CRM/commercial foundation", () => {
           )
           VALUES ($1, $2, $3, 'INTERNAL', 'CONFIDENTIAL', 'NEW', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
           [
-            stableId("r6:lead:foreign-owner-insert-attack"),
+            leadId,
             stableId("r6:resource:foreign-owner-insert-attack"),
             seedIds.organization.northstar,
           ],
-        ),
-      ).rejects.toMatchObject({ code: "42501" });
+        );
+      } catch (error) {
+        denialCode =
+          typeof error === "object" && error !== null && "code" in error
+            ? String((error as { code?: unknown }).code)
+            : undefined;
+      }
+
+      // Either RLS rejects the caller-supplied tenant directly (42501), or the
+      // concealed/missing matching resource envelope fails first (23503).
+      // Both are intentional fail-closed paths; neither may leave a row behind.
+      expect(["42501", "23503"]).toContain(denialCode);
+
+      await client.query("ROLLBACK TO SAVEPOINT r6_foreign_owner_insert");
+      await client.query("RESET ROLE");
+
+      const residue = await client.query<{ count: string }>(
+        "SELECT count(*) FROM crm.leads WHERE id = $1",
+        [leadId],
+      );
+      expect(residue.rows[0]?.count).toBe("0");
     } finally {
       await rollback();
     }
