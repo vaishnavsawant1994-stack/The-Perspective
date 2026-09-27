@@ -461,7 +461,7 @@ export const R6_FIELD_POLICIES: Record<
   ),
   deal: policy(
     ["id", "resourceId", "companyId", "primaryContactId", "sourceLeadId", "pipelineId", "stageId", "amountMinor", "currency", "probability", "expectedCloseDate", "ownerMembershipId", "departmentId", "rowVersion", "archivedAt"],
-    ["companyId", "primaryContactId", "amountMinor", "currency", "probability", "expectedCloseDate"],
+    ["pipelineId", "companyId", "primaryContactId", "amountMinor", "currency", "probability", "expectedCloseDate"],
     groups({
       publicBusiness: ["id", "resourceId", "companyId", "primaryContactId", "pipelineId", "stageId", "expectedCloseDate"],
       internal: ["sourceLeadId", "ownerMembershipId", "departmentId", "rowVersion", "archivedAt"],
