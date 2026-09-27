@@ -68,9 +68,8 @@ The generic resource envelope is necessary but not sufficient for R6 scope decis
 | `client-account` | Platform owner org, client organization, AM/owner assignments, lifecycle, version | INTERNAL | CONFIDENTIAL |
 | `client-relationship` | owner org + client organization through client account, lifecycle | INTERNAL | PII |
 | `portal-access` | owner org + client org + target membership/person, lifecycle/version | INTERNAL | SECURITY |
-| `proposal` | owner org, deal/client, owner/assignments, exact version, lifecycle | INTERNAL / CLIENT_SHARED only after explicit sharing | FINANCIAL |
 
-`proposal` is conditional on Gate-A D01. If Proposal remains R7, it is not an active R6 resource type.
+`proposal` is not an active R6 resource type. Gate-A D01 is approved as Resolution A: proposal persistence/versioning/send/acceptance are R7-owned.
 
 ## 3. Resource loader rules
 
@@ -381,7 +380,6 @@ These fields are server-owned or command-owned and cannot be generic PATCH input
 - provider delivery outcome;
 - message direction/provider event status;
 - deal stage;
-- proposal acceptance/approval;
 - immutable version/hash fields;
 - audit/outbox evidence.
 
@@ -406,4 +404,5 @@ Before P4-R6-G0 freeze:
 - every R6 API/query must name a resource type and field policy;
 - Client-safe projections must be separate serializers, not filtered Team objects;
 - A16/A17/A22/A23/A24/A25/A61/A83 from the R6 threat model have mapped executable tests;
-- Proposal field policy remains conditional on D01.
+- no Proposal/Product/Package/Contract/Invoice/Payment R6 field policy exists;
+- `template.manage` has no R6 mutation field policy under approved D15.
