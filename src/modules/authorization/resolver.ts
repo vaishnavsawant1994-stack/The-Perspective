@@ -195,10 +195,7 @@ export function resolveAuthorityFromState(
 
   const permissionKeys = new Set<CanonicalPermissionKey>();
   for (const grant of grantPaths) {
-    if (
-      grant.effect === "ALLOW" &&
-      !blockedPermissionKeys.has(grant.permissionKey)
-    ) {
+    if (grant.effect === "ALLOW") {
       permissionKeys.add(grant.permissionKey);
     }
   }
