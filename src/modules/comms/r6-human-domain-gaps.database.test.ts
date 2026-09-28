@@ -446,7 +446,7 @@ describe("R6 Communications human-owned domain gaps", () => {
       data: {
         id: inactiveMembershipId,
         organizationId,
-        userAccountId: seedIds.user.operator,
+        userAccountId: seedIds.user.asteriaAdmin,
         membershipType: "STAFF",
         status: "SUSPENDED",
       },
@@ -468,7 +468,7 @@ describe("R6 Communications human-owned domain gaps", () => {
       data: {
         id: foreignMembershipId,
         organizationId: foreignOrganizationId,
-        userAccountId: seedIds.user.operator,
+        userAccountId: seedIds.user.northstarAdmin,
         membershipType: "STAFF",
         status: "ACTIVE",
         joinedAt: now,
