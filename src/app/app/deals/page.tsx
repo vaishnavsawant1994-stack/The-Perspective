@@ -1,5 +1,5 @@
-import { DealsPipeline } from "@/components/workspace/commercial-screens";
+import { BoundDealsPage } from "@/components/workspace/r6-bound-lists";
 
 export default function Page() {
-  return <DealsPipeline />;
+  return <BoundDealsPage />;
 }

@@ -127,7 +127,26 @@ export interface AuthorizationResourceContext {
 
 export interface AuthorizationFieldPolicy {
   readonly readableFields: readonly string[];
+  /**
+   * Fields accepted on ordinary post-create mutations.
+   */
   readonly mutableFields: readonly string[];
+  /**
+   * Fields accepted only while creating a new resource. They are immutable
+   * through the generic field-policy boundary after creation.
+   */
+  readonly createOnlyFields?: readonly string[];
+  /**
+   * Fields whose truth is owned by server/domain/provider execution and may
+   * never be supplied as client mutation authority.
+   */
+  readonly serverOwnedFields?: readonly string[];
+  /**
+   * Submitted command parameters that are authorized for a specific action but
+   * are not ordinary mutable resource columns (for example lifecycle targets,
+   * concurrency versions, reasons, or relationship member IDs).
+   */
+  readonly actionFields?: Readonly<Record<string, readonly string[]>>;
   /**
    * Trusted server-owned mapping from policy group names to concrete fields.
    * Constraint-supplied group names never define this mapping.

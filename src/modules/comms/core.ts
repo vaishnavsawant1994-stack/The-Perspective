@@ -1,0 +1,1310 @@
+import "server-only";
+
+import { Prisma, type PrismaClient } from "@/generated/prisma/client";
+import type {
+  AuthorizedRequestContext,
+  TenantScopedRequestContext,
+} from "@/modules/foundation/request-context";
+import { getPrismaClient } from "@/modules/persistence/client";
+
+import {
+  canAdvanceRecipient,
+  canTransitionCampaign,
+  canTransitionConversation,
+  canTransitionMeeting,
+} from "./lifecycle";
+import { hashNormalizedDestination } from "./safety";
+import { canonicalCommsEvidenceHash } from "./snapshot";
+import {
+  CommsTenantBoundaryError,
+  newCommsId,
+  registerCommsResource,
+  type CommsTransaction,
+  withCommsTenantTransaction,
+} from "./persistence";
+import type {
+  AddCampaignRecipientInput,
+  AddSequenceStepInput,
+  CampaignState,
+  CommsErrorCode,
+  CommsResult,
+  ConversationState,
+  CreateCampaignInput,
+  CreateConversationInput,
+  CreateMeetingInput,
+  CreateSendingAccountInput,
+  UpdateSendingAccountInput,
+  CreateSequenceVersionInput,
+  UpdateCampaignDraftInput,
+  AssignConversationInput,
+  CreateInternalNoteInput,
+  CreateSequenceInput,
+  EvaluateDispatchSafetyInput,
+  MeetingState,
+  RecipientState,
+  RecordDeliveryEventInput,
+  RecordMessageInput,
+  TransitionCampaignInput,
+  TransitionConversationInput,
+  TransitionMeetingInput,
+  RescheduleMeetingInput,
+} from "./types";
+
+type CommsContext = TenantScopedRequestContext | AuthorizedRequestContext;
+
+class CommsCommandError extends Error {
+  constructor(readonly code: CommsErrorCode) {
+    super(code);
+  }
+}
+
+function ok<T>(value: T): CommsResult<T> {
+  return { kind: "ok", value };
+}
+
+function error(code: CommsErrorCode): CommsResult<never> {
+  return { kind: "error", code };
+}
+
+function databaseCode(value: unknown) {
+  if (!value || typeof value !== "object" || !("code" in value)) return undefined;
+  return String((value as { code?: unknown }).code ?? "");
+}
+
+function mapKnownFailure(value: unknown): CommsResult<never> | undefined {
+  if (value instanceof CommsCommandError) return error(value.code);
+  if (value instanceof CommsTenantBoundaryError) return error("TEAM_REQUIRED");
+
+  switch (databaseCode(value)) {
+    case "P2002":
+    case "P2034":
+    case "23505":
+      return error("CONFLICT");
+    case "P2025":
+      return error("NOT_FOUND");
+    case "P2003":
+    case "P2004":
+    case "P2007":
+    case "23503":
+    case "23514":
+    case "22023":
+      return error("INVALID");
+    default:
+      return undefined;
+  }
+}
+
+function json(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+async function run<T>(
+  context: CommsContext,
+  operation: (transaction: CommsTransaction) => Promise<T>,
+  database: PrismaClient,
+): Promise<CommsResult<T>> {
+  try {
+    return ok(await withCommsTenantTransaction(context, operation, database));
+  } catch (cause) {
+    const known = mapKnownFailure(cause);
+    if (known) return known;
+    throw cause;
+  }
+}
+
+function owner(context: CommsContext) {
+  return {
+    ownerOrganizationId: context.tenant.organizationId,
+    ownerMembershipId: context.membership.membershipId,
+    createdByMembershipId: context.membership.membershipId,
+    updatedByMembershipId: context.membership.membershipId,
+  };
+}
+
+export async function createSendingAccount(
+  context: CommsContext,
+  input: CreateSendingAccountInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const provider = input.provider.trim();
+    const address = input.address.trim().toLowerCase();
+    if (!provider || !address) throw new CommsCommandError("INVALID");
+    if ((input.dailyLimit ?? 0) < 0 || (input.hourlyLimit ?? 0) < 0) {
+      throw new CommsCommandError("INVALID");
+    }
+
+    const id = newCommsId();
+    const resourceId = newCommsId();
+    await registerCommsResource(transaction, {
+      id: resourceId,
+      type: "sending-account",
+      title: address,
+      sensitivity: "SECURITY",
+    });
+
+    return transaction.commsSendingAccount.create({
+      data: {
+        id,
+        resourceId,
+        ...owner(context),
+        visibility: "INTERNAL",
+        sensitivity: "SECURITY",
+        provider,
+        address,
+        displayName: input.displayName?.trim() || null,
+        dailyLimit: input.dailyLimit ?? null,
+        hourlyLimit: input.hourlyLimit ?? null,
+        health: "UNKNOWN",
+        syncState: "DISCONNECTED",
+      },
+      select: { id: true, resourceId: true, health: true, syncState: true, rowVersion: true },
+    });
+  }, database);
+}
+
+
+export async function updateSendingAccount(
+  context: CommsContext,
+  input: UpdateSendingAccountInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    if (
+      input.displayName === undefined &&
+      input.dailyLimit === undefined &&
+      input.hourlyLimit === undefined
+    ) throw new CommsCommandError("INVALID");
+    if ((input.dailyLimit ?? 0) < 0 || (input.hourlyLimit ?? 0) < 0) {
+      throw new CommsCommandError("INVALID");
+    }
+    const current = await transaction.commsSendingAccount.findFirst({
+      where: { id: input.sendingAccountId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { rowVersion: true },
+    });
+    if (!current) throw new CommsCommandError("NOT_FOUND");
+    if (current.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    const updated = await transaction.commsSendingAccount.updateMany({
+      where: { id: input.sendingAccountId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, rowVersion: input.expectedRowVersion },
+      data: {
+        ...(input.displayName !== undefined ? { displayName: input.displayName?.trim() || null } : {}),
+        ...(input.dailyLimit !== undefined ? { dailyLimit: input.dailyLimit } : {}),
+        ...(input.hourlyLimit !== undefined ? { hourlyLimit: input.hourlyLimit } : {}),
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+    return transaction.commsSendingAccount.findFirstOrThrow({
+      where: { id: input.sendingAccountId, ownerOrganizationId: context.tenant.organizationId },
+      select: { id: true, resourceId: true, health: true, syncState: true, rowVersion: true },
+    });
+  }, database);
+}
+
+export async function createSequence(
+  context: CommsContext,
+  input: CreateSequenceInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const name = input.name.trim();
+    if (!name) throw new CommsCommandError("INVALID");
+
+    const id = newCommsId();
+    const resourceId = newCommsId();
+    await registerCommsResource(transaction, {
+      id: resourceId,
+      type: "sequence",
+      title: name,
+      sensitivity: "STANDARD",
+    });
+
+    return transaction.commsSequence.create({
+      data: {
+        id,
+        resourceId,
+        ...owner(context),
+        visibility: "INTERNAL",
+        sensitivity: "STANDARD",
+        name,
+        currentVersion: 1,
+        status: "DRAFT",
+      },
+      select: { id: true, resourceId: true, currentVersion: true, status: true, rowVersion: true },
+    });
+  }, database);
+}
+
+
+export async function createSequenceVersion(
+  context: CommsContext,
+  input: CreateSequenceVersionInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const sequence = await transaction.commsSequence.findFirst({
+      where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { currentVersion: true, rowVersion: true },
+    });
+    if (!sequence) throw new CommsCommandError("NOT_FOUND");
+    if (sequence.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    const updated = await transaction.commsSequence.updateMany({
+      where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, rowVersion: input.expectedRowVersion },
+      data: { currentVersion: { increment: 1 }, rowVersion: { increment: 1 }, updatedByMembershipId: context.membership.membershipId },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+    const next = await transaction.commsSequence.findFirstOrThrow({
+      where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId },
+      select: { id: true, currentVersion: true, rowVersion: true },
+    });
+    return { sequenceId: next.id, sequenceVersion: next.currentVersion, rowVersion: next.rowVersion };
+  }, database);
+}
+
+export async function addSequenceStep(
+  context: CommsContext,
+  input: AddSequenceStepInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const channel = input.channel.trim();
+    if (!channel || input.position <= 0 || (input.delaySeconds ?? 0) < 0) {
+      throw new CommsCommandError("INVALID");
+    }
+
+    const sequence = await transaction.commsSequence.findFirst({
+      where: {
+        id: input.sequenceId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { currentVersion: true },
+    });
+    if (!sequence) throw new CommsCommandError("NOT_FOUND");
+    if (sequence.currentVersion !== input.expectedSequenceVersion) {
+      throw new CommsCommandError("STALE_WRITE");
+    }
+
+    const frozenCampaignReferences = await transaction.commsOutreachCampaign.count({
+      where: {
+        ownerOrganizationId: context.tenant.organizationId,
+        sequenceId: input.sequenceId,
+        sequenceVersion: input.expectedSequenceVersion,
+        archivedAt: null,
+        status: {
+          in: ["READY", "APPROVED", "SCHEDULED", "RUNNING", "PAUSED", "COMPLETED"],
+        },
+      },
+    });
+    if (frozenCampaignReferences > 0) {
+      throw new CommsCommandError("TRANSITION_DENIED");
+    }
+
+    const version = await transaction.commsMessageTemplateVersion.findFirst({
+      where: {
+        id: input.templateVersionId,
+        ownerOrganizationId: context.tenant.organizationId,
+      },
+      select: { id: true, templateId: true },
+    });
+    if (!version) throw new CommsCommandError("TEMPLATE_NOT_APPROVED");
+
+    const template = await transaction.commsMessageTemplate.findFirst({
+      where: {
+        id: version.templateId,
+        ownerOrganizationId: context.tenant.organizationId,
+        currentVersionId: version.id,
+        status: "APPROVED",
+        archivedAt: null,
+      },
+      select: { id: true },
+    });
+    if (!template) throw new CommsCommandError("TEMPLATE_NOT_APPROVED");
+
+    return transaction.commsSequenceStep.create({
+      data: {
+        id: newCommsId(),
+        ownerOrganizationId: context.tenant.organizationId,
+        sequenceId: input.sequenceId,
+        sequenceVersion: input.expectedSequenceVersion,
+        position: input.position,
+        channel,
+        templateVersionId: input.templateVersionId,
+        delaySeconds: input.delaySeconds ?? 0,
+        conditions: json(input.conditions ?? {}),
+        stopRules: json(input.stopRules ?? {}),
+      },
+      select: { id: true, sequenceId: true, sequenceVersion: true, position: true },
+    });
+  }, database);
+}
+
+export async function createCampaign(
+  context: CommsContext,
+  input: CreateCampaignInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const name = input.name.trim();
+    if (!name) throw new CommsCommandError("INVALID");
+
+    const sequence = await transaction.commsSequence.findFirst({
+      where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { currentVersion: true },
+    });
+    if (!sequence) throw new CommsCommandError("INVALID");
+
+    const id = newCommsId();
+    const resourceId = newCommsId();
+    await registerCommsResource(transaction, {
+      id: resourceId,
+      type: "outreach-campaign",
+      title: name,
+      sensitivity: "CONFIDENTIAL",
+    });
+
+    return transaction.commsOutreachCampaign.create({
+      data: {
+        id,
+        resourceId,
+        ...owner(context),
+        visibility: "INTERNAL",
+        sensitivity: "CONFIDENTIAL",
+        name,
+        leadListId: input.leadListId,
+        sequenceId: input.sequenceId,
+        sequenceVersion: sequence.currentVersion,
+        sendingAccountId: input.sendingAccountId,
+        schedule: json(input.schedule ?? {}),
+        status: "DRAFT",
+      },
+      select: { id: true, resourceId: true, status: true, rowVersion: true },
+    });
+  }, database);
+}
+
+
+export async function updateCampaignDraft(
+  context: CommsContext,
+  input: UpdateCampaignDraftInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    if (
+      input.name === undefined && input.leadListId === undefined &&
+      input.sequenceId === undefined && input.sendingAccountId === undefined &&
+      input.schedule === undefined
+    ) throw new CommsCommandError("INVALID");
+    if (input.name !== undefined && !input.name.trim()) throw new CommsCommandError("INVALID");
+    const current = await transaction.commsOutreachCampaign.findFirst({
+      where: { id: input.campaignId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { rowVersion: true, status: true },
+    });
+    if (!current) throw new CommsCommandError("NOT_FOUND");
+    if (current.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    if (current.status !== "DRAFT") throw new CommsCommandError("TRANSITION_DENIED");
+    let sequenceVersion: number | undefined;
+    if (input.sequenceId !== undefined) {
+      const sequence = await transaction.commsSequence.findFirst({
+        where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+        select: { currentVersion: true },
+      });
+      if (!sequence) throw new CommsCommandError("INVALID");
+      sequenceVersion = sequence.currentVersion;
+    }
+
+    const updated = await transaction.commsOutreachCampaign.updateMany({
+      where: { id: input.campaignId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, status: "DRAFT", rowVersion: input.expectedRowVersion },
+      data: {
+        ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+        ...(input.leadListId !== undefined ? { leadListId: input.leadListId } : {}),
+        ...(input.sequenceId !== undefined ? { sequenceId: input.sequenceId, sequenceVersion } : {}),
+        ...(input.sendingAccountId !== undefined ? { sendingAccountId: input.sendingAccountId } : {}),
+        ...(input.schedule !== undefined ? { schedule: json(input.schedule) } : {}),
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+    return transaction.commsOutreachCampaign.findFirstOrThrow({
+      where: { id: input.campaignId, ownerOrganizationId: context.tenant.organizationId },
+      select: { id: true, resourceId: true, status: true, rowVersion: true },
+    });
+  }, database);
+}
+
+export async function addCampaignRecipient(
+  context: CommsContext,
+  input: AddCampaignRecipientInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  if (Boolean(input.leadId) === Boolean(input.contactId)) return error("INVALID");
+
+  return run(context, async (transaction) => {
+    const campaign = await transaction.commsOutreachCampaign.findFirst({
+      where: {
+        id: input.campaignId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { status: true, rowVersion: true },
+    });
+    if (!campaign) throw new CommsCommandError("NOT_FOUND");
+    if (!["DRAFT", "READY"].includes(campaign.status)) {
+      throw new CommsCommandError("TRANSITION_DENIED");
+    }
+
+    const recipient = await transaction.commsCampaignRecipient.create({
+      data: {
+        id: newCommsId(),
+        ownerOrganizationId: context.tenant.organizationId,
+        campaignId: input.campaignId,
+        leadId: input.leadId ?? null,
+        contactId: input.contactId ?? null,
+        state: "QUEUED",
+        currentStep: 0,
+      },
+      select: { id: true, campaignId: true, state: true, rowVersion: true },
+    });
+
+    if (campaign.status === "READY") {
+      await transaction.commsOutreachCampaign.updateMany({
+        where: {
+          id: input.campaignId,
+          ownerOrganizationId: context.tenant.organizationId,
+          rowVersion: campaign.rowVersion,
+        },
+        data: {
+          status: "DRAFT",
+          audienceSnapshotHash: null,
+          approvedSnapshotHash: null,
+          approvedAt: null,
+          approvedByMembershipId: null,
+          rowVersion: { increment: 1 },
+          updatedByMembershipId: context.membership.membershipId,
+        },
+      });
+    }
+
+    return recipient;
+  }, database);
+}
+
+export async function buildCampaignApprovalSnapshotInTransaction(
+  transaction: CommsTransaction,
+  context: CommsContext,
+  campaignId: string,
+) {
+  const campaign = await transaction.commsOutreachCampaign.findFirst({
+    where: {
+      id: campaignId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      id: true,
+      leadListId: true,
+      sequenceId: true,
+      sequenceVersion: true,
+      sendingAccountId: true,
+      schedule: true,
+    },
+  });
+  if (!campaign) throw new CommsCommandError("NOT_FOUND");
+
+  const sequence = await transaction.commsSequence.findFirst({
+    where: {
+      id: campaign.sequenceId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: { id: true },
+  });
+  if (!sequence) throw new CommsCommandError("INVALID");
+
+  const [steps, recipients, sender] = await Promise.all([
+    transaction.commsSequenceStep.findMany({
+      where: {
+        ownerOrganizationId: context.tenant.organizationId,
+        sequenceId: campaign.sequenceId,
+        sequenceVersion: campaign.sequenceVersion,
+      },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        position: true,
+        channel: true,
+        templateVersionId: true,
+        delaySeconds: true,
+        conditions: true,
+        stopRules: true,
+      },
+    }),
+    transaction.commsCampaignRecipient.findMany({
+      where: {
+        ownerOrganizationId: context.tenant.organizationId,
+        campaignId,
+        state: "QUEUED",
+      },
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        leadId: true,
+        contactId: true,
+        currentStep: true,
+      },
+    }),
+    transaction.commsSendingAccount.findFirst({
+      where: {
+        id: campaign.sendingAccountId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: {
+        id: true,
+        provider: true,
+        address: true,
+        integrationConnectionId: true,
+      },
+    }),
+  ]);
+
+  if (!sender || steps.length < 1 || recipients.length < 1) {
+    throw new CommsCommandError("INVALID");
+  }
+
+  const evidence = {
+    campaignId: campaign.id,
+    leadListId: campaign.leadListId,
+    sequenceId: campaign.sequenceId,
+    sequenceVersion: campaign.sequenceVersion,
+    sendingAccountId: campaign.sendingAccountId,
+    sender: {
+      id: sender.id,
+      provider: sender.provider,
+      address: sender.address,
+      integrationConnectionId: sender.integrationConnectionId,
+    },
+    schedule: campaign.schedule,
+    steps,
+    recipients,
+  };
+
+  return {
+    recipientCount: recipients.length,
+    hash: canonicalCommsEvidenceHash(evidence),
+  };
+}
+
+export async function computeCampaignApprovalSnapshot(
+  context: CommsContext,
+  campaignId: string,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(
+    context,
+    (transaction) => buildCampaignApprovalSnapshotInTransaction(transaction, context, campaignId),
+    database,
+  );
+}
+
+export async function transitionCampaign(
+  context: CommsContext,
+  input: TransitionCampaignInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const campaign = await transaction.commsOutreachCampaign.findFirst({
+      where: {
+        id: input.campaignId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: {
+        status: true,
+        rowVersion: true,
+        audienceSnapshotHash: true,
+        approvedSnapshotHash: true,
+      },
+    });
+    if (!campaign) throw new CommsCommandError("NOT_FOUND");
+    if (campaign.rowVersion !== input.expectedRowVersion) {
+      throw new CommsCommandError("STALE_WRITE");
+    }
+
+    const from = campaign.status as CampaignState;
+    if (!canTransitionCampaign(from, input.to)) {
+      throw new CommsCommandError("TRANSITION_DENIED");
+    }
+
+    const now = new Date();
+    const data: Prisma.CommsOutreachCampaignUpdateManyMutationInput = {
+      status: input.to,
+      rowVersion: { increment: 1 },
+      updatedByMembershipId: context.membership.membershipId,
+    };
+
+    if (from === "DRAFT" && input.to === "READY") {
+      const snapshot = await buildCampaignApprovalSnapshotInTransaction(
+        transaction,
+        context,
+        input.campaignId,
+      );
+      data.audienceSnapshotHash = snapshot.hash;
+      data.recipientCount = snapshot.recipientCount;
+      data.approvedSnapshotHash = null;
+      data.approvedAt = null;
+      data.approvedByMembershipId = null;
+    } else if (from === "READY" && input.to === "APPROVED") {
+      if (!campaign.audienceSnapshotHash) throw new CommsCommandError("INVALID");
+      data.approvedSnapshotHash = campaign.audienceSnapshotHash;
+      data.approvedAt = now;
+      data.approvedByMembershipId = context.membership.membershipId;
+    } else if (input.to === "SCHEDULED") {
+      data.scheduledAt = now;
+    } else if (input.to === "RUNNING") {
+      throw new CommsCommandError("SENDER_NOT_READY");
+    } else if (input.to === "PAUSED") {
+      data.pausedAt = now;
+    } else if (input.to === "COMPLETED") {
+      data.completedAt = now;
+    }
+
+    const updated = await transaction.commsOutreachCampaign.updateMany({
+      where: {
+        id: input.campaignId,
+        ownerOrganizationId: context.tenant.organizationId,
+        rowVersion: input.expectedRowVersion,
+      },
+      data,
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+
+    return {
+      campaignId: input.campaignId,
+      from,
+      to: input.to,
+      rowVersion: input.expectedRowVersion + 1,
+    };
+  }, database);
+}
+
+export async function evaluateDispatchSafety(
+  context: CommsContext,
+  input: EvaluateDispatchSafetyInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const recipient = await transaction.commsCampaignRecipient.findFirst({
+      where: {
+        id: input.campaignRecipientId,
+        ownerOrganizationId: context.tenant.organizationId,
+      },
+      select: {
+        id: true,
+        leadId: true,
+        contactId: true,
+        state: true,
+        campaignId: true,
+        currentStep: true,
+      },
+    });
+    if (!recipient) throw new CommsCommandError("NOT_FOUND");
+    if (["REPLIED", "BOUNCED", "UNSUBSCRIBED", "STOPPED", "CONVERTED"].includes(recipient.state)) {
+      throw new CommsCommandError("CONTACT_BLOCKED");
+    }
+
+    const campaign = await transaction.commsOutreachCampaign.findFirst({
+      where: {
+        id: recipient.campaignId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { sendingAccountId: true, status: true, sequenceId: true, sequenceVersion: true },
+    });
+    if (!campaign) throw new CommsCommandError("NOT_FOUND");
+    if (!["SCHEDULED", "RUNNING"].includes(campaign.status)) {
+      throw new CommsCommandError("TRANSITION_DENIED");
+    }
+
+    const sender = await transaction.commsSendingAccount.findFirst({
+      where: {
+        id: campaign.sendingAccountId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { provider: true, health: true, syncState: true },
+    });
+    if (!sender || sender.health !== "HEALTHY" || sender.syncState !== "CONNECTED") {
+      throw new CommsCommandError("SENDER_NOT_READY");
+    }
+
+    const sequenceStep = await transaction.commsSequenceStep.findFirst({
+      where: {
+        ownerOrganizationId: context.tenant.organizationId,
+        sequenceId: campaign.sequenceId,
+        sequenceVersion: campaign.sequenceVersion,
+        position: recipient.currentStep > 0 ? recipient.currentStep : 1,
+      },
+      select: { channel: true },
+    });
+    const channel = sequenceStep?.channel.trim().toUpperCase() ?? "";
+    if (!channel) throw new CommsCommandError("INVALID");
+
+    let contactId = recipient.contactId ?? null;
+
+    if (recipient.leadId) {
+      const lead = await transaction.crmLead.findFirst({
+        where: {
+          id: recipient.leadId,
+          ownerOrganizationId: context.tenant.organizationId,
+          archivedAt: null,
+        },
+        select: { lifecycleState: true, contactId: true },
+      });
+      if (!lead) throw new CommsCommandError("NOT_FOUND");
+      if (lead.lifecycleState === "DO_NOT_CONTACT") {
+        throw new CommsCommandError("CONTACT_BLOCKED");
+      }
+      contactId = contactId ?? lead.contactId;
+    }
+
+    if (!contactId) throw new CommsCommandError("CONTACT_BLOCKED");
+
+    const contact = await transaction.crmContact.findFirst({
+      where: {
+        id: contactId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: {
+        contactabilityState: true,
+        consentState: true,
+        emailNormalized: true,
+        phoneNormalized: true,
+      },
+    });
+    if (!contact) throw new CommsCommandError("NOT_FOUND");
+    if (
+      ["DO_NOT_CONTACT", "BLOCKED", "UNSUBSCRIBED"].includes(
+        contact.contactabilityState ?? "",
+      ) ||
+      ["REVOKED", "DENIED"].includes(contact.consentState ?? "")
+    ) {
+      throw new CommsCommandError("CONTACT_BLOCKED");
+    }
+
+    const destination =
+      channel === "EMAIL"
+        ? contact.emailNormalized
+        : channel === "SMS" || channel === "PHONE"
+          ? contact.phoneNormalized
+          : null;
+    if (!destination) throw new CommsCommandError("CONTACT_BLOCKED");
+
+    const destinationHash = hashNormalizedDestination(channel, destination);
+
+    const suppression = await transaction.crmSuppressionEntry.findFirst({
+      where: {
+        ownerOrganizationId: context.tenant.organizationId,
+        channel,
+        normalizedDestinationHash: destinationHash,
+        archivedAt: null,
+        effectiveAt: { lte: new Date() },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      select: { id: true },
+    });
+    if (suppression) throw new CommsCommandError("CONTACT_BLOCKED");
+
+    return {
+      campaignRecipientId: recipient.id,
+      allowed: true as const,
+      channel,
+      provider: sender.provider.trim().toLowerCase(),
+      destination,
+      normalizedDestinationHash: destinationHash,
+    };
+  }, database);
+}
+
+export async function recordDeliveryEvent(
+  context: CommsContext,
+  input: RecordDeliveryEventInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const provider = input.provider.trim().toLowerCase();
+    const externalEventId = input.externalEventId.trim();
+    const eventType = input.eventType.trim().toUpperCase();
+    const allowedEventTypes = new Set([
+      "SENT",
+      "DELIVERED",
+      "OPENED",
+      "CLICKED",
+      "REPLIED",
+      "BOUNCED",
+      "UNSUBSCRIBED",
+    ]);
+
+    if (
+      !provider ||
+      !externalEventId ||
+      !allowedEventTypes.has(eventType) ||
+      !input.campaignRecipientId
+    ) {
+      throw new CommsCommandError("INVALID");
+    }
+
+    const recipientEnvelope = await transaction.commsCampaignRecipient.findFirst({
+      where: {
+        id: input.campaignRecipientId,
+        ownerOrganizationId: context.tenant.organizationId,
+      },
+      select: {
+        id: true,
+        campaignId: true,
+        state: true,
+        rowVersion: true,
+      },
+    });
+    if (!recipientEnvelope) throw new CommsCommandError("NOT_FOUND");
+
+    const campaign = await transaction.commsOutreachCampaign.findFirst({
+      where: {
+        id: recipientEnvelope.campaignId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { sendingAccountId: true },
+    });
+    if (!campaign) throw new CommsCommandError("NOT_FOUND");
+
+    const sender = await transaction.commsSendingAccount.findFirst({
+      where: {
+        id: campaign.sendingAccountId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { provider: true },
+    });
+    if (!sender || sender.provider.trim().toLowerCase() !== provider) {
+      throw new CommsCommandError("INVALID");
+    }
+
+    const existing = await transaction.commsMessageDelivery.findFirst({
+      where: { provider, externalEventId },
+      select: {
+        id: true,
+        ownerOrganizationId: true,
+        campaignRecipientId: true,
+        sequenceStepId: true,
+        messageId: true,
+        eventType: true,
+        occurredAt: true,
+        payloadHash: true,
+        metadata: true,
+      },
+    });
+
+    if (existing) {
+      const sameMetadata =
+        JSON.stringify(existing.metadata ?? {}) ===
+        JSON.stringify(input.metadata ?? {});
+      const sameEvidence =
+        existing.ownerOrganizationId === context.tenant.organizationId &&
+        existing.campaignRecipientId === input.campaignRecipientId &&
+        existing.sequenceStepId === (input.sequenceStepId ?? null) &&
+        existing.messageId === (input.messageId ?? null) &&
+        existing.eventType === eventType &&
+        existing.occurredAt.getTime() === input.occurredAt.getTime() &&
+        existing.payloadHash === (input.payloadHash?.trim() || null) &&
+        sameMetadata;
+
+      if (!sameEvidence) throw new CommsCommandError("CONFLICT");
+
+      return {
+        id: existing.id,
+        campaignRecipientId: existing.campaignRecipientId,
+      };
+    }
+
+    const row = await transaction.commsMessageDelivery.create({
+      data: {
+        id: newCommsId(),
+        ownerOrganizationId: context.tenant.organizationId,
+        campaignRecipientId: input.campaignRecipientId,
+        sequenceStepId: input.sequenceStepId ?? null,
+        messageId: input.messageId ?? null,
+        provider,
+        externalEventId,
+        eventType,
+        occurredAt: input.occurredAt,
+        payloadHash: input.payloadHash?.trim() || null,
+        metadata: json(input.metadata ?? {}),
+      },
+      select: { id: true, campaignRecipientId: true },
+    });
+
+    const mapped: Record<string, RecipientState> = {
+      SENT: "SENT",
+      DELIVERED: "DELIVERED",
+      OPENED: "OPENED",
+      CLICKED: "CLICKED",
+      REPLIED: "REPLIED",
+      BOUNCED: "BOUNCED",
+      UNSUBSCRIBED: "UNSUBSCRIBED",
+    };
+
+    const to = mapped[eventType];
+    const from = recipientEnvelope.state as RecipientState;
+
+    if (canAdvanceRecipient(from, to) && from !== to) {
+      const updated = await transaction.commsCampaignRecipient.updateMany({
+        where: {
+          id: recipientEnvelope.id,
+          ownerOrganizationId: context.tenant.organizationId,
+          rowVersion: recipientEnvelope.rowVersion,
+        },
+        data: {
+          state: to,
+          rowVersion: { increment: 1 },
+          stoppedAt: ["REPLIED", "BOUNCED", "UNSUBSCRIBED"].includes(to)
+            ? input.occurredAt
+            : null,
+          stopReason: ["REPLIED", "BOUNCED", "UNSUBSCRIBED"].includes(to)
+            ? eventType
+            : null,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new CommsCommandError("CONFLICT");
+      }
+    }
+
+    return row;
+  }, database);
+}
+
+export async function createConversation(
+  context: CommsContext,
+  input: CreateConversationInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const channel = input.channel.trim();
+    if (!channel) throw new CommsCommandError("INVALID");
+
+    const id = newCommsId();
+    const resourceId = newCommsId();
+    await registerCommsResource(transaction, {
+      id: resourceId,
+      type: "conversation",
+      title: input.subject?.trim() || "Conversation",
+      sensitivity: "PII",
+    });
+
+    return transaction.commsConversation.create({
+      data: {
+        id,
+        resourceId,
+        ...owner(context),
+        visibility: "INTERNAL",
+        sensitivity: "PII",
+        channel,
+        subject: input.subject?.trim() || null,
+        leadId: input.leadId ?? null,
+        dealId: input.dealId ?? null,
+        clientAccountId: input.clientAccountId ?? null,
+        sendingAccountId: input.sendingAccountId ?? null,
+        provider: input.provider?.trim() || null,
+        providerThreadId: input.providerThreadId?.trim() || null,
+        status: "OPEN",
+      },
+      select: { id: true, resourceId: true, status: true, rowVersion: true },
+    });
+  }, database);
+}
+
+
+export async function assignConversation(
+  context: CommsContext,
+  input: AssignConversationInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(input.assigneeMembershipId)) {
+      throw new CommsCommandError("INVALID");
+    }
+    const [assignee] = await transaction.$queryRaw<Array<{ allowed: boolean }>>`
+      SELECT "platform"."r6_active_tenant_membership"(${input.assigneeMembershipId}::uuid) AS allowed
+    `;
+    if (!assignee?.allowed) throw new CommsCommandError("INVALID");
+    const current = await transaction.commsConversation.findFirst({
+      where: { id: input.conversationId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { rowVersion: true },
+    });
+    if (!current) throw new CommsCommandError("NOT_FOUND");
+    if (current.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    const updated = await transaction.commsConversation.updateMany({
+      where: { id: input.conversationId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, rowVersion: input.expectedRowVersion },
+      data: { assignedMembershipId: input.assigneeMembershipId, rowVersion: { increment: 1 }, updatedByMembershipId: context.membership.membershipId },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+    return transaction.commsConversation.findFirstOrThrow({
+      where: { id: input.conversationId, ownerOrganizationId: context.tenant.organizationId },
+      select: { id: true, assignedMembershipId: true, status: true, rowVersion: true },
+    });
+  }, database);
+}
+
+export async function transitionConversation(
+  context: CommsContext,
+  input: TransitionConversationInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const row = await transaction.commsConversation.findFirst({
+      where: {
+        id: input.conversationId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { status: true, rowVersion: true },
+    });
+    if (!row) throw new CommsCommandError("NOT_FOUND");
+    if (row.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+
+    const from = row.status as ConversationState;
+    if (!canTransitionConversation(from, input.to)) throw new CommsCommandError("TRANSITION_DENIED");
+
+    const updated = await transaction.commsConversation.updateMany({
+      where: {
+        id: input.conversationId,
+        ownerOrganizationId: context.tenant.organizationId,
+        rowVersion: input.expectedRowVersion,
+      },
+      data: {
+        status: input.to,
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+
+    return {
+      conversationId: input.conversationId,
+      from,
+      to: input.to,
+      rowVersion: input.expectedRowVersion + 1,
+    };
+  }, database);
+}
+
+
+export async function createInternalNote(
+  context: CommsContext,
+  input: CreateInternalNoteInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return recordMessage(context, {
+    conversationId: input.conversationId,
+    direction: "INTERNAL",
+    bodyText: input.bodyText,
+    internalNote: true,
+  }, database);
+}
+
+export async function recordMessage(
+  context: CommsContext,
+  input: RecordMessageInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const body = input.bodyText?.trim() || null;
+    if (!body) throw new CommsCommandError("INVALID");
+
+    if (
+      input.direction !== "INTERNAL" ||
+      input.internalNote === false ||
+      input.provider?.trim() ||
+      input.externalId?.trim()
+    ) {
+      throw new CommsCommandError("INVALID");
+    }
+
+    const occurredAt = input.occurredAt ?? new Date();
+    const message = await transaction.commsMessage.create({
+      data: {
+        id: newCommsId(),
+        ownerOrganizationId: context.tenant.organizationId,
+        conversationId: input.conversationId,
+        direction: "INTERNAL",
+        senderMembershipId: context.membership.membershipId,
+        bodyText: body,
+        provider: null,
+        externalId: null,
+        sentAt: null,
+        receivedAt: null,
+        visibility: "INTERNAL",
+        isInternalNote: true,
+      },
+      select: { id: true, direction: true, isInternalNote: true, createdAt: true },
+    });
+
+    const updated = await transaction.commsConversation.updateMany({
+      where: {
+        id: input.conversationId,
+        ownerOrganizationId: context.tenant.organizationId,
+      },
+      data: {
+        lastMessageAt: occurredAt,
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("NOT_FOUND");
+
+    return message;
+  }, database);
+}
+
+export async function createMeeting(
+  context: CommsContext,
+  input: CreateMeetingInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const title = input.title.trim();
+    const meetingType = input.meetingType.trim();
+    const timezone = input.timezone.trim();
+    if (!title || !meetingType || !timezone || input.endsAt <= input.startsAt) {
+      throw new CommsCommandError("INVALID");
+    }
+
+    const id = newCommsId();
+    const resourceId = newCommsId();
+    await registerCommsResource(transaction, {
+      id: resourceId,
+      type: "meeting",
+      title,
+      sensitivity: "CONFIDENTIAL",
+    });
+
+    return transaction.commsMeeting.create({
+      data: {
+        id,
+        resourceId,
+        ...owner(context),
+        visibility: "INTERNAL",
+        sensitivity: "CONFIDENTIAL",
+        title,
+        meetingType,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        timezone,
+        status: "PROPOSED",
+        dealId: input.dealId ?? null,
+        clientAccountId: input.clientAccountId ?? null,
+      },
+      select: { id: true, resourceId: true, status: true, rowVersion: true },
+    });
+  }, database);
+}
+
+export async function rescheduleMeeting(
+  context: CommsContext,
+  input: RescheduleMeetingInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const timezone = input.timezone.trim();
+    if (!timezone || input.endsAt <= input.startsAt) throw new CommsCommandError("INVALID");
+    const row = await transaction.commsMeeting.findFirst({
+      where: { id: input.meetingId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { startsAt: true, endsAt: true, timezone: true, status: true, rowVersion: true },
+    });
+    if (!row) throw new CommsCommandError("NOT_FOUND");
+    if (row.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    if (["COMPLETED", "CANCELLED", "NO_SHOW"].includes(row.status)) {
+      throw new CommsCommandError("TRANSITION_DENIED");
+    }
+
+    const updated = await transaction.commsMeeting.updateMany({
+      where: { id: input.meetingId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, rowVersion: input.expectedRowVersion },
+      data: {
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        timezone,
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+
+    await transaction.commsMeetingNote.create({
+      data: {
+        id: newCommsId(),
+        ownerOrganizationId: context.tenant.organizationId,
+        meetingId: input.meetingId,
+        authorMembershipId: context.membership.membershipId,
+        body: "Meeting rescheduled",
+        decisions: json({
+          kind: "MEETING_RESCHEDULE_HISTORY",
+          from: { startsAt: row.startsAt, endsAt: row.endsAt, timezone: row.timezone },
+          to: { startsAt: input.startsAt, endsAt: input.endsAt, timezone },
+          meetingVersion: input.expectedRowVersion + 1,
+          reason: input.reason?.trim() || null,
+        }),
+        visibility: "INTERNAL",
+      },
+    });
+
+    return { meetingId: input.meetingId, rowVersion: input.expectedRowVersion + 1 };
+  }, database);
+}
+
+export async function transitionMeeting(
+  context: CommsContext,
+  input: TransitionMeetingInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const row = await transaction.commsMeeting.findFirst({
+      where: {
+        id: input.meetingId,
+        ownerOrganizationId: context.tenant.organizationId,
+        archivedAt: null,
+      },
+      select: { status: true, rowVersion: true },
+    });
+    if (!row) throw new CommsCommandError("NOT_FOUND");
+    if (row.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+
+    const from = row.status as MeetingState;
+    if (!canTransitionMeeting(from, input.to)) throw new CommsCommandError("TRANSITION_DENIED");
+
+    const updated = await transaction.commsMeeting.updateMany({
+      where: {
+        id: input.meetingId,
+        ownerOrganizationId: context.tenant.organizationId,
+        rowVersion: input.expectedRowVersion,
+      },
+      data: {
+        status: input.to,
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+
+    return {
+      meetingId: input.meetingId,
+      from,
+      to: input.to,
+      rowVersion: input.expectedRowVersion + 1,
+    };
+  }, database);
+}

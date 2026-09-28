@@ -1,5 +1,5 @@
-import { OutreachHub } from "@/components/workspace/commercial-screens";
+import { BoundCampaignsPage } from "@/components/workspace/r6-bound-lists";
 
 export default function Page() {
-  return <OutreachHub />;
+  return <BoundCampaignsPage />;
 }

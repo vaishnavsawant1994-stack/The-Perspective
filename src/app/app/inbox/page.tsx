@@ -1,5 +1,5 @@
-import { UnifiedInbox } from "@/components/workspace/commercial-screens";
+import { BoundInboxPage } from "@/components/workspace/r6-bound-lists";
 
 export default function Page() {
-  return <UnifiedInbox />;
+  return <BoundInboxPage />;
 }

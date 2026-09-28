@@ -1,0 +1,2 @@
+import { invalidR6Request,parseR6ListRequest,r6Json,resolveR6TeamRequest,unavailableR6Request } from "@/modules/r6/http"; import { listAuthorizedConversations } from "@/modules/r6/queries";
+export async function GET(request:Request){const q=parseR6ListRequest(request);if(!q)return invalidR6Request();const r=await resolveR6TeamRequest(request);if(r.kind==="response")return r.response;try{return r6Json(await listAuthorizedConversations(r.context,q.limit));}catch{return unavailableR6Request();}}

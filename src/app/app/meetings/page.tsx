@@ -1,5 +1,5 @@
-import { MeetingsFollowups } from "@/components/workspace/commercial-screens";
+import { BoundMeetingsPage } from "@/components/workspace/r6-bound-lists";
 
 export default function Page() {
-  return <MeetingsFollowups />;
+  return <BoundMeetingsPage />;
 }

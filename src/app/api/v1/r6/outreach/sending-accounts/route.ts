@@ -1,0 +1,10 @@
+import { z } from "zod";
+import { parseAuthenticationJson, requireSameOrigin } from "@/modules/authentication/http/request-security";
+import { authorizeTrustedHttpOperation, authorizationProblem } from "@/modules/authorization/http";
+import { createSendingAccount } from "@/modules/comms/core";
+import { invalidR6Request, parseR6ListRequest, r6CommandError, r6Json, resolveR6TeamRequest, unavailableR6Request } from "@/modules/r6/http";
+import { listAuthorizedSendingAccounts } from "@/modules/r6/queries";
+import { buildProspectiveR6Resource } from "@/modules/r6/resources";
+const schema=z.object({provider:z.string().trim().min(1).max(80),address:z.string().trim().min(3).max(320),displayName:z.string().trim().max(160).nullable().optional(),dailyLimit:z.number().int().nonnegative().nullable().optional(),hourlyLimit:z.number().int().nonnegative().nullable().optional()}).strict();
+export async function GET(request:Request){const q=parseR6ListRequest(request);if(!q)return invalidR6Request();const r=await resolveR6TeamRequest(request);if(r.kind==="response")return r.response;try{return r6Json(await listAuthorizedSendingAccounts(r.context,q.limit));}catch{return unavailableR6Request();}}
+export async function POST(request:Request){if(!requireSameOrigin(request))return authorizationProblem(403,"AUTHZ_DENIED");const input=await parseAuthenticationJson(request,schema);if(!input)return invalidR6Request();const r=await resolveR6TeamRequest(request);if(r.kind==="response")return r.response;const a=await authorizeTrustedHttpOperation({context:r.context,permissionKey:"emailaccount.manage",resource:buildProspectiveR6Resource(r.context,"sending-account","SECURITY","ACTIVE"),command:{action:"create",requestedFields:Object.keys(input)}});if(a.kind==="response")return a.response;const out=await createSendingAccount(r.context,input);if(out.kind==="error")return r6CommandError(out.code);return r6Json({sendingAccount:out.value},201);}
