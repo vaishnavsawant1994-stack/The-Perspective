@@ -16,6 +16,8 @@ import {
   createConversation,
   createInternalNote,
   createSendingAccount,
+  createMeeting,
+  rescheduleMeeting,
   createSequence,
   createSequenceVersion,
   updateCampaignDraft,
@@ -244,6 +246,128 @@ describe("R6 Communications human-owned domain gaps", () => {
       replyCount: 0,
       rowVersion: 2,
     });
+  });
+
+  it("pins a campaign to its selected sequence version while later versions evolve", async () => {
+    const sequence = mustOk(
+      await createSequence(context(), { name: "Pinned campaign sequence" }, database),
+    );
+    const sender = mustOk(
+      await createSendingAccount(
+        context(),
+        { provider: "test", address: "pinned-sequence@example.invalid" },
+        database,
+      ),
+    );
+    const leadListResourceId = crypto.randomUUID();
+    const leadListId = crypto.randomUUID();
+    await database.$transaction(async (tx) => {
+      await tx.resource.create({
+        data: {
+          id: leadListResourceId,
+          resourceType: "lead-list",
+          title: "Pinned sequence list",
+          ownerOrganizationId: organizationId,
+          visibility: "INTERNAL",
+          sensitivity: "CONFIDENTIAL",
+        },
+      });
+      await tx.crmLeadList.create({
+        data: {
+          id: leadListId,
+          resourceId: leadListResourceId,
+          ownerOrganizationId: organizationId,
+          ownerMembershipId: membershipId,
+          name: "Pinned sequence list",
+        },
+      });
+    });
+    const campaign = mustOk(
+      await createCampaign(
+        context(),
+        {
+          name: "Pinned campaign",
+          leadListId,
+          sequenceId: sequence.id,
+          sendingAccountId: sender.id,
+        },
+        database,
+      ),
+    );
+    await createSequenceVersion(
+      context(),
+      { sequenceId: sequence.id, expectedRowVersion: 1 },
+      database,
+    );
+    const persisted = await database.commsOutreachCampaign.findUniqueOrThrow({
+      where: { id: campaign.id },
+      select: { sequenceVersion: true },
+    });
+    expect(persisted.sequenceVersion).toBe(1);
+  });
+
+  it("reschedules atomically and preserves append-only schedule history", async () => {
+    const startsAt = new Date("2026-10-01T09:00:00.000Z");
+    const endsAt = new Date("2026-10-01T09:30:00.000Z");
+    const meeting = mustOk(
+      await createMeeting(
+        context(),
+        { title: "History meeting", meetingType: "SALES", startsAt, endsAt, timezone: "UTC" },
+        database,
+      ),
+    );
+    const nextStartsAt = new Date("2026-10-02T10:00:00.000Z");
+    const nextEndsAt = new Date("2026-10-02T10:45:00.000Z");
+    const result = await rescheduleMeeting(
+      context(),
+      {
+        meetingId: meeting.id,
+        expectedRowVersion: 1,
+        startsAt: nextStartsAt,
+        endsAt: nextEndsAt,
+        timezone: "Europe/Berlin",
+        reason: "Customer requested",
+      },
+      database,
+    );
+    expect(result).toEqual({ kind: "ok", value: { meetingId: meeting.id, rowVersion: 2 } });
+
+    const history = await database.commsMeetingScheduleHistory.findFirstOrThrow({
+      where: { meetingId: meeting.id },
+    });
+    expect(history).toMatchObject({
+      fromStartsAt: startsAt,
+      fromEndsAt: endsAt,
+      fromTimezone: "UTC",
+      toStartsAt: nextStartsAt,
+      toEndsAt: nextEndsAt,
+      toTimezone: "Europe/Berlin",
+      meetingVersion: 2,
+      reason: "Customer requested",
+    });
+
+    await expect(
+      database.commsMeetingScheduleHistory.update({
+        where: { id: history.id },
+        data: { reason: "tampered" },
+      }),
+    ).rejects.toThrow();
+
+    const stale = await rescheduleMeeting(
+      context(),
+      {
+        meetingId: meeting.id,
+        expectedRowVersion: 1,
+        startsAt: new Date("2026-10-03T10:00:00.000Z"),
+        endsAt: new Date("2026-10-03T11:00:00.000Z"),
+        timezone: "UTC",
+      },
+      database,
+    );
+    expect(stale).toEqual({ kind: "error", code: "STALE_WRITE" });
+    expect(
+      await database.commsMeetingScheduleHistory.count({ where: { meetingId: meeting.id } }),
+    ).toBe(1);
   });
 
   it("separates conversation assignment from internal-note evidence", async () => {
