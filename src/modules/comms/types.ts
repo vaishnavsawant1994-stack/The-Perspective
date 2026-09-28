@@ -189,3 +189,12 @@ export interface CreateInternalNoteInput {
   readonly conversationId: string;
   readonly bodyText: string;
 }
+
+export interface RescheduleMeetingInput {
+  readonly meetingId: string;
+  readonly expectedRowVersion: number;
+  readonly startsAt: Date;
+  readonly endsAt: Date;
+  readonly timezone: string;
+  readonly reason?: string;
+}
