@@ -2,29 +2,32 @@
 
 import { useEffect, useState } from "react";
 import { fetchQualifiedR6List } from "@/modules/r6/ui-client";
-import { DealsPipeline, LeadCRM } from "@/components/workspace/commercial-screens";
+import {
+  DealsPipeline,
+  LeadCRM,
+  MeetingsFollowups,
+  OutreachHub,
+  UnifiedInbox,
+} from "@/components/workspace/commercial-screens";
+import { SendingAccountsScreen } from "@/components/workspace/lead-acquisition-screens";
 
-type DealRow = {
-  id?: string;
-  pipelineId?: string;
-  stageId?: string;
-  amountMinor?: string | null;
-  currency?: string | null;
-};
+type Row = Record<string, unknown>;
 
-type LeadRow = {
-  id?: string;
-  companyId?: string | null;
-  status?: string;
-};
-
-export function BoundDealsPage() {
-  const [rows, setRows] = useState<DealRow[] | null>(null);
+function BoundSurface({
+  surface,
+  path,
+  children,
+}: {
+  surface: string;
+  path: string;
+  children: React.ReactNode;
+}) {
+  const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetchQualifiedR6List<DealRow>("/api/v1/r6/deals")
+    fetchQualifiedR6List<Row>(path)
       .then((items) => {
         if (!cancelled) setRows(items);
       })
@@ -34,48 +37,89 @@ export function BoundDealsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [path]);
 
   return (
-    <div data-r6-bound-surface="deals">
-      {error ? <p data-r6-bind-state="unavailable">Qualified deal list unavailable.</p> : null}
+    <div data-r6-bound-surface={surface}>
+      {error ? <p data-r6-bind-state="unavailable">Qualified list unavailable.</p> : null}
       {rows ? (
         <p data-r6-bind-count={String(rows.length)} hidden>
           {rows.length}
         </p>
       ) : null}
-      <DealsPipeline />
+      {children}
     </div>
   );
 }
 
-export function BoundLeadsPage() {
-  const [rows, setRows] = useState<LeadRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchQualifiedR6List<LeadRow>("/api/v1/r6/leads")
-      .then((items) => {
-        if (!cancelled) setRows(items);
-      })
-      .catch(() => {
-        if (!cancelled) setError("unavailable");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+export function BoundDealsPage() {
   return (
-    <div data-r6-bound-surface="leads">
-      {error ? <p data-r6-bind-state="unavailable">Qualified lead list unavailable.</p> : null}
-      {rows ? (
-        <p data-r6-bind-count={String(rows.length)} hidden>
-          {rows.length}
-        </p>
-      ) : null}
+    <BoundSurface surface="deals" path="/api/v1/r6/deals">
+      <DealsPipeline />
+    </BoundSurface>
+  );
+}
+
+export function BoundLeadsPage() {
+  return (
+    <BoundSurface surface="leads" path="/api/v1/r6/leads">
       <LeadCRM />
-    </div>
+    </BoundSurface>
+  );
+}
+
+export function BoundPipelinesPage() {
+  return (
+    <BoundSurface surface="pipelines" path="/api/v1/r6/commercial/pipelines">
+      <DealsPipeline />
+    </BoundSurface>
+  );
+}
+
+export function BoundClientsPage() {
+  return (
+    <BoundSurface surface="clients" path="/api/v1/r6/clients">
+      <DealsPipeline />
+    </BoundSurface>
+  );
+}
+
+export function BoundInboxPage() {
+  return (
+    <BoundSurface surface="inbox" path="/api/v1/r6/inbox/conversations">
+      <UnifiedInbox />
+    </BoundSurface>
+  );
+}
+
+export function BoundMeetingsPage() {
+  return (
+    <BoundSurface surface="meetings" path="/api/v1/r6/meetings">
+      <MeetingsFollowups />
+    </BoundSurface>
+  );
+}
+
+export function BoundCampaignsPage() {
+  return (
+    <BoundSurface surface="campaigns" path="/api/v1/r6/outreach/campaigns">
+      <OutreachHub />
+    </BoundSurface>
+  );
+}
+
+export function BoundSequencesPage() {
+  return (
+    <BoundSurface surface="sequences" path="/api/v1/r6/outreach/sequences">
+      <OutreachHub />
+    </BoundSurface>
+  );
+}
+
+export function BoundSendingAccountsPage() {
+  return (
+    <BoundSurface surface="sending-accounts" path="/api/v1/r6/outreach/sending-accounts">
+      <SendingAccountsScreen />
+    </BoundSurface>
   );
 }
