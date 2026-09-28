@@ -1035,6 +1035,9 @@ export async function assignConversation(
   database: PrismaClient = getPrismaClient(),
 ) {
   return run(context, async (transaction) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(input.assigneeMembershipId)) {
+      throw new CommsCommandError("INVALID");
+    }
     const [assignee] = await transaction.$queryRaw<Array<{ allowed: boolean }>>`
       SELECT "platform"."r6_active_tenant_membership"(${input.assigneeMembershipId}::uuid) AS allowed
     `;
