@@ -1,0 +1,167 @@
+model CommercialProduct {
+  id                  String    @id @db.Uuid
+  ownerOrganizationId String    @map("owner_organization_id") @db.Uuid
+  key                 String
+  name                String
+  description         String?
+  currency            String    @db.Char(3)
+  unitAmountMinor     BigInt    @map("unit_amount_minor")
+  status              String    @default("ACTIVE")
+  rowVersion          Int       @default(1) @map("row_version")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  @@unique([ownerOrganizationId, key], map: "products_owner_key")
+  @@index([ownerOrganizationId, archivedAt])
+  @@map("products")
+  @@schema("commercial")
+}
+
+model CommercialProposal {
+  id                    String    @id @db.Uuid
+  resourceId            String    @unique @map("resource_id") @db.Uuid
+  ownerOrganizationId   String    @map("owner_organization_id") @db.Uuid
+  dealId                String    @map("deal_id") @db.Uuid
+  clientAccountId       String?   @map("client_account_id") @db.Uuid
+  status                String    @default("DRAFT")
+  currentVersion        Int       @default(1) @map("current_version")
+  currency              String    @db.Char(3)
+  rowVersion            Int       @default(1) @map("row_version")
+  createdByMembershipId String?   @map("created_by_membership_id") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt            DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  @@unique([id, ownerOrganizationId], map: "proposals_id_owner_org_key")
+  @@index([ownerOrganizationId, dealId, status, archivedAt])
+  @@map("proposals")
+  @@schema("commercial")
+}
+
+model CommercialProposalVersion {
+  id                  String    @id @db.Uuid
+  ownerOrganizationId String    @map("owner_organization_id") @db.Uuid
+  proposalId          String    @map("proposal_id") @db.Uuid
+  version             Int
+  status              String    @default("DRAFT")
+  issuedAt            DateTime? @map("issued_at") @db.Timestamptz(6)
+  immutable           Boolean   @default(false)
+  currency            String    @db.Char(3)
+  subtotalMinor       BigInt    @map("subtotal_minor")
+  taxMinor            BigInt    @default(0) @map("tax_minor")
+  totalMinor          BigInt    @map("total_minor")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([proposalId, version], map: "proposal_versions_proposal_version")
+  @@index([ownerOrganizationId, proposalId])
+  @@map("proposal_versions")
+  @@schema("commercial")
+}
+
+model CommercialProposalLine {
+  id                  String  @id @db.Uuid
+  ownerOrganizationId String  @map("owner_organization_id") @db.Uuid
+  proposalVersionId   String  @map("proposal_version_id") @db.Uuid
+  productId           String? @map("product_id") @db.Uuid
+  description         String
+  quantity            Int
+  unitAmountMinor     BigInt  @map("unit_amount_minor")
+  lineTotalMinor      BigInt  @map("line_total_minor")
+  position            Int
+
+  @@index([ownerOrganizationId, proposalVersionId])
+  @@map("proposal_lines")
+  @@schema("commercial")
+}
+
+model CommercialInvoice {
+  id                  String    @id @db.Uuid
+  resourceId          String    @unique @map("resource_id") @db.Uuid
+  ownerOrganizationId String    @map("owner_organization_id") @db.Uuid
+  clientAccountId     String    @map("client_account_id") @db.Uuid
+  proposalId          String?   @map("proposal_id") @db.Uuid
+  status              String    @default("DRAFT")
+  currency            String    @db.Char(3)
+  totalMinor          BigInt    @map("total_minor")
+  allocatedMinor      BigInt    @default(0) @map("allocated_minor")
+  finalizedAt         DateTime? @map("finalized_at") @db.Timestamptz(6)
+  rowVersion          Int       @default(1) @map("row_version")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  @@unique([id, ownerOrganizationId], map: "invoices_id_owner_org_key")
+  @@index([ownerOrganizationId, clientAccountId, status, archivedAt])
+  @@map("invoices")
+  @@schema("commercial")
+}
+
+model CommercialPayment {
+  id                  String   @id @db.Uuid
+  ownerOrganizationId String   @map("owner_organization_id") @db.Uuid
+  invoiceId           String?  @map("invoice_id") @db.Uuid
+  provider            String
+  providerEventId     String?  @map("provider_event_id")
+  status              String   @default("CREATED")
+  currency            String   @db.Char(3)
+  amountMinor         BigInt   @map("amount_minor")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([provider, providerEventId], map: "payments_provider_event")
+  @@index([ownerOrganizationId, invoiceId, status])
+  @@map("payments")
+  @@schema("commercial")
+}
+
+model CommercialLedgerEntry {
+  id                  String   @id @db.Uuid
+  ownerOrganizationId String   @map("owner_organization_id") @db.Uuid
+  invoiceId           String?  @map("invoice_id") @db.Uuid
+  paymentId           String?  @map("payment_id") @db.Uuid
+  entryType           String   @map("entry_type")
+  currency            String   @db.Char(3)
+  amountMinor         BigInt   @map("amount_minor")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([ownerOrganizationId, invoiceId, createdAt])
+  @@map("ledger_entries")
+  @@schema("commercial")
+}
+
+model CommercialSubscription {
+  id                  String    @id @db.Uuid
+  resourceId          String    @unique @map("resource_id") @db.Uuid
+  ownerOrganizationId String    @map("owner_organization_id") @db.Uuid
+  clientAccountId     String    @map("client_account_id") @db.Uuid
+  status              String    @default("ACTIVE")
+  currency            String    @db.Char(3)
+  periodStart         DateTime? @map("period_start") @db.Timestamptz(6)
+  periodEnd           DateTime? @map("period_end") @db.Timestamptz(6)
+  rowVersion          Int       @default(1) @map("row_version")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  @@index([ownerOrganizationId, clientAccountId, status])
+  @@map("subscriptions")
+  @@schema("commercial")
+}
+
+model CommercialEntitlement {
+  id                  String    @id @db.Uuid
+  ownerOrganizationId String    @map("owner_organization_id") @db.Uuid
+  subjectType         String    @map("subject_type")
+  subjectId           String    @map("subject_id") @db.Uuid
+  entitlementKey      String    @map("entitlement_key")
+  sourceType          String    @map("source_type")
+  sourceId            String    @map("source_id") @db.Uuid
+  active              Boolean   @default(true)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt           DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  @@index([ownerOrganizationId, subjectType, subjectId, active])
+  @@map("entitlements")
+  @@schema("commercial")
+}
