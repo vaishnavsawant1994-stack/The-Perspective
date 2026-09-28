@@ -350,12 +350,18 @@ export const R6_FIELD_POLICIES: Record<
   ),
   "staged-record": policy(
     ["id", "sourceRecordKey", "normalizedPayload", "provenanceUrl", "confidence", "validationState", "reviewedAt"],
-    ["validationState"],
+    [],
     groups({
       internal: ["sourceRecordKey", "normalizedPayload", "provenanceUrl", "confidence", "validationState", "reviewedAt"],
       pii: ["normalizedPayload"],
       provider: ["provenanceUrl"],
     }),
+    {
+      actionFields: {
+        approve: ["decision", "expectedRowVersion"],
+        reject: ["decision", "expectedRowVersion"],
+      },
+    },
   ),
   "enrichment-job": policy(
     ["id", "resourceId", "targetResourceId", "provider", "requestedFields", "status", "attempt", "requestedAt", "startedAt", "finishedAt"],
@@ -377,6 +383,12 @@ export const R6_FIELD_POLICIES: Record<
       pii: ["typedValue"],
       provider: ["sourceUrl"],
     }),
+    {
+      actionFields: {
+        accept: ["decision", "expectedRowVersion"],
+        reject: ["decision", "expectedRowVersion"],
+      },
+    },
   ),
   lead: policy(
     ["id", "resourceId", "companyId", "contactId", "leadSourceId", "lifecycleState", "fitScore", "qualificationState", "lastActivityAt", "ownerMembershipId", "departmentId"],
