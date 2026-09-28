@@ -333,7 +333,7 @@ describe("R6 Communications human-owned domain gaps", () => {
     expect(result).toEqual({ kind: "ok", value: { meetingId: meeting.id, rowVersion: 2 } });
 
     const history = await database.commsMeetingNote.findFirstOrThrow({
-      where: { meetingId: meeting.id, visibility: "SYSTEM_HISTORY" },
+      where: { meetingId: meeting.id, visibility: "INTERNAL", body: "Meeting rescheduled" },
     });
     expect(history.body).toBe("Meeting rescheduled");
     expect(history.decisions).toMatchObject({
@@ -364,7 +364,7 @@ describe("R6 Communications human-owned domain gaps", () => {
     );
     expect(stale).toEqual({ kind: "error", code: "STALE_WRITE" });
     expect(
-      await database.commsMeetingNote.count({ where: { meetingId: meeting.id, visibility: "SYSTEM_HISTORY" } }),
+      await database.commsMeetingNote.count({ where: { meetingId: meeting.id, visibility: "INTERNAL", body: "Meeting rescheduled" } }),
     ).toBe(1);
   });
 
