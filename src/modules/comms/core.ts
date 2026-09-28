@@ -1035,11 +1035,10 @@ export async function assignConversation(
   database: PrismaClient = getPrismaClient(),
 ) {
   return run(context, async (transaction) => {
-    const assignee = await transaction.organizationMembership.findFirst({
-      where: { id: input.assigneeMembershipId, organizationId: context.tenant.organizationId, status: "ACTIVE" },
-      select: { id: true },
-    });
-    if (!assignee) throw new CommsCommandError("INVALID");
+    const [assignee] = await transaction.$queryRaw<Array<{ allowed: boolean }>>`
+      SELECT "platform"."r6_active_tenant_membership"(${input.assigneeMembershipId}::uuid) AS allowed
+    `;
+    if (!assignee?.allowed) throw new CommsCommandError("INVALID");
     const current = await transaction.commsConversation.findFirst({
       where: { id: input.conversationId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
       select: { rowVersion: true },
@@ -1256,7 +1255,7 @@ export async function rescheduleMeeting(
           meetingVersion: input.expectedRowVersion + 1,
           reason: input.reason?.trim() || null,
         }),
-        visibility: "SYSTEM_HISTORY",
+        visibility: "INTERNAL",
       },
     });
 
