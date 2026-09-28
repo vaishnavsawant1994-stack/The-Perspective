@@ -11,7 +11,7 @@ export function assembleProposalVersion(
   state: R7ProposalState,
   currency: string,
   lines: ProposalLineInput[],
-  taxMinor = 0n,
+  taxMinor = BigInt(0),
 ) {
   if (!canRewriteProposalVersion(state)) {
     return { kind: "error" as const, code: "PROPOSAL_IMMUTABLE" };
@@ -25,7 +25,10 @@ export function assembleProposalVersion(
       money(currency, total);
       return { ...line, lineTotalMinor: total };
     });
-    const subtotalMinor = priced.reduce((sum, line) => sum + line.lineTotalMinor, 0n);
+    const subtotalMinor = priced.reduce(
+      (sum, line) => sum + line.lineTotalMinor,
+      BigInt(0),
+    );
     const tax = money(currency, taxMinor).amountMinor;
     return {
       kind: "ok" as const,
