@@ -330,3 +330,148 @@ export async function loadR6EnrichmentFactResource(
     version: row.rowVersion,
   };
 }
+
+
+export async function loadR6SendingAccountResource(
+  context: AuthorizedRequestContext,
+  sendingAccountId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.commsSendingAccount.findFirst({
+    where: {
+      id: sendingAccountId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      syncState: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+  return {
+    resourceId: row.resourceId,
+    resourceType: "sending-account",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: row.sensitivity as AuthorizationResourceContext["sensitivity"],
+    lifecycleState: row.syncState,
+    version: row.rowVersion,
+  };
+}
+
+export async function loadR6SequenceResource(
+  context: AuthorizedRequestContext,
+  sequenceId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.commsSequence.findFirst({
+    where: {
+      id: sequenceId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      status: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+  return {
+    resourceId: row.resourceId,
+    resourceType: "sequence",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: row.sensitivity as AuthorizationResourceContext["sensitivity"],
+    lifecycleState: row.status,
+    version: row.rowVersion,
+  };
+}
+
+export async function loadR6ConversationResource(
+  context: AuthorizedRequestContext,
+  conversationId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.commsConversation.findFirst({
+    where: {
+      id: conversationId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      status: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+  return {
+    resourceId: row.resourceId,
+    resourceType: "conversation",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: row.sensitivity as AuthorizationResourceContext["sensitivity"],
+    lifecycleState: row.status,
+    version: row.rowVersion,
+  };
+}
+
+export async function loadR6MeetingResource(
+  context: AuthorizedRequestContext,
+  meetingId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.commsMeeting.findFirst({
+    where: {
+      id: meetingId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      status: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+  return {
+    resourceId: row.resourceId,
+    resourceType: "meeting",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: row.sensitivity as AuthorizationResourceContext["sensitivity"],
+    lifecycleState: row.status,
+    version: row.rowVersion,
+  };
+}
