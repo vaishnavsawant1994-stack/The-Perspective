@@ -136,7 +136,7 @@ describe("R7 finance persistence", () => {
         key: "magazine-pack",
         name: "Magazine pack",
         currency: "USD",
-        unitAmountMinor: 150000n,
+        unitAmountMinor: BigInt(150000),
       },
       database,
     );
@@ -149,13 +149,19 @@ describe("R7 finance persistence", () => {
       {
         dealId,
         currency: "USD",
-        lines: [{ description: "Magazine pack", quantity: 2, unitAmountMinor: 150000n }],
+        lines: [
+          {
+            description: "Magazine pack",
+            quantity: 2,
+            unitAmountMinor: BigInt(150000),
+          },
+        ],
       },
       database,
     );
     expect(created).toMatchObject({
       kind: "ok",
-      value: { totalMinor: 300000n },
+      value: { totalMinor: BigInt(300000) },
     });
     if (created.kind !== "ok") return;
 
@@ -163,7 +169,7 @@ describe("R7 finance persistence", () => {
       `SELECT total_minor FROM commercial.proposal_versions WHERE id = $1::uuid`,
       created.value.versionId,
     );
-    expect(rows[0]?.total_minor).toBe(300000n);
+    expect(rows[0]?.total_minor).toBe(BigInt(300000));
 
     expect(await countTenantProposals(platform, database)).toBeGreaterThanOrEqual(1);
     expect(await countTenantProposals(foreign, database)).toBe(0);
