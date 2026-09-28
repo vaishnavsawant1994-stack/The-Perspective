@@ -10,9 +10,20 @@ import { POST as requestEnrichment } from "./crm/enrichment-jobs/route";
 import { POST as createLeadList } from "./crm/lead-lists/route";
 import { POST as addLeadListMember } from "./crm/lead-lists/[leadListId]/members/route";
 import { GET as listCompanies } from "./crm/companies/route";
-import { GET as getCompany } from "./crm/companies/[companyId]/route";
-import { GET as getContact } from "./crm/contacts/[contactId]/route";
-import { GET as getLead } from "./leads/[leadId]/route";
+import {
+  GET as getCompany,
+  PATCH as patchCompany,
+} from "./crm/companies/[companyId]/route";
+import {
+  GET as getContact,
+  PATCH as patchContact,
+} from "./crm/contacts/[contactId]/route";
+import {
+  GET as getLead,
+  PATCH as patchLead,
+} from "./leads/[leadId]/route";
+import { POST as reviewStagedRecord } from "./crm/staged-records/[stagedRecordId]/review/route";
+import { POST as reviewEnrichmentFact } from "./crm/enrichment-facts/[enrichmentFactId]/review/route";
 
 const origin = "https://app.example.test";
 
@@ -311,6 +322,167 @@ describe("R6 CRM direct-call API boundary", () => {
     "rejects malformed %s before trusted context resolution",
     async (_name, handler, path, body) => {
       const response = await handler(request(path, body));
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "R6_INVALID_REQUEST",
+      });
+    },
+  );
+
+  it.each([
+    [
+      "company update",
+      patchCompany,
+      "/api/v1/r6/crm/companies/00000000-0000-4000-8000-000000000030",
+      { expectedRowVersion: 1, name: "Updated" },
+      { companyId: "00000000-0000-4000-8000-000000000030" },
+    ],
+    [
+      "contact update",
+      patchContact,
+      "/api/v1/r6/crm/contacts/00000000-0000-4000-8000-000000000031",
+      { expectedRowVersion: 1, title: "Updated" },
+      { contactId: "00000000-0000-4000-8000-000000000031" },
+    ],
+    [
+      "lead update",
+      patchLead,
+      "/api/v1/r6/leads/00000000-0000-4000-8000-000000000032",
+      {
+        expectedRowVersion: 1,
+        companyId: "00000000-0000-4000-8000-000000000033",
+      },
+      { leadId: "00000000-0000-4000-8000-000000000032" },
+    ],
+    [
+      "staged review",
+      reviewStagedRecord,
+      "/api/v1/r6/crm/staged-records/00000000-0000-4000-8000-000000000034/review",
+      { decision: "APPROVED", expectedRowVersion: 1 },
+      { stagedRecordId: "00000000-0000-4000-8000-000000000034" },
+    ],
+    [
+      "enrichment review",
+      reviewEnrichmentFact,
+      "/api/v1/r6/crm/enrichment-facts/00000000-0000-4000-8000-000000000035/review",
+      { decision: "ACCEPTED", expectedRowVersion: 1 },
+      { enrichmentFactId: "00000000-0000-4000-8000-000000000035" },
+    ],
+  ] as const)(
+    "rejects cross-origin browser-owned CRM mutation: %s",
+    async (_name, handler, path, body, params) => {
+      const response = await handler(
+        request(path, body, "https://attacker.example"),
+        { params: Promise.resolve(params as never) } as never,
+      );
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "AUTHZ_DENIED",
+      });
+    },
+  );
+
+  it.each([
+    [
+      "company authority",
+      patchCompany,
+      "/api/v1/r6/crm/companies/00000000-0000-4000-8000-000000000040",
+      {
+        expectedRowVersion: 1,
+        name: "Injected",
+        ownerMembershipId: "00000000-0000-4000-8000-000000000041",
+      },
+      { companyId: "00000000-0000-4000-8000-000000000040" },
+    ],
+    [
+      "contact consent and PII",
+      patchContact,
+      "/api/v1/r6/crm/contacts/00000000-0000-4000-8000-000000000042",
+      {
+        expectedRowVersion: 1,
+        title: "Injected",
+        consentState: "OPTED_IN",
+        emailOriginal: "attacker@example.test",
+      },
+      { contactId: "00000000-0000-4000-8000-000000000042" },
+    ],
+    [
+      "lead lifecycle and score",
+      patchLead,
+      "/api/v1/r6/leads/00000000-0000-4000-8000-000000000043",
+      {
+        expectedRowVersion: 1,
+        companyId: "00000000-0000-4000-8000-000000000044",
+        lifecycleState: "CONVERTED",
+        fitScore: 100,
+      },
+      { leadId: "00000000-0000-4000-8000-000000000043" },
+    ],
+    [
+      "staged provider evidence",
+      reviewStagedRecord,
+      "/api/v1/r6/crm/staged-records/00000000-0000-4000-8000-000000000045/review",
+      {
+        decision: "APPROVED",
+        expectedRowVersion: 1,
+        normalizedPayload: { injected: true },
+        provenanceUrl: "https://attacker.example/evidence",
+      },
+      { stagedRecordId: "00000000-0000-4000-8000-000000000045" },
+    ],
+    [
+      "enrichment provider evidence",
+      reviewEnrichmentFact,
+      "/api/v1/r6/crm/enrichment-facts/00000000-0000-4000-8000-000000000046/review",
+      {
+        decision: "ACCEPTED",
+        expectedRowVersion: 1,
+        typedValue: "attacker",
+        sourceUrl: "https://attacker.example/fact",
+        confidence: 1,
+      },
+      { enrichmentFactId: "00000000-0000-4000-8000-000000000046" },
+    ],
+  ] as const)(
+    "rejects protected-field smuggling through %s",
+    async (_name, handler, path, body, params) => {
+      const response = await handler(
+        request(path, body),
+        { params: Promise.resolve(params as never) } as never,
+      );
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "R6_INVALID_REQUEST",
+      });
+    },
+  );
+
+  it.each([
+    [
+      "company",
+      patchCompany,
+      "/api/v1/r6/crm/companies/00000000-0000-4000-8000-000000000050",
+      { companyId: "00000000-0000-4000-8000-000000000050" },
+    ],
+    [
+      "contact",
+      patchContact,
+      "/api/v1/r6/crm/contacts/00000000-0000-4000-8000-000000000051",
+      { contactId: "00000000-0000-4000-8000-000000000051" },
+    ],
+    [
+      "lead",
+      patchLead,
+      "/api/v1/r6/leads/00000000-0000-4000-8000-000000000052",
+      { leadId: "00000000-0000-4000-8000-000000000052" },
+    ],
+  ] as const)(
+    "rejects no-op %s update before authorization",
+    async (_name, handler, path, params) => {
+      const response = await handler(
+        request(path, { expectedRowVersion: 1 }),
+        { params: Promise.resolve(params as never) } as never,
+      );
       expect(response.status).toBe(400);
       await expect(response.json()).resolves.toMatchObject({
         code: "R6_INVALID_REQUEST",
