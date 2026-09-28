@@ -178,4 +178,141 @@ describe("R6 CRM missing domain command falsification", () => {
       name: "stale",
     }, database)).resolves.toEqual({ kind: "error", code: "STALE_WRITE" });
   });
+
+  it("conceals cross-tenant review targets and malformed review identifiers", async () => {
+    const foreignContext = {
+      ...context,
+      requestId: "r6-crm-gap-foreign",
+      identity: { userId: seedIds.user.northstarAdmin as UserId },
+      membership: {
+        membershipId: seedIds.membership.northstarAdmin as MembershipId,
+        organizationId: seedIds.organization.northstar as OrganizationId,
+        surface: "TEAM" as const,
+      },
+      tenant: {
+        organizationId: seedIds.organization.northstar as OrganizationId,
+        membershipId: seedIds.membership.northstarAdmin as MembershipId,
+        surface: "TEAM" as const,
+      },
+    };
+    const foreignSource = mustOk(await createLeadSource(foreignContext, { sourceType: "PUBLIC_WEB", name: "Gap foreign source" }, database));
+    const foreignJob = mustOk(await createExtractionJob(foreignContext, { leadSourceId: foreignSource.id, querySnapshot: {}, requestHash: "gap-foreign-stage" }, database));
+    const foreignStaged = mustOk(await stageExtractedRecord(foreignContext, {
+      extractionJobId: foreignJob.id,
+      sourceRecordKey: "gap-foreign-record",
+      rawPayload: { immutable: true },
+      normalizedPayload: { immutable: true },
+    }, database));
+
+    await expect(reviewStagedRecord(context, {
+      stagedRecordId: foreignStaged.id,
+      decision: "APPROVED",
+      expectedRowVersion: foreignStaged.rowVersion,
+    }, database)).resolves.toEqual({ kind: "error", code: "NOT_FOUND" });
+
+    await expect(reviewStagedRecord(context, {
+      stagedRecordId: "not-a-uuid",
+      decision: "APPROVED",
+      expectedRowVersion: 1,
+    }, database)).resolves.toEqual({ kind: "error", code: "INVALID" });
+  });
+
+  it("contains concurrent staged and enrichment review to exactly one human decision", async () => {
+    const source = mustOk(await createLeadSource(context, { sourceType: "PUBLIC_WEB", name: "Gap review race source" }, database));
+    const extraction = mustOk(await createExtractionJob(context, { leadSourceId: source.id, querySnapshot: {}, requestHash: "gap-review-race" }, database));
+    const staged = mustOk(await stageExtractedRecord(context, {
+      extractionJobId: extraction.id,
+      sourceRecordKey: "gap-review-race-record",
+      rawPayload: { evidence: "original" },
+      normalizedPayload: { evidence: "original" },
+    }, database));
+
+    const stagedRace = await Promise.all([
+      reviewStagedRecord(context, { stagedRecordId: staged.id, decision: "APPROVED", expectedRowVersion: staged.rowVersion }, database),
+      reviewStagedRecord(context, { stagedRecordId: staged.id, decision: "REJECTED", expectedRowVersion: staged.rowVersion }, database),
+    ]);
+    expect(stagedRace.filter((result) => result.kind === "ok")).toHaveLength(1);
+    expect(stagedRace.filter((result) => result.kind === "error")).toHaveLength(1);
+
+    const company = mustOk(await createCompany(context, { name: "Gap fact race company" }, database));
+    const job = mustOk(await requestEnrichment(context, {
+      targetResourceId: company.resourceId,
+      provider: "gap-race-provider",
+      requestedFields: ["industry"],
+      requestHash: "gap-fact-race",
+    }, database));
+    const fact = mustOk(await recordEnrichmentFact(context, {
+      jobId: job.id,
+      targetResourceId: company.resourceId,
+      fieldKey: "industry",
+      typedValue: "Original",
+      observedAt: now,
+    }, database));
+    const factRace = await Promise.all([
+      reviewEnrichmentFact(context, { enrichmentFactId: fact.id, decision: "ACCEPTED", expectedRowVersion: fact.rowVersion }, database),
+      reviewEnrichmentFact(context, { enrichmentFactId: fact.id, decision: "REJECTED", expectedRowVersion: fact.rowVersion }, database),
+    ]);
+    expect(factRace.filter((result) => result.kind === "ok")).toHaveLength(1);
+    expect(factRace.filter((result) => result.kind === "error")).toHaveLength(1);
+
+    const persisted = await database.crmEnrichmentFact.findUniqueOrThrow({ where: { id: fact.id } });
+    expect(Boolean(persisted.acceptedAt) !== Boolean(persisted.rejectedAt)).toBe(true);
+    expect(persisted.typedValue).toEqual("Original");
+  });
+
+  it("rejects foreign relationships, malformed identifiers, and no-op updates without residue", async () => {
+    const foreignCompany = mustOk(await createCompany({
+      ...context,
+      requestId: "r6-crm-gap-foreign-company",
+      identity: { userId: seedIds.user.northstarAdmin as UserId },
+      membership: { membershipId: seedIds.membership.northstarAdmin as MembershipId, organizationId: seedIds.organization.northstar as OrganizationId, surface: "TEAM" },
+      tenant: { organizationId: seedIds.organization.northstar as OrganizationId, membershipId: seedIds.membership.northstarAdmin as MembershipId, surface: "TEAM" },
+    }, { name: "Gap foreign relation company" }, database));
+
+    const ownCompany = mustOk(await createCompany(context, { name: "Gap relation company" }, database));
+    const ownContact = mustOk(await createContact(context, { companyId: ownCompany.id, title: "Gap relation contact" }, database));
+    const ownLead = mustOk(await createLead(context, { companyId: ownCompany.id, contactId: ownContact.id, sourceRecordKey: "gap-relation-lead" }, database));
+
+    await expect(updateContact(context, {
+      contactId: ownContact.id,
+      expectedRowVersion: ownContact.rowVersion,
+      companyId: foreignCompany.id,
+    }, database)).resolves.toEqual({ kind: "error", code: "INVALID" });
+
+    await expect(updateLead(context, {
+      leadId: ownLead.id,
+      expectedRowVersion: ownLead.rowVersion,
+      companyId: foreignCompany.id,
+    }, database)).resolves.toEqual({ kind: "error", code: "INVALID" });
+
+    await expect(updateLead(context, {
+      leadId: ownLead.id,
+      expectedRowVersion: ownLead.rowVersion,
+    }, database)).resolves.toEqual({ kind: "error", code: "INVALID" });
+
+    await expect(updateCompany(context, {
+      companyId: "not-a-uuid",
+      expectedRowVersion: 1,
+      name: "malformed",
+    }, database)).resolves.toEqual({ kind: "error", code: "INVALID" });
+
+    const persisted = await database.crmLead.findUniqueOrThrow({ where: { id: ownLead.id } });
+    expect(persisted.companyId).toBe(ownCompany.id);
+    expect(persisted.rowVersion).toBe(ownLead.rowVersion);
+  });
+
+  it("conceals archived update targets and preserves protected state", async () => {
+    const company = mustOk(await createCompany(context, { name: "Gap archived company" }, database));
+    await database.crmCompany.update({ where: { id: company.id }, data: { archivedAt: now } });
+
+    await expect(updateCompany(context, {
+      companyId: company.id,
+      expectedRowVersion: company.rowVersion,
+      name: "must not mutate",
+    }, database)).resolves.toEqual({ kind: "error", code: "NOT_FOUND" });
+
+    const persisted = await database.crmCompany.findUniqueOrThrow({ where: { id: company.id } });
+    expect(persisted.name).toBe("Gap archived company");
+    expect(persisted.rowVersion).toBe(company.rowVersion);
+  });
 });
