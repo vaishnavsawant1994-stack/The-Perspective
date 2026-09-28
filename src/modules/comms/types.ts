@@ -154,3 +154,38 @@ export interface TransitionMeetingInput {
   readonly to: MeetingState;
   readonly expectedRowVersion: number;
 }
+
+
+export interface UpdateSendingAccountInput {
+  readonly sendingAccountId: string;
+  readonly expectedRowVersion: number;
+  readonly displayName?: string | null;
+  readonly dailyLimit?: number | null;
+  readonly hourlyLimit?: number | null;
+}
+
+export interface CreateSequenceVersionInput {
+  readonly sequenceId: string;
+  readonly expectedRowVersion: number;
+}
+
+export interface UpdateCampaignDraftInput {
+  readonly campaignId: string;
+  readonly expectedRowVersion: number;
+  readonly name?: string;
+  readonly leadListId?: string;
+  readonly sequenceId?: string;
+  readonly sendingAccountId?: string;
+  readonly schedule?: Readonly<Record<string, unknown>>;
+}
+
+export interface AssignConversationInput {
+  readonly conversationId: string;
+  readonly assigneeMembershipId: string;
+  readonly expectedRowVersion: number;
+}
+
+export interface CreateInternalNoteInput {
+  readonly conversationId: string;
+  readonly bodyText: string;
+}
