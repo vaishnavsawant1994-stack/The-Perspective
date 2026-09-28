@@ -1,2 +1,5 @@
-import { LeadListsScreen } from "@/components/workspace/lead-acquisition-screens";
-export default function Page(){return <LeadListsScreen/>}
+import { BoundLeadListsPage } from "@/components/workspace/r6-bound-lists";
+
+export default function Page() {
+  return <BoundLeadListsPage />;
+}
