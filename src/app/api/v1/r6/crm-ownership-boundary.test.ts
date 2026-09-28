@@ -23,6 +23,11 @@ const browserOwned = [
   "addLeadListMember",
   "removeLeadListMember",
   "transitionLeadLifecycle",
+  "updateCompany",
+  "updateContact",
+  "updateLead",
+  "reviewStagedRecord",
+  "reviewEnrichmentFact",
 ] as const;
 
 const nonBrowserOwned = [
