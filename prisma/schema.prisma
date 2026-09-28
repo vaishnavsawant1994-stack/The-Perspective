@@ -1312,6 +1312,7 @@ model CrmSuppressionEntry {
   clientOrganizationId  String?  @map("client_organization_id") @db.Uuid
   departmentId          String?  @map("department_id") @db.Uuid
   ownerMembershipId     String?  @map("owner_membership_id") @db.Uuid
+  assignedMembershipId  String?  @map("assigned_membership_id") @db.Uuid
   visibility            String   @default("INTERNAL")
   sensitivity           String   @default("PII")
   channel               String
