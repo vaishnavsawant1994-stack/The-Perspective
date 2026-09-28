@@ -9,7 +9,12 @@ import {
   OutreachHub,
   UnifiedInbox,
 } from "@/components/workspace/commercial-screens";
-import { SendingAccountsScreen } from "@/components/workspace/lead-acquisition-screens";
+import {
+  CompanyDirectoryScreen,
+  ContactDirectoryScreen,
+  LeadListsScreen,
+  SendingAccountsScreen,
+} from "@/components/workspace/lead-acquisition-screens";
 
 type Row = Record<string, unknown>;
 
@@ -120,6 +125,30 @@ export function BoundSendingAccountsPage() {
   return (
     <BoundSurface surface="sending-accounts" path="/api/v1/r6/outreach/sending-accounts">
       <SendingAccountsScreen />
+    </BoundSurface>
+  );
+}
+
+export function BoundCompaniesPage() {
+  return (
+    <BoundSurface surface="companies" path="/api/v1/r6/crm/companies">
+      <CompanyDirectoryScreen />
+    </BoundSurface>
+  );
+}
+
+export function BoundContactsPage() {
+  return (
+    <BoundSurface surface="contacts" path="/api/v1/r6/crm/contacts">
+      <ContactDirectoryScreen />
+    </BoundSurface>
+  );
+}
+
+export function BoundLeadListsPage() {
+  return (
+    <BoundSurface surface="lead-lists" path="/api/v1/r6/crm/lead-lists">
+      <LeadListsScreen />
     </BoundSurface>
   );
 }
