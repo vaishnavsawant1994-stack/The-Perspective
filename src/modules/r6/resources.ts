@@ -164,3 +164,169 @@ export async function loadR6DealResource(
     version: row.rowVersion,
   };
 }
+
+
+export async function loadR6CompanyResource(
+  context: AuthorizedRequestContext,
+  companyId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.crmCompany.findFirst({
+    where: {
+      id: companyId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+  return {
+    resourceId: row.resourceId,
+    resourceType: "company",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: row.sensitivity as AuthorizationResourceContext["sensitivity"],
+    lifecycleState: "ACTIVE",
+    version: row.rowVersion,
+  };
+}
+
+export async function loadR6ContactResource(
+  context: AuthorizedRequestContext,
+  contactId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.crmContact.findFirst({
+    where: {
+      id: contactId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+  return {
+    resourceId: row.resourceId,
+    resourceType: "contact",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: row.sensitivity as AuthorizationResourceContext["sensitivity"],
+    lifecycleState: "ACTIVE",
+    version: row.rowVersion,
+  };
+}
+
+export async function loadR6StagedRecordResource(
+  context: AuthorizedRequestContext,
+  stagedRecordId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.crmStagedRecord.findFirst({
+    where: {
+      id: stagedRecordId,
+      ownerOrganizationId: context.tenant.organizationId,
+    },
+    select: {
+      ownerOrganizationId: true,
+      extractionJobId: true,
+      validationState: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+
+  const job = await database.crmExtractionJob.findFirst({
+    where: {
+      id: row.extractionJobId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+    },
+  });
+  if (!job) return null;
+
+  return {
+    resourceType: "staged-record",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: job.departmentId,
+    ownerMembershipId: job.ownerMembershipId,
+    visibility: job.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: "PII",
+    lifecycleState: row.validationState,
+    version: row.rowVersion,
+  };
+}
+
+export async function loadR6EnrichmentFactResource(
+  context: AuthorizedRequestContext,
+  enrichmentFactId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await database.crmEnrichmentFact.findFirst({
+    where: {
+      id: enrichmentFactId,
+      ownerOrganizationId: context.tenant.organizationId,
+    },
+    select: {
+      ownerOrganizationId: true,
+      jobId: true,
+      acceptedAt: true,
+      rejectedAt: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return null;
+
+  const job = await database.crmEnrichmentJob.findFirst({
+    where: {
+      id: row.jobId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+    },
+  });
+  if (!job) return null;
+
+  return {
+    resourceType: "enrichment-fact",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: job.departmentId,
+    ownerMembershipId: job.ownerMembershipId,
+    visibility: job.visibility as AuthorizationResourceContext["visibility"],
+    sensitivity: "PII",
+    lifecycleState: row.acceptedAt
+      ? "ACCEPTED"
+      : row.rejectedAt
+        ? "REJECTED"
+        : "PENDING",
+    version: row.rowVersion,
+  };
+}
