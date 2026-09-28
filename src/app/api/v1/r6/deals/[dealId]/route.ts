@@ -16,6 +16,7 @@ import {
   resolveR6TeamRequest,
 } from "@/modules/r6/http";
 import { loadR6DealResource } from "@/modules/r6/resources";
+import { getAuthorizedDeal } from "@/modules/r6/queries";
 
 const moneySchema = z.union([
   z.string().regex(/^\d+$/u),
@@ -91,3 +92,5 @@ export async function PATCH(
   if (result.kind === "error") return r6CommandError(result.code);
   return r6Json({ deal: result.value });
 }
+
+export async function GET(request:Request,route:{params:Promise<{dealId:string}>}){const resolved=await resolveR6TeamRequest(request);if(resolved.kind==="response")return resolved.response;const {dealId}=await route.params;if(!z.string().uuid().safeParse(dealId).success)return invalidR6Request();try{const deal=await getAuthorizedDeal(resolved.context,dealId);return deal?r6Json({deal}):authorizationProblem(404,"AUTHZ_NOT_FOUND")}catch{return authorizationProblem(503,"AUTHZ_UNAVAILABLE")}}
