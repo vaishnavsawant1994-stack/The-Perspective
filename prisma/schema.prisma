@@ -1654,26 +1654,6 @@ model CommsMeeting {
   @@schema("comms")
 }
 
-model CommsMeetingScheduleHistory {
-  id                    String   @id @db.Uuid
-  ownerOrganizationId   String   @map("owner_organization_id") @db.Uuid
-  meetingId             String   @map("meeting_id") @db.Uuid
-  fromStartsAt          DateTime @map("from_starts_at") @db.Timestamptz(6)
-  fromEndsAt            DateTime @map("from_ends_at") @db.Timestamptz(6)
-  fromTimezone          String   @map("from_timezone")
-  toStartsAt            DateTime @map("to_starts_at") @db.Timestamptz(6)
-  toEndsAt              DateTime @map("to_ends_at") @db.Timestamptz(6)
-  toTimezone            String   @map("to_timezone")
-  actorMembershipId     String   @map("actor_membership_id") @db.Uuid
-  meetingVersion        Int      @map("meeting_version")
-  reason                String?
-  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@index([ownerOrganizationId, meetingId, createdAt])
-  @@map("meeting_schedule_history")
-  @@schema("comms")
-}
-
 model CommsMeetingParticipant {
   id                  String   @id @db.Uuid
   ownerOrganizationId String   @map("owner_organization_id") @db.Uuid
