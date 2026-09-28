@@ -6,7 +6,7 @@ const unavailableDatabaseUrl =
   "postgresql://perspective_unconfigured:perspective_unconfigured@127.0.0.1:1/perspective_unconfigured";
 
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  schema: ["prisma/schema.prisma", "prisma/r7-models.prisma"],
   migrations: {
     path: "prisma/migrations",
     seed: "tsx prisma/seed/index.ts",
