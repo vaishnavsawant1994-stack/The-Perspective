@@ -11,8 +11,8 @@ describe("R7 money", () => {
   it("adds and subtracts same-currency minor units", () => {
     const due = money("USD", 10_000);
     const paid = money("USD", 2_500);
-    expect(addMoney(due, paid).amountMinor).toBe(12_500n);
-    expect(subMoney(due, paid).amountMinor).toBe(7_500n);
+    expect(addMoney(due, paid).amountMinor).toBe(BigInt(12_500));
+    expect(subMoney(due, paid).amountMinor).toBe(BigInt(7_500));
   });
 
   it("refuses over-allocation and currency mismatch", () => {
@@ -25,7 +25,7 @@ describe("R7 money", () => {
   });
 
   it("computes line totals in integer arithmetic", () => {
-    expect(lineTotal(1999n, 3)).toBe(5997n);
-    expect(() => lineTotal(100n, 0)).toThrow("INVALID_QUANTITY");
+    expect(lineTotal(BigInt(1999), 3)).toBe(BigInt(5997));
+    expect(() => lineTotal(BigInt(100), 0)).toThrow("INVALID_QUANTITY");
   });
 });
