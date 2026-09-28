@@ -412,4 +412,289 @@ describe("R6 Communications human-owned domain gaps", () => {
       receivedAt: null,
     });
   });
+
+  it("fails malformed conversation assignee identifiers closed without mutating the conversation", async () => {
+    const conversation = mustOk(
+      await createConversation(
+        context(),
+        { channel: "EMAIL", subject: "Malformed assignee attack" },
+        database,
+      ),
+    );
+
+    const result = await assignConversation(
+      context(),
+      {
+        conversationId: conversation.id,
+        assigneeMembershipId: "not-a-uuid",
+        expectedRowVersion: 1,
+      },
+      database,
+    );
+
+    expect(result).toEqual({ kind: "error", code: "INVALID" });
+    const persisted = await database.commsConversation.findUniqueOrThrow({
+      where: { id: conversation.id },
+      select: { assignedMembershipId: true, rowVersion: true },
+    });
+    expect(persisted).toEqual({ assignedMembershipId: null, rowVersion: 1 });
+  });
+
+  it("rejects inactive and cross-tenant conversation assignees without assignment residue", async () => {
+    const inactiveMembershipId = crypto.randomUUID();
+    await database.organizationMembership.create({
+      data: {
+        id: inactiveMembershipId,
+        organizationId,
+        userAccountId: seedIds.user.operator,
+        membershipType: "STAFF",
+        status: "SUSPENDED",
+      },
+    });
+
+    const foreignOrganizationId = crypto.randomUUID();
+    const foreignMembershipId = crypto.randomUUID();
+    await database.organization.create({
+      data: {
+        id: foreignOrganizationId,
+        organizationType: "PLATFORM",
+        legalName: "Foreign Communications Assignee Org",
+        displayName: "Foreign Communications Assignee",
+        slug: "comms-assignee-" + foreignOrganizationId.slice(0, 8),
+        status: "ACTIVE",
+      },
+    });
+    await database.organizationMembership.create({
+      data: {
+        id: foreignMembershipId,
+        organizationId: foreignOrganizationId,
+        userAccountId: seedIds.user.operator,
+        membershipType: "STAFF",
+        status: "ACTIVE",
+        joinedAt: now,
+      },
+    });
+
+    const conversation = mustOk(
+      await createConversation(
+        context(),
+        { channel: "EMAIL", subject: "Assignee tenant attack" },
+        database,
+      ),
+    );
+
+    expect(
+      await assignConversation(
+        context(),
+        {
+          conversationId: conversation.id,
+          assigneeMembershipId: inactiveMembershipId,
+          expectedRowVersion: 1,
+        },
+        database,
+      ),
+    ).toEqual({ kind: "error", code: "INVALID" });
+
+    expect(
+      await assignConversation(
+        context(),
+        {
+          conversationId: conversation.id,
+          assigneeMembershipId: foreignMembershipId,
+          expectedRowVersion: 1,
+        },
+        database,
+      ),
+    ).toEqual({ kind: "error", code: "INVALID" });
+
+    const persisted = await database.commsConversation.findUniqueOrThrow({
+      where: { id: conversation.id },
+      select: { assignedMembershipId: true, rowVersion: true },
+    });
+    expect(persisted).toEqual({ assignedMembershipId: null, rowVersion: 1 });
+  });
+
+  it("contains concurrent sequence-version creation to one canonical next version", async () => {
+    const sequence = mustOk(
+      await createSequence(context(), { name: "Concurrent version sequence" }, database),
+    );
+
+    const results = await Promise.all([
+      createSequenceVersion(
+        context(),
+        { sequenceId: sequence.id, expectedRowVersion: 1 },
+        database,
+      ),
+      createSequenceVersion(
+        context(),
+        { sequenceId: sequence.id, expectedRowVersion: 1 },
+        database,
+      ),
+    ]);
+
+    expect(results.filter((result) => result.kind === "ok")).toHaveLength(1);
+    expect(results.filter((result) => result.kind === "error")).toHaveLength(1);
+
+    const persisted = await database.commsSequence.findUniqueOrThrow({
+      where: { id: sequence.id },
+      select: { currentVersion: true, rowVersion: true },
+    });
+    expect(persisted).toEqual({ currentVersion: 2, rowVersion: 2 });
+  });
+
+  it("rejects meeting-history delete and relabel attacks while preserving sequential chronology", async () => {
+    const firstStartsAt = new Date("2026-11-01T09:00:00.000Z");
+    const firstEndsAt = new Date("2026-11-01T09:30:00.000Z");
+    const meeting = mustOk(
+      await createMeeting(
+        context(),
+        {
+          title: "Chronology attack meeting",
+          meetingType: "SALES",
+          startsAt: firstStartsAt,
+          endsAt: firstEndsAt,
+          timezone: "UTC",
+        },
+        database,
+      ),
+    );
+
+    const secondStartsAt = new Date("2026-11-02T10:00:00.000Z");
+    const secondEndsAt = new Date("2026-11-02T10:45:00.000Z");
+    expect(
+      await rescheduleMeeting(
+        context(),
+        {
+          meetingId: meeting.id,
+          expectedRowVersion: 1,
+          startsAt: secondStartsAt,
+          endsAt: secondEndsAt,
+          timezone: "Europe/Berlin",
+          reason: "First move",
+        },
+        database,
+      ),
+    ).toEqual({ kind: "ok", value: { meetingId: meeting.id, rowVersion: 2 } });
+
+    const firstHistory = await database.commsMeetingNote.findFirstOrThrow({
+      where: {
+        meetingId: meeting.id,
+        visibility: "INTERNAL",
+        body: "Meeting rescheduled",
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    await expect(
+      database.commsMeetingNote.delete({ where: { id: firstHistory.id } }),
+    ).rejects.toThrow();
+    await expect(
+      database.commsMeetingNote.update({
+        where: { id: firstHistory.id },
+        data: { decisions: { kind: "ORDINARY_NOTE" } },
+      }),
+    ).rejects.toThrow();
+
+    const thirdStartsAt = new Date("2026-11-03T11:00:00.000Z");
+    const thirdEndsAt = new Date("2026-11-03T11:30:00.000Z");
+    expect(
+      await rescheduleMeeting(
+        context(),
+        {
+          meetingId: meeting.id,
+          expectedRowVersion: 2,
+          startsAt: thirdStartsAt,
+          endsAt: thirdEndsAt,
+          timezone: "UTC",
+          reason: "Second move",
+        },
+        database,
+      ),
+    ).toEqual({ kind: "ok", value: { meetingId: meeting.id, rowVersion: 3 } });
+
+    const history = await database.commsMeetingNote.findMany({
+      where: {
+        meetingId: meeting.id,
+        visibility: "INTERNAL",
+        body: "Meeting rescheduled",
+      },
+      orderBy: { createdAt: "asc" },
+      select: { decisions: true },
+    });
+    expect(history).toHaveLength(2);
+    expect(history[0]?.decisions).toMatchObject({
+      kind: "MEETING_RESCHEDULE_HISTORY",
+      meetingVersion: 2,
+      from: { startsAt: firstStartsAt.toISOString(), endsAt: firstEndsAt.toISOString(), timezone: "UTC" },
+      to: { startsAt: secondStartsAt.toISOString(), endsAt: secondEndsAt.toISOString(), timezone: "Europe/Berlin" },
+    });
+    expect(history[1]?.decisions).toMatchObject({
+      kind: "MEETING_RESCHEDULE_HISTORY",
+      meetingVersion: 3,
+      from: { startsAt: secondStartsAt.toISOString(), endsAt: secondEndsAt.toISOString(), timezone: "Europe/Berlin" },
+      to: { startsAt: thirdStartsAt.toISOString(), endsAt: thirdEndsAt.toISOString(), timezone: "UTC" },
+    });
+  });
+
+  it("contains concurrent meeting reschedules to one schedule and one history record", async () => {
+    const meeting = mustOk(
+      await createMeeting(
+        context(),
+        {
+          title: "Concurrent reschedule attack",
+          meetingType: "SALES",
+          startsAt: new Date("2026-12-01T09:00:00.000Z"),
+          endsAt: new Date("2026-12-01T09:30:00.000Z"),
+          timezone: "UTC",
+        },
+        database,
+      ),
+    );
+
+    const results = await Promise.all([
+      rescheduleMeeting(
+        context(),
+        {
+          meetingId: meeting.id,
+          expectedRowVersion: 1,
+          startsAt: new Date("2026-12-02T09:00:00.000Z"),
+          endsAt: new Date("2026-12-02T09:30:00.000Z"),
+          timezone: "UTC",
+          reason: "Race A",
+        },
+        database,
+      ),
+      rescheduleMeeting(
+        context(),
+        {
+          meetingId: meeting.id,
+          expectedRowVersion: 1,
+          startsAt: new Date("2026-12-03T09:00:00.000Z"),
+          endsAt: new Date("2026-12-03T09:30:00.000Z"),
+          timezone: "UTC",
+          reason: "Race B",
+        },
+        database,
+      ),
+    ]);
+
+    expect(results.filter((result) => result.kind === "ok")).toHaveLength(1);
+    expect(results.filter((result) => result.kind === "error")).toHaveLength(1);
+    expect(
+      await database.commsMeetingNote.count({
+        where: {
+          meetingId: meeting.id,
+          visibility: "INTERNAL",
+          body: "Meeting rescheduled",
+        },
+      }),
+    ).toBe(1);
+
+    const persisted = await database.commsMeeting.findUniqueOrThrow({
+      where: { id: meeting.id },
+      select: { rowVersion: true },
+    });
+    expect(persisted.rowVersion).toBe(2);
+  });
+
 });
