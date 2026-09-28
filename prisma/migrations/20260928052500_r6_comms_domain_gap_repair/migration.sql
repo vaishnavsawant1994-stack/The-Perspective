@@ -23,7 +23,7 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, platform
-AS $
+AS $$
   SELECT EXISTS (
     SELECT 1
       FROM iam.organization_memberships AS membership
@@ -31,7 +31,7 @@ AS $
        AND membership.organization_id = "platform"."current_organization_id"()
        AND membership.status = 'ACTIVE'
   )
-$;
+$$;
 
 REVOKE ALL ON FUNCTION "platform"."r6_active_tenant_membership"(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION "platform"."r6_active_tenant_membership"(uuid) TO perspective_runtime;
