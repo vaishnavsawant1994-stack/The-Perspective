@@ -373,7 +373,7 @@ export async function createCampaign(
         name,
         leadListId: input.leadListId,
         sequenceId: input.sequenceId,
-        sequenceVersion: campaign.sequenceVersion,
+        sequenceVersion: sequence.currentVersion,
         sendingAccountId: input.sendingAccountId,
         schedule: json(input.schedule ?? {}),
         status: "DRAFT",
@@ -418,7 +418,7 @@ export async function updateCampaignDraft(
       data: {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         ...(input.leadListId !== undefined ? { leadListId: input.leadListId } : {}),
-        ...(input.sequenceId !== undefined ? { sequenceId: input.sequenceId } : {}),
+        ...(input.sequenceId !== undefined ? { sequenceId: input.sequenceId, sequenceVersion } : {}),
         ...(input.sendingAccountId !== undefined ? { sendingAccountId: input.sendingAccountId } : {}),
         ...(input.schedule !== undefined ? { schedule: json(input.schedule) } : {}),
         rowVersion: { increment: 1 },
