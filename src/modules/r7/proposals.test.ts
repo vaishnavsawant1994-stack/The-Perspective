@@ -5,7 +5,11 @@ import { assembleProposalVersion } from "./proposals";
 describe("R7 proposal assembly", () => {
   it("totals draft lines in integer currency", () => {
     const result = assembleProposalVersion("DRAFT", "USD", [
-      { description: "Magazine package", quantity: 2, unitAmountMinor: 150000n },
+      {
+        description: "Magazine package",
+        quantity: 2,
+        unitAmountMinor: BigInt(150000),
+      },
     ]);
     expect(result).toEqual({
       kind: "ok",
@@ -15,13 +19,13 @@ describe("R7 proposal assembly", () => {
           {
             description: "Magazine package",
             quantity: 2,
-            unitAmountMinor: 150000n,
-            lineTotalMinor: 300000n,
+            unitAmountMinor: BigInt(150000),
+            lineTotalMinor: BigInt(300000),
           },
         ],
-        subtotalMinor: 300000n,
-        taxMinor: 0n,
-        totalMinor: 300000n,
+        subtotalMinor: BigInt(300000),
+        taxMinor: BigInt(0),
+        totalMinor: BigInt(300000),
       },
     });
   });
@@ -29,7 +33,7 @@ describe("R7 proposal assembly", () => {
   it("refuses to rewrite a sent proposal version", () => {
     expect(
       assembleProposalVersion("SENT", "USD", [
-        { description: "x", quantity: 1, unitAmountMinor: 1n },
+        { description: "x", quantity: 1, unitAmountMinor: BigInt(1) },
       ]),
     ).toEqual({ kind: "error", code: "PROPOSAL_IMMUTABLE" });
   });
@@ -41,7 +45,7 @@ describe("R7 proposal assembly", () => {
     });
     expect(
       assembleProposalVersion("DRAFT", "usd", [
-        { description: "x", quantity: 1, unitAmountMinor: 1n },
+        { description: "x", quantity: 1, unitAmountMinor: BigInt(1) },
       ]),
     ).toEqual({ kind: "error", code: "INVALID_CURRENCY" });
   });
