@@ -9,11 +9,11 @@ model CommercialProduct {
   status              String    @default("ACTIVE")
   rowVersion          Int       @default(1) @map("row_version")
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
   archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
 
   @@unique([ownerOrganizationId, key], map: "products_owner_key")
-  @@index([ownerOrganizationId, archivedAt])
+  @@index([ownerOrganizationId, archivedAt], map: "products_owner_archived")
   @@map("products")
   @@schema("commercial")
 }
@@ -30,11 +30,11 @@ model CommercialProposal {
   rowVersion            Int       @default(1) @map("row_version")
   createdByMembershipId String?   @map("created_by_membership_id") @db.Uuid
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
   archivedAt            DateTime? @map("archived_at") @db.Timestamptz(6)
 
   @@unique([id, ownerOrganizationId], map: "proposals_id_owner_org_key")
-  @@index([ownerOrganizationId, dealId, status, archivedAt])
+  @@index([ownerOrganizationId, dealId, status, archivedAt], map: "proposals_owner_deal")
   @@map("proposals")
   @@schema("commercial")
 }
@@ -54,7 +54,6 @@ model CommercialProposalVersion {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([proposalId, version], map: "proposal_versions_proposal_version")
-  @@index([ownerOrganizationId, proposalId])
   @@map("proposal_versions")
   @@schema("commercial")
 }
@@ -70,7 +69,6 @@ model CommercialProposalLine {
   lineTotalMinor      BigInt  @map("line_total_minor")
   position            Int
 
-  @@index([ownerOrganizationId, proposalVersionId])
   @@map("proposal_lines")
   @@schema("commercial")
 }
@@ -88,11 +86,11 @@ model CommercialInvoice {
   finalizedAt         DateTime? @map("finalized_at") @db.Timestamptz(6)
   rowVersion          Int       @default(1) @map("row_version")
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
   archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
 
   @@unique([id, ownerOrganizationId], map: "invoices_id_owner_org_key")
-  @@index([ownerOrganizationId, clientAccountId, status, archivedAt])
+  @@index([ownerOrganizationId, clientAccountId, status, archivedAt], map: "invoices_owner_client")
   @@map("invoices")
   @@schema("commercial")
 }
@@ -106,11 +104,11 @@ model CommercialPayment {
   status              String   @default("CREATED")
   currency            String   @db.Char(3)
   amountMinor         BigInt   @map("amount_minor")
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@unique([provider, providerEventId], map: "payments_provider_event")
-  @@index([ownerOrganizationId, invoiceId, status])
+  @@index([ownerOrganizationId, invoiceId, status], map: "payments_owner_invoice")
   @@map("payments")
   @@schema("commercial")
 }
@@ -123,9 +121,9 @@ model CommercialLedgerEntry {
   entryType           String   @map("entry_type")
   currency            String   @db.Char(3)
   amountMinor         BigInt   @map("amount_minor")
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@index([ownerOrganizationId, invoiceId, createdAt])
+  @@index([ownerOrganizationId, invoiceId, createdAt], map: "ledger_owner_invoice")
   @@map("ledger_entries")
   @@schema("commercial")
 }
@@ -141,10 +139,10 @@ model CommercialSubscription {
   periodEnd           DateTime? @map("period_end") @db.Timestamptz(6)
   rowVersion          Int       @default(1) @map("row_version")
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
   archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
 
-  @@index([ownerOrganizationId, clientAccountId, status])
+  @@index([ownerOrganizationId, clientAccountId, status], map: "subscriptions_owner_client")
   @@map("subscriptions")
   @@schema("commercial")
 }
@@ -161,7 +159,7 @@ model CommercialEntitlement {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   revokedAt           DateTime? @map("revoked_at") @db.Timestamptz(6)
 
-  @@index([ownerOrganizationId, subjectType, subjectId, active])
+  @@index([ownerOrganizationId, subjectType, subjectId, active], map: "entitlements_owner_subject")
   @@map("entitlements")
   @@schema("commercial")
 }
