@@ -553,4 +553,85 @@ describe("R6 authorization activation", () => {
     },
   );
 
+
+  it("permits human review only through explicit staged/enrichment actions", () => {
+    const staged = resource("staged-record", {
+      sensitivity: "PII",
+      lifecycleState: "PENDING",
+    });
+    const fact = resource("enrichment-fact", {
+      sensitivity: "PII",
+      lifecycleState: "PENDING",
+    });
+
+    expect(
+      evaluateAuthorization(
+        context([grant("lead.import.review")]),
+        "lead.import.review",
+        staged,
+        {
+          action: "approve",
+          requestedFields: ["decision", "expectedRowVersion"],
+          workflowSatisfied: true,
+        },
+      ).decision,
+    ).toBe("ALLOW");
+
+    expect(
+      evaluateAuthorization(
+        context([grant("lead.import.review")]),
+        "lead.import.review",
+        staged,
+        {
+          action: "approve",
+          requestedFields: ["normalizedPayload"],
+          workflowSatisfied: true,
+        },
+      ),
+    ).toMatchObject({ decision: "DENY", reasonCode: "FIELD_DENIED" });
+
+    expect(
+      evaluateAuthorization(
+        context([grant("lead.enrich")]),
+        "lead.enrich",
+        fact,
+        {
+          action: "accept",
+          requestedFields: ["decision", "expectedRowVersion"],
+          workflowSatisfied: true,
+        },
+      ).decision,
+    ).toBe("ALLOW");
+
+    expect(
+      evaluateAuthorization(
+        context([grant("lead.enrich")]),
+        "lead.enrich",
+        fact,
+        {
+          action: "accept",
+          requestedFields: ["typedValue", "sourceUrl"],
+          workflowSatisfied: true,
+        },
+      ),
+    ).toMatchObject({ decision: "DENY", reasonCode: "FIELD_DENIED" });
+  });
+
+  it("denies staged review actions when the trusted workflow is no longer pending", () => {
+    expect(
+      evaluateAuthorization(
+        context([grant("lead.import.review")]),
+        "lead.import.review",
+        resource("staged-record", {
+          sensitivity: "PII",
+          lifecycleState: "APPROVED",
+        }),
+        {
+          action: "reject",
+          requestedFields: ["decision", "expectedRowVersion"],
+          workflowSatisfied: false,
+        },
+      ),
+    ).toMatchObject({ decision: "DENY", reasonCode: "WORKFLOW_DENIED" });
+  });
 });
