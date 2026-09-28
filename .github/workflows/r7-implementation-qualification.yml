@@ -68,6 +68,7 @@ jobs:
         run: |
           npm run db:migrate:deploy
           npm run db:migrate:status
+          npm run db:drift
 
       - name: Run unit tests
         run: npm test
@@ -97,6 +98,15 @@ jobs:
           cat /tmp/r7-full-db-vitest.log
           exit "$TEST_EXIT"
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
+
       - name: Upload Vitest logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -118,7 +128,7 @@ jobs:
               print("missing /tmp/r7-full-db-vitest.log")
               raise SystemExit(0)
           text = p.read_text(errors="replace")
-          markers = ["FAIL  ", "AssertionError", "Error:", "✖ "]
+          markers = ["FAIL  ", "AssertionError", "Error:", "\u2716 "]
           idx = min((text.find(m) for m in markers if text.find(m) >= 0), default=-1)
           if idx < 0:
               print(text[-4000:])
