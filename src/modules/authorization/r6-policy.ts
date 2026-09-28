@@ -461,26 +461,37 @@ export const R6_FIELD_POLICIES: Record<
     groups({ publicBusiness: ["campaignCount", "recipientCount", "sentCount", "replyCount", "positiveReplyCount"] }),
   ),
   "outreach-campaign": policy(
-    ["id", "resourceId", "name", "leadListId", "sequenceId", "sendingAccountId", "schedule", "status", "recipientCount", "sentCount", "replyCount", "positiveReplyCount", "audienceSnapshotHash", "approvedSnapshotHash", "rowVersion"],
+    ["id", "resourceId", "name", "leadListId", "sequenceId", "sequenceVersion", "sendingAccountId", "schedule", "status", "recipientCount", "sentCount", "replyCount", "positiveReplyCount", "audienceSnapshotHash", "approvedSnapshotHash", "rowVersion"],
     ["name", "leadListId", "sequenceId", "sendingAccountId", "schedule"],
     groups({
       publicBusiness: ["id", "resourceId", "name", "status", "recipientCount", "sentCount", "replyCount", "positiveReplyCount"],
-      internal: ["leadListId", "sequenceId", "sendingAccountId", "schedule", "audienceSnapshotHash", "approvedSnapshotHash", "rowVersion"],
+      internal: ["leadListId", "sequenceId", "sequenceVersion", "sendingAccountId", "schedule", "audienceSnapshotHash", "approvedSnapshotHash", "rowVersion"],
     }),
+    {
+      serverOwnedFields: ["id", "resourceId", "sequenceVersion", "status", "recipientCount", "sentCount", "replyCount", "positiveReplyCount", "audienceSnapshotHash", "approvedSnapshotHash", "rowVersion"],
+    },
   ),
   sequence: policy(
-    ["id", "resourceId", "name", "currentVersion", "status", "rowVersion", "archivedAt"],
-    ["name"],
-    groups({ publicBusiness: ["id", "resourceId", "name", "currentVersion", "status"], internal: ["rowVersion", "archivedAt"] }),
+    ["id", "resourceId", "name", "currentVersion", "status", "steps", "rowVersion", "archivedAt"],
+    ["name", "steps"],
+    groups({ publicBusiness: ["id", "resourceId", "name", "currentVersion", "status"], internal: ["steps", "rowVersion", "archivedAt"] }),
+    {
+      serverOwnedFields: ["id", "resourceId", "currentVersion", "status", "rowVersion", "archivedAt"],
+    },
   ),
   "sending-account": policy(
-    ["id", "resourceId", "provider", "address", "displayName", "dailyLimit", "hourlyLimit", "health", "syncState", "lastSyncAt"],
+    ["id", "resourceId", "provider", "address", "displayName", "dailyLimit", "hourlyLimit", "health", "syncState", "lastSyncAt", "rowVersion"],
     ["displayName", "dailyLimit", "hourlyLimit"],
     groups({
       publicBusiness: ["id", "resourceId", "provider", "address", "displayName", "dailyLimit", "hourlyLimit", "health", "syncState", "lastSyncAt"],
+      internal: ["rowVersion"],
       provider: ["provider"],
       security: [],
     }),
+    {
+      createOnlyFields: ["provider", "address"],
+      serverOwnedFields: ["id", "resourceId", "health", "syncState", "lastSyncAt", "rowVersion"],
+    },
   ),
   reply: policy(
     ["conversationId", "messageId", "classification", "status", "assignedMembershipIds"],
@@ -488,13 +499,20 @@ export const R6_FIELD_POLICIES: Record<
     groups({ internal: ["conversationId", "messageId", "classification", "status", "assignedMembershipIds"] }),
   ),
   conversation: policy(
-    ["id", "resourceId", "channel", "subject", "leadId", "dealId", "clientAccountId", "status", "lastMessageAt", "ownerMembershipId"],
-    ["subject"],
+    ["id", "resourceId", "channel", "subject", "leadId", "dealId", "clientAccountId", "status", "lastMessageAt", "ownerMembershipId", "assignedMembershipId", "rowVersion"],
+    ["subject", "assignedMembershipId"],
     groups({
       publicBusiness: ["id", "resourceId", "channel", "subject", "status", "lastMessageAt"],
-      internal: ["leadId", "dealId", "clientAccountId", "ownerMembershipId"],
+      internal: ["leadId", "dealId", "clientAccountId", "ownerMembershipId", "assignedMembershipId", "rowVersion"],
       pii: ["subject"],
     }),
+    {
+      serverOwnedFields: ["id", "resourceId", "status", "lastMessageAt", "ownerMembershipId", "rowVersion"],
+      actionFields: {
+        assign: ["assignedMembershipId"],
+        reassign: ["assignedMembershipId"],
+      },
+    },
   ),
   message: policy(
     ["id", "conversationId", "direction", "bodyText", "visibility", "isInternalNote", "sentAt", "receivedAt"],
@@ -504,14 +522,24 @@ export const R6_FIELD_POLICIES: Record<
       pii: ["bodyText"],
       provider: [],
     }),
+    {
+      serverOwnedFields: ["id", "conversationId", "direction", "visibility", "isInternalNote", "sentAt", "receivedAt"],
+    },
   ),
   meeting: policy(
-    ["id", "resourceId", "title", "meetingType", "startsAt", "endsAt", "timezone", "status", "locationUrl", "dealId", "clientAccountId", "ownerMembershipId", "rowVersion"],
+    ["id", "resourceId", "title", "meetingType", "startsAt", "endsAt", "timezone", "status", "locationUrl", "dealId", "clientAccountId", "ownerMembershipId", "rowVersion", "rescheduleHistory"],
     ["title", "meetingType", "startsAt", "endsAt", "timezone", "locationUrl"],
     groups({
       publicBusiness: ["id", "resourceId", "title", "meetingType", "startsAt", "endsAt", "timezone", "status", "locationUrl"],
-      internal: ["dealId", "clientAccountId", "ownerMembershipId", "rowVersion"],
+      internal: ["dealId", "clientAccountId", "ownerMembershipId", "rowVersion", "rescheduleHistory"],
     }),
+    {
+      createOnlyFields: ["dealId", "clientAccountId"],
+      serverOwnedFields: ["id", "resourceId", "status", "ownerMembershipId", "rowVersion", "rescheduleHistory"],
+      actionFields: {
+        reschedule: ["startsAt", "endsAt", "timezone"],
+      },
+    },
   ),
   deal: policy(
     ["id", "resourceId", "companyId", "primaryContactId", "sourceLeadId", "pipelineId", "stageId", "amountMinor", "currency", "probability", "expectedCloseDate", "ownerMembershipId", "departmentId", "rowVersion", "archivedAt"],
