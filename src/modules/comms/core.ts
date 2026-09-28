@@ -33,6 +33,11 @@ import type {
   CreateConversationInput,
   CreateMeetingInput,
   CreateSendingAccountInput,
+  UpdateSendingAccountInput,
+  CreateSequenceVersionInput,
+  UpdateCampaignDraftInput,
+  AssignConversationInput,
+  CreateInternalNoteInput,
   CreateSequenceInput,
   EvaluateDispatchSafetyInput,
   MeetingState,
@@ -157,6 +162,45 @@ export async function createSendingAccount(
   }, database);
 }
 
+
+export async function updateSendingAccount(
+  context: CommsContext,
+  input: UpdateSendingAccountInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    if (
+      input.displayName === undefined &&
+      input.dailyLimit === undefined &&
+      input.hourlyLimit === undefined
+    ) throw new CommsCommandError("INVALID");
+    if ((input.dailyLimit ?? 0) < 0 || (input.hourlyLimit ?? 0) < 0) {
+      throw new CommsCommandError("INVALID");
+    }
+    const current = await transaction.commsSendingAccount.findFirst({
+      where: { id: input.sendingAccountId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { rowVersion: true },
+    });
+    if (!current) throw new CommsCommandError("NOT_FOUND");
+    if (current.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    const updated = await transaction.commsSendingAccount.updateMany({
+      where: { id: input.sendingAccountId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, rowVersion: input.expectedRowVersion },
+      data: {
+        ...(input.displayName !== undefined ? { displayName: input.displayName?.trim() || null } : {}),
+        ...(input.dailyLimit !== undefined ? { dailyLimit: input.dailyLimit } : {}),
+        ...(input.hourlyLimit !== undefined ? { hourlyLimit: input.hourlyLimit } : {}),
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+    return transaction.commsSendingAccount.findFirstOrThrow({
+      where: { id: input.sendingAccountId, ownerOrganizationId: context.tenant.organizationId },
+      select: { id: true, resourceId: true, health: true, syncState: true, rowVersion: true },
+    });
+  }, database);
+}
+
 export async function createSequence(
   context: CommsContext,
   input: CreateSequenceInput,
@@ -188,6 +232,32 @@ export async function createSequence(
       },
       select: { id: true, resourceId: true, currentVersion: true, status: true, rowVersion: true },
     });
+  }, database);
+}
+
+
+export async function createSequenceVersion(
+  context: CommsContext,
+  input: CreateSequenceVersionInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const sequence = await transaction.commsSequence.findFirst({
+      where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { currentVersion: true, rowVersion: true },
+    });
+    if (!sequence) throw new CommsCommandError("NOT_FOUND");
+    if (sequence.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    const updated = await transaction.commsSequence.updateMany({
+      where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, rowVersion: input.expectedRowVersion },
+      data: { currentVersion: { increment: 1 }, rowVersion: { increment: 1 }, updatedByMembershipId: context.membership.membershipId },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+    const next = await transaction.commsSequence.findFirstOrThrow({
+      where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId },
+      select: { id: true, currentVersion: true, rowVersion: true },
+    });
+    return { sequenceId: next.id, sequenceVersion: next.currentVersion, rowVersion: next.rowVersion };
   }, database);
 }
 
@@ -300,6 +370,46 @@ export async function createCampaign(
         schedule: json(input.schedule ?? {}),
         status: "DRAFT",
       },
+      select: { id: true, resourceId: true, status: true, rowVersion: true },
+    });
+  }, database);
+}
+
+
+export async function updateCampaignDraft(
+  context: CommsContext,
+  input: UpdateCampaignDraftInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    if (
+      input.name === undefined && input.leadListId === undefined &&
+      input.sequenceId === undefined && input.sendingAccountId === undefined &&
+      input.schedule === undefined
+    ) throw new CommsCommandError("INVALID");
+    if (input.name !== undefined && !input.name.trim()) throw new CommsCommandError("INVALID");
+    const current = await transaction.commsOutreachCampaign.findFirst({
+      where: { id: input.campaignId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { rowVersion: true, status: true },
+    });
+    if (!current) throw new CommsCommandError("NOT_FOUND");
+    if (current.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    if (current.status !== "DRAFT") throw new CommsCommandError("TRANSITION_DENIED");
+    const updated = await transaction.commsOutreachCampaign.updateMany({
+      where: { id: input.campaignId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, status: "DRAFT", rowVersion: input.expectedRowVersion },
+      data: {
+        ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+        ...(input.leadListId !== undefined ? { leadListId: input.leadListId } : {}),
+        ...(input.sequenceId !== undefined ? { sequenceId: input.sequenceId } : {}),
+        ...(input.sendingAccountId !== undefined ? { sendingAccountId: input.sendingAccountId } : {}),
+        ...(input.schedule !== undefined ? { schedule: json(input.schedule) } : {}),
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+    return transaction.commsOutreachCampaign.findFirstOrThrow({
+      where: { id: input.campaignId, ownerOrganizationId: context.tenant.organizationId },
       select: { id: true, resourceId: true, status: true, rowVersion: true },
     });
   }, database);
@@ -908,6 +1018,36 @@ export async function createConversation(
   }, database);
 }
 
+
+export async function assignConversation(
+  context: CommsContext,
+  input: AssignConversationInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const assignee = await transaction.organizationMembership.findFirst({
+      where: { id: input.assigneeMembershipId, organizationId: context.tenant.organizationId, status: "ACTIVE" },
+      select: { id: true },
+    });
+    if (!assignee) throw new CommsCommandError("INVALID");
+    const current = await transaction.commsConversation.findFirst({
+      where: { id: input.conversationId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { rowVersion: true },
+    });
+    if (!current) throw new CommsCommandError("NOT_FOUND");
+    if (current.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    const updated = await transaction.commsConversation.updateMany({
+      where: { id: input.conversationId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, rowVersion: input.expectedRowVersion },
+      data: { assignedMembershipId: input.assigneeMembershipId, rowVersion: { increment: 1 }, updatedByMembershipId: context.membership.membershipId },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+    return transaction.commsConversation.findFirstOrThrow({
+      where: { id: input.conversationId, ownerOrganizationId: context.tenant.organizationId },
+      select: { id: true, assignedMembershipId: true, status: true, rowVersion: true },
+    });
+  }, database);
+}
+
 export async function transitionConversation(
   context: CommsContext,
   input: TransitionConversationInput,
@@ -948,6 +1088,20 @@ export async function transitionConversation(
       to: input.to,
       rowVersion: input.expectedRowVersion + 1,
     };
+  }, database);
+}
+
+
+export async function createInternalNote(
+  context: CommsContext,
+  input: CreateInternalNoteInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return recordMessage(context, {
+    conversationId: input.conversationId,
+    direction: "INTERNAL",
+    bodyText: input.bodyText,
+    internalNote: true,
   }, database);
 }
 
