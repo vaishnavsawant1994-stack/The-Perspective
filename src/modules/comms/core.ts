@@ -289,6 +289,7 @@ export async function addSequenceStep(
       where: {
         ownerOrganizationId: context.tenant.organizationId,
         sequenceId: input.sequenceId,
+        sequenceVersion: input.expectedSequenceVersion,
         archivedAt: null,
         status: {
           in: ["READY", "APPROVED", "SCHEDULED", "RUNNING", "PAUSED", "COMPLETED"],
@@ -347,6 +348,12 @@ export async function createCampaign(
     const name = input.name.trim();
     if (!name) throw new CommsCommandError("INVALID");
 
+    const sequence = await transaction.commsSequence.findFirst({
+      where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { currentVersion: true },
+    });
+    if (!sequence) throw new CommsCommandError("INVALID");
+
     const id = newCommsId();
     const resourceId = newCommsId();
     await registerCommsResource(transaction, {
@@ -366,6 +373,7 @@ export async function createCampaign(
         name,
         leadListId: input.leadListId,
         sequenceId: input.sequenceId,
+        sequenceVersion: campaign.sequenceVersion,
         sendingAccountId: input.sendingAccountId,
         schedule: json(input.schedule ?? {}),
         status: "DRAFT",
@@ -395,6 +403,16 @@ export async function updateCampaignDraft(
     if (!current) throw new CommsCommandError("NOT_FOUND");
     if (current.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
     if (current.status !== "DRAFT") throw new CommsCommandError("TRANSITION_DENIED");
+    let sequenceVersion: number | undefined;
+    if (input.sequenceId !== undefined) {
+      const sequence = await transaction.commsSequence.findFirst({
+        where: { id: input.sequenceId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+        select: { currentVersion: true },
+      });
+      if (!sequence) throw new CommsCommandError("INVALID");
+      sequenceVersion = sequence.currentVersion;
+    }
+
     const updated = await transaction.commsOutreachCampaign.updateMany({
       where: { id: input.campaignId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, status: "DRAFT", rowVersion: input.expectedRowVersion },
       data: {
@@ -487,6 +505,7 @@ export async function buildCampaignApprovalSnapshotInTransaction(
       id: true,
       leadListId: true,
       sequenceId: true,
+      sequenceVersion: true,
       sendingAccountId: true,
       schedule: true,
     },
@@ -499,7 +518,7 @@ export async function buildCampaignApprovalSnapshotInTransaction(
       ownerOrganizationId: context.tenant.organizationId,
       archivedAt: null,
     },
-    select: { id: true, currentVersion: true },
+    select: { id: true },
   });
   if (!sequence) throw new CommsCommandError("INVALID");
 
@@ -508,7 +527,7 @@ export async function buildCampaignApprovalSnapshotInTransaction(
       where: {
         ownerOrganizationId: context.tenant.organizationId,
         sequenceId: campaign.sequenceId,
-        sequenceVersion: sequence.currentVersion,
+        sequenceVersion: campaign.sequenceVersion,
       },
       orderBy: [{ position: "asc" }, { id: "asc" }],
       select: {
@@ -558,7 +577,7 @@ export async function buildCampaignApprovalSnapshotInTransaction(
     campaignId: campaign.id,
     leadListId: campaign.leadListId,
     sequenceId: campaign.sequenceId,
-    sequenceVersion: sequence.currentVersion,
+    sequenceVersion: campaign.sequenceVersion,
     sendingAccountId: campaign.sendingAccountId,
     sender: {
       id: sender.id,
@@ -701,7 +720,7 @@ export async function evaluateDispatchSafety(
         ownerOrganizationId: context.tenant.organizationId,
         archivedAt: null,
       },
-      select: { sendingAccountId: true, status: true, sequenceId: true },
+      select: { sendingAccountId: true, status: true, sequenceId: true, sequenceVersion: true },
     });
     if (!campaign) throw new CommsCommandError("NOT_FOUND");
     if (!["SCHEDULED", "RUNNING"].includes(campaign.status)) {
@@ -720,21 +739,11 @@ export async function evaluateDispatchSafety(
       throw new CommsCommandError("SENDER_NOT_READY");
     }
 
-    const sequence = await transaction.commsSequence.findFirst({
-      where: {
-        id: campaign.sequenceId,
-        ownerOrganizationId: context.tenant.organizationId,
-        archivedAt: null,
-      },
-      select: { currentVersion: true },
-    });
-    if (!sequence) throw new CommsCommandError("NOT_FOUND");
-
     const sequenceStep = await transaction.commsSequenceStep.findFirst({
       where: {
         ownerOrganizationId: context.tenant.organizationId,
         sequenceId: campaign.sequenceId,
-        sequenceVersion: sequence.currentVersion,
+        sequenceVersion: campaign.sequenceVersion,
         position: recipient.currentStep > 0 ? recipient.currentStep : 1,
       },
       select: { channel: true },
