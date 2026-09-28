@@ -17,6 +17,15 @@ ALTER TABLE "comms"."outreach_campaigns"
   ADD CONSTRAINT "outreach_campaigns_sequence_version_check"
   CHECK ("sequence_version" > 0);
 
+ALTER TABLE "comms"."conversations"
+  ADD COLUMN "assigned_membership_id" UUID;
+
+ALTER TABLE "comms"."conversations"
+  ADD CONSTRAINT "conversations_assigned_membership_owner_fkey"
+  FOREIGN KEY ("assigned_membership_id","owner_organization_id")
+  REFERENCES "iam"."organization_memberships"("id","organization_id")
+  ON DELETE RESTRICT ON UPDATE CASCADE;
+
 CREATE OR REPLACE FUNCTION "platform"."r6_active_tenant_membership"(p_membership_id uuid)
 RETURNS boolean
 LANGUAGE sql
