@@ -1,0 +1,1 @@
+R6 recovery pending: restore src/modules/r6/queries.ts from 9613b534 and remove CommercialDealStage archivedAt filter. Do not treat d9734fdc as accepted.
