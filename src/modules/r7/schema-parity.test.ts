@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { Prisma } from "@/generated/prisma/client";
+
 const TABLES = [
   "products",
   "proposals",
@@ -28,6 +30,26 @@ describe("R7 schema/migration parity", () => {
     }
     expect(migration).not.toContain("editorial_works");
     expect(models).not.toContain("EditorialWork");
+    expect(models).not.toContain("CommercialContract");
+    expect(models).not.toContain("CommercialPackage");
+  });
+
+  it("exposes authorized models on the generated Prisma client", () => {
+    expect(Prisma.ModelName.CommercialProduct).toBe("CommercialProduct");
+    expect(Prisma.ModelName.CommercialProposal).toBe("CommercialProposal");
+    expect(Prisma.ModelName.CommercialProposalVersion).toBe(
+      "CommercialProposalVersion",
+    );
+    expect(Prisma.ModelName.CommercialProposalLine).toBe("CommercialProposalLine");
+    expect(Prisma.ModelName.CommercialInvoice).toBe("CommercialInvoice");
+    expect(Prisma.ModelName.CommercialPayment).toBe("CommercialPayment");
+    expect(Prisma.ModelName.CommercialLedgerEntry).toBe("CommercialLedgerEntry");
+    expect(Prisma.ModelName.CommercialSubscription).toBe(
+      "CommercialSubscription",
+    );
+    expect(Prisma.ModelName.CommercialEntitlement).toBe("CommercialEntitlement");
+    expect("CommercialContract" in Prisma.ModelName).toBe(false);
+    expect("CommercialPackage" in Prisma.ModelName).toBe(false);
   });
 
   it("keeps money as integer minor units and explicit currency", () => {
