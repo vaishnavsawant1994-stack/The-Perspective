@@ -1424,6 +1424,7 @@ model CommsOutreachCampaign {
   name                  String
   leadListId            String   @map("lead_list_id") @db.Uuid
   sequenceId            String   @map("sequence_id") @db.Uuid
+  sequenceVersion       Int      @default(1) @map("sequence_version")
   sendingAccountId      String   @map("sending_account_id") @db.Uuid
   schedule              Json     @default("{}")
   audienceSnapshotHash  String?  @map("audience_snapshot_hash")
@@ -1650,6 +1651,26 @@ model CommsMeeting {
   @@unique([ownerOrganizationId, provider, externalEventId])
   @@index([ownerOrganizationId, startsAt, status])
   @@map("meetings")
+  @@schema("comms")
+}
+
+model CommsMeetingScheduleHistory {
+  id                    String   @id @db.Uuid
+  ownerOrganizationId   String   @map("owner_organization_id") @db.Uuid
+  meetingId             String   @map("meeting_id") @db.Uuid
+  fromStartsAt          DateTime @map("from_starts_at") @db.Timestamptz(6)
+  fromEndsAt            DateTime @map("from_ends_at") @db.Timestamptz(6)
+  fromTimezone          String   @map("from_timezone")
+  toStartsAt            DateTime @map("to_starts_at") @db.Timestamptz(6)
+  toEndsAt              DateTime @map("to_ends_at") @db.Timestamptz(6)
+  toTimezone            String   @map("to_timezone")
+  actorMembershipId     String   @map("actor_membership_id") @db.Uuid
+  meetingVersion        Int      @map("meeting_version")
+  reason                String?
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([ownerOrganizationId, meetingId, createdAt])
+  @@map("meeting_schedule_history")
   @@schema("comms")
 }
 
