@@ -10,7 +10,7 @@ export function money(currency: string, amountMinor: bigint | number): Money {
     throw new Error("INVALID_CURRENCY");
   }
   const amount = typeof amountMinor === "number" ? BigInt(amountMinor) : amountMinor;
-  if (amount < 0n) {
+  if (amount < BigInt(0)) {
     throw new Error("NEGATIVE_MONEY");
   }
   return { currency, amountMinor: amount };
@@ -37,7 +37,7 @@ export function lineTotal(unitAmountMinor: bigint, quantity: number): bigint {
   if (!Number.isInteger(quantity) || quantity < 1) {
     throw new Error("INVALID_QUANTITY");
   }
-  if (unitAmountMinor < 0n) {
+  if (unitAmountMinor < BigInt(0)) {
     throw new Error("NEGATIVE_MONEY");
   }
   return unitAmountMinor * BigInt(quantity);
