@@ -102,36 +102,42 @@ jobs:
         run: npm run lint
 
       - name: Typecheck
-        run: npm run typecheck
+        run: |
+          set +e
+          npm run typecheck > /tmp/r7-typecheck.log 2>&1
+          TEST_EXIT=$?
+          echo "===== TYPECHECK OUTPUT ====="
+          cat /tmp/r7-typecheck.log
+          exit "$TEST_EXIT"
 
       - name: Production build
         run: npm run build
 
-      - name: Upload Vitest logs
+      - name: Upload diagnostic logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: r7-vitest-logs-${{ github.sha }}
+          name: r7-qualify-logs-${{ github.sha }}
           path: |
             /tmp/r7-finance-vitest.log
             /tmp/r7-full-db-vitest.log
+            /tmp/r7-typecheck.log
           if-no-files-found: warn
 
-      - name: Print first Vitest failure
+      - name: Print first TypeScript failure
         if: failure()
         run: |
-          echo "===== FIRST VITEST FAILURE ====="
+          echo "===== FIRST TSC FAILURE ====="
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("/tmp/r7-full-db-vitest.log")
+          p = Path("/tmp/r7-typecheck.log")
           if not p.exists():
-              print("missing /tmp/r7-full-db-vitest.log")
+              print("missing /tmp/r7-typecheck.log")
               raise SystemExit(0)
           text = p.read_text(errors="replace")
-          markers = ["FAIL  ", "AssertionError", "Error:", "\u2716 "]
-          idx = min((text.find(m) for m in markers if text.find(m) >= 0), default=-1)
+          idx = text.find("error TS")
           if idx < 0:
               print(text[-4000:])
           else:
-              print(text[max(0, idx - 400): idx + 2500])
+              print(text[max(0, idx - 200): idx + 2500])
           PY
