@@ -79,5 +79,8 @@ jobs:
           npm run db:seed
           npm run db:seed:assert
 
+      - name: Run R7 finance live test
+        run: npx vitest run --config vitest.database.config.mts src/modules/r7/r7-finance.database.test.ts
+
       - name: Run live PostgreSQL tests
         run: npm run test:db
