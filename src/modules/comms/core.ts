@@ -47,6 +47,7 @@ import type {
   TransitionCampaignInput,
   TransitionConversationInput,
   TransitionMeetingInput,
+  RescheduleMeetingInput,
 } from "./types";
 
 type CommsContext = TenantScopedRequestContext | AuthorizedRequestContext;
@@ -1208,6 +1209,57 @@ export async function createMeeting(
       },
       select: { id: true, resourceId: true, status: true, rowVersion: true },
     });
+  }, database);
+}
+
+export async function rescheduleMeeting(
+  context: CommsContext,
+  input: RescheduleMeetingInput,
+  database: PrismaClient = getPrismaClient(),
+) {
+  return run(context, async (transaction) => {
+    const timezone = input.timezone.trim();
+    if (!timezone || input.endsAt <= input.startsAt) throw new CommsCommandError("INVALID");
+    const row = await transaction.commsMeeting.findFirst({
+      where: { id: input.meetingId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null },
+      select: { startsAt: true, endsAt: true, timezone: true, status: true, rowVersion: true },
+    });
+    if (!row) throw new CommsCommandError("NOT_FOUND");
+    if (row.rowVersion !== input.expectedRowVersion) throw new CommsCommandError("STALE_WRITE");
+    if (["COMPLETED", "CANCELLED", "NO_SHOW"].includes(row.status)) {
+      throw new CommsCommandError("TRANSITION_DENIED");
+    }
+
+    const updated = await transaction.commsMeeting.updateMany({
+      where: { id: input.meetingId, ownerOrganizationId: context.tenant.organizationId, archivedAt: null, rowVersion: input.expectedRowVersion },
+      data: {
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        timezone,
+        rowVersion: { increment: 1 },
+        updatedByMembershipId: context.membership.membershipId,
+      },
+    });
+    if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
+
+    await transaction.commsMeetingScheduleHistory.create({
+      data: {
+        id: newCommsId(),
+        ownerOrganizationId: context.tenant.organizationId,
+        meetingId: input.meetingId,
+        fromStartsAt: row.startsAt,
+        fromEndsAt: row.endsAt,
+        fromTimezone: row.timezone,
+        toStartsAt: input.startsAt,
+        toEndsAt: input.endsAt,
+        toTimezone: timezone,
+        actorMembershipId: context.membership.membershipId,
+        meetingVersion: input.expectedRowVersion + 1,
+        reason: input.reason?.trim() || null,
+      },
+    });
+
+    return { meetingId: input.meetingId, rowVersion: input.expectedRowVersion + 1 };
   }, database);
 }
 
