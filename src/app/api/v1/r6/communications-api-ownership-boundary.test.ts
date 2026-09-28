@@ -18,6 +18,8 @@ const providerOrWorkerOwned = [
   "computeCampaignApprovalSnapshot",
   "evaluateDispatchSafety",
   "recordDeliveryEvent",
+  "createConversation",
+  "recordMessage",
 ] as const;
 
 describe("R6 Communications API ownership boundary", () => {
@@ -38,8 +40,6 @@ describe("R6 Communications API ownership boundary", () => {
   );
 
   it("does not expose generic browser creation of provider conversation/message truth", () => {
-    expect(joined).not.toContain("createConversation");
-    expect(joined).not.toContain("recordMessage");
     expect(joined).not.toContain("providerThreadId");
     expect(joined).not.toContain("externalEventId");
   });
