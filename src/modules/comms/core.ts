@@ -1242,20 +1242,21 @@ export async function rescheduleMeeting(
     });
     if (updated.count !== 1) throw new CommsCommandError("STALE_WRITE");
 
-    await transaction.commsMeetingScheduleHistory.create({
+    await transaction.commsMeetingNote.create({
       data: {
         id: newCommsId(),
         ownerOrganizationId: context.tenant.organizationId,
         meetingId: input.meetingId,
-        fromStartsAt: row.startsAt,
-        fromEndsAt: row.endsAt,
-        fromTimezone: row.timezone,
-        toStartsAt: input.startsAt,
-        toEndsAt: input.endsAt,
-        toTimezone: timezone,
-        actorMembershipId: context.membership.membershipId,
-        meetingVersion: input.expectedRowVersion + 1,
-        reason: input.reason?.trim() || null,
+        authorMembershipId: context.membership.membershipId,
+        body: "Meeting rescheduled",
+        decisions: json({
+          kind: "MEETING_RESCHEDULE_HISTORY",
+          from: { startsAt: row.startsAt, endsAt: row.endsAt, timezone: row.timezone },
+          to: { startsAt: input.startsAt, endsAt: input.endsAt, timezone },
+          meetingVersion: input.expectedRowVersion + 1,
+          reason: input.reason?.trim() || null,
+        }),
+        visibility: "SYSTEM_HISTORY",
       },
     });
 
