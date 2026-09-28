@@ -1029,8 +1029,64 @@ export async function getAuthorizedSendingAccount(
   sendingAccountId: string,
   database: PrismaClient = getPrismaClient(),
 ) {
-  const result = await listAuthorizedSendingAccounts(context, 400, database);
-  return result.items.find((item) => item.id === sendingAccountId);
+  const row = await database.commsSendingAccount.findFirst({
+    where: {
+      id: sendingAccountId,
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    select: {
+      id: true,
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      provider: true,
+      address: true,
+      displayName: true,
+      dailyLimit: true,
+      hourlyLimit: true,
+      health: true,
+      syncState: true,
+      lastSyncAt: true,
+      rowVersion: true,
+    },
+  });
+  if (!row) return undefined;
+  const requestedFields = [
+    "id", "resourceId", "provider", "address", "displayName", "dailyLimit",
+    "hourlyLimit", "health", "syncState", "lastSyncAt", "rowVersion",
+  ] as const;
+  const resource = commonResource({
+    resourceId: row.resourceId,
+    resourceType: "sending-account",
+    ownerOrganizationId: row.ownerOrganizationId,
+    departmentId: row.departmentId,
+    ownerMembershipId: row.ownerMembershipId,
+    visibility: row.visibility,
+    sensitivity: row.sensitivity,
+    lifecycleState: row.syncState,
+    version: row.rowVersion,
+  });
+  const readableFields = authorizedReadableFields(
+    context, "emailaccount.manage", resource, requestedFields, "manage",
+  );
+  if (!readableFields) return undefined;
+  return projectR6ReadableFields({
+    id: row.id,
+    resourceId: row.resourceId,
+    provider: row.provider,
+    address: row.address,
+    displayName: row.displayName,
+    dailyLimit: row.dailyLimit,
+    hourlyLimit: row.hourlyLimit,
+    health: row.health,
+    syncState: row.syncState,
+    lastSyncAt: row.lastSyncAt?.toISOString() ?? null,
+    rowVersion: row.rowVersion,
+  }, readableFields);
 }
 
 export async function listAuthorizedSequences(
