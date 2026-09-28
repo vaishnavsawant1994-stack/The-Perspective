@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   resolve: vi.fn(),
@@ -105,6 +105,7 @@ function routeResource(resourceType: string, lifecycleState = "ACTIVE", version 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("PERSPECTIVE_PUBLIC_APP_ORIGIN", origin);
   mocks.resolve.mockResolvedValue({ kind: "authorized", context });
   mocks.authorize.mockResolvedValue({ kind: "allowed", decision: { decision: "ALLOW" } });
   mocks.loadCompany.mockResolvedValue(routeResource("company"));
@@ -117,6 +118,10 @@ beforeEach(() => {
   mocks.updateLead.mockResolvedValue({ kind: "ok", value: { leadId: "x", rowVersion: 2 } });
   mocks.reviewStaged.mockResolvedValue({ kind: "ok", value: { stagedRecordId: "x", rowVersion: 2 } });
   mocks.reviewFact.mockResolvedValue({ kind: "ok", value: { enrichmentFactId: "x", rowVersion: 2 } });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("R6 CRM human-owned route falsification", () => {
