@@ -81,18 +81,47 @@ jobs:
 
       - name: Run R7 finance live test
         run: |
-          set -o pipefail
-          npx vitest run --reporter=verbose --config vitest.database.config.mts src/modules/r7/r7-finance.database.test.ts | tee r7-finance-vitest.log
+          set +e
+          npx vitest run --reporter=verbose --config vitest.database.config.mts src/modules/r7/r7-finance.database.test.ts > /tmp/r7-finance-vitest.log 2>&1
+          TEST_EXIT=$?
+          echo "===== VITEST ISOLATED FINANCE OUTPUT ====="
+          cat /tmp/r7-finance-vitest.log
+          exit "$TEST_EXIT"
 
       - name: Run live PostgreSQL tests
         run: |
-          set -o pipefail
-          npm run test:db -- --reporter=verbose | tee r7-fulldb-vitest.log
+          set +e
+          npx vitest run --reporter=verbose --config vitest.database.config.mts > /tmp/r7-full-db-vitest.log 2>&1
+          TEST_EXIT=$?
+          echo "===== VITEST FULL DB OUTPUT ====="
+          cat /tmp/r7-full-db-vitest.log
+          exit "$TEST_EXIT"
+
+      - name: Upload Vitest logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r7-vitest-logs-${{ github.sha }}
+          path: |
+            /tmp/r7-finance-vitest.log
+            /tmp/r7-full-db-vitest.log
+          if-no-files-found: warn
 
       - name: Print first Vitest failure
         if: failure()
         run: |
-          echo "==== r7-finance-vitest.log ===="
-          sed -n '1,200p' r7-finance-vitest.log || true
-          echo "==== r7-fulldb-vitest.log (fail excerpt) ===="
-          rg -n -m 40 "FAIL |AssertionError|Error:|\u2716|x " r7-fulldb-vitest.log || tail -n 120 r7-fulldb-vitest.log || true
+          echo "===== FIRST VITEST FAILURE ====="
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("/tmp/r7-full-db-vitest.log")
+          if not p.exists():
+              print("missing /tmp/r7-full-db-vitest.log")
+              raise SystemExit(0)
+          text = p.read_text(errors="replace")
+          markers = ["FAIL  ", "AssertionError", "Error:", "✖ "]
+          idx = min((text.find(m) for m in markers if text.find(m) >= 0), default=-1)
+          if idx < 0:
+              print(text[-4000:])
+          else:
+              print(text[max(0, idx - 400): idx + 2500])
+          PY
