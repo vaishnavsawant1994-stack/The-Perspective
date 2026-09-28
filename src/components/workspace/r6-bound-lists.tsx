@@ -55,7 +55,7 @@ export function BoundLeadsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchQualifiedR6List<LeadRow>("/api/v1/r6/crm/leads".replace("/crm/leads", "/leads"))
+    fetchQualifiedR6List<LeadRow>("/api/v1/r6/leads")
       .then((items) => {
         if (!cancelled) setRows(items);
       })
