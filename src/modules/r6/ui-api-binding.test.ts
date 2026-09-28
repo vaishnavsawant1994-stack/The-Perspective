@@ -9,11 +9,19 @@ function read(path: string) {
   return readFileSync(join(root, path), "utf8");
 }
 
+const boundPages = [
+  "src/app/app/deals/page.tsx",
+  "src/app/app/sales/leads/page.tsx",
+  "src/app/app/inbox/page.tsx",
+  "src/app/app/meetings/page.tsx",
+  "src/app/app/outreach/page.tsx",
+  "src/app/app/outreach/sending-accounts/page.tsx",
+] as const;
+
 describe("R6 canonical UI/API binding", () => {
-  it("does not let workspace R6 list pages import Prisma", () => {
+  it("does not let bound R6 pages import Prisma", () => {
     for (const path of [
-      "src/app/app/deals/page.tsx",
-      "src/app/app/sales/leads/page.tsx",
+      ...boundPages,
       "src/components/workspace/r6-bound-lists.tsx",
       "src/modules/r6/ui-client.ts",
     ]) {
@@ -23,15 +31,38 @@ describe("R6 canonical UI/API binding", () => {
     }
   });
 
-  it("binds deals and leads pages to qualified HTTP surfaces", () => {
+  it("binds authorized list screens to qualified HTTP surfaces", () => {
+    const bound = read("src/components/workspace/r6-bound-lists.tsx");
     expect(read("src/app/app/deals/page.tsx")).toContain("BoundDealsPage");
     expect(read("src/app/app/sales/leads/page.tsx")).toContain("BoundLeadsPage");
-    expect(read("src/components/workspace/r6-bound-lists.tsx")).toContain(
+    expect(read("src/app/app/inbox/page.tsx")).toContain("BoundInboxPage");
+    expect(read("src/app/app/meetings/page.tsx")).toContain("BoundMeetingsPage");
+    expect(read("src/app/app/outreach/page.tsx")).toContain("BoundCampaignsPage");
+    expect(read("src/app/app/outreach/sending-accounts/page.tsx")).toContain(
+      "BoundSendingAccountsPage",
+    );
+    for (const path of [
       "/api/v1/r6/deals",
-    );
-    expect(read("src/components/workspace/r6-bound-lists.tsx")).toContain(
       "/api/v1/r6/leads",
+      "/api/v1/r6/commercial/pipelines",
+      "/api/v1/r6/clients",
+      "/api/v1/r6/inbox/conversations",
+      "/api/v1/r6/meetings",
+      "/api/v1/r6/outreach/campaigns",
+      "/api/v1/r6/outreach/sequences",
+      "/api/v1/r6/outreach/sending-accounts",
+    ]) {
+      expect(bound).toContain(path);
+    }
+  });
+
+  it("leaves mock slug client pages unbound so mock IDs cannot mutate production", () => {
+    expect(read("src/app/app/clients/nextpay-technologies/page.tsx")).not.toContain(
+      "/api/v1/r6/clients",
     );
+    expect(
+      read("src/app/app/outreach/sequences/personal-magazine-q2/page.tsx"),
+    ).not.toContain("/api/v1/r6/outreach/sequences");
   });
 
   it("strips browser-supplied tenant authority from mutations", async () => {
@@ -62,13 +93,18 @@ describe("R6 canonical UI/API binding", () => {
   });
 
   it("does not bind R7 commercial screens to live R6 APIs", () => {
-    const dealsProposals = read("src/app/app/deals/proposals/page.tsx");
-    const contracts = read("src/app/app/commercial/contracts/page.tsx");
-    const invoices = read("src/app/app/commercial/invoices/page.tsx");
-    for (const source of [dealsProposals, contracts, invoices]) {
+    for (const path of [
+      "src/app/app/deals/proposals/page.tsx",
+      "src/app/app/commercial/contracts/page.tsx",
+      "src/app/app/commercial/invoices/page.tsx",
+      "src/app/app/commercial/payments/page.tsx",
+    ]) {
+      const source = read(path);
       expect(source).not.toContain("/api/v1/r6/proposals");
       expect(source).not.toContain("/api/v1/r6/contracts");
       expect(source).not.toContain("/api/v1/r6/invoices");
+      expect(source).not.toContain("/api/v1/r6/payments");
+      expect(source).not.toContain("/api/v1/r6/subscriptions");
     }
   });
 });
