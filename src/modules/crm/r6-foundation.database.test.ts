@@ -78,7 +78,7 @@ afterAll(async () => {
 });
 
 describe("R6 PostgreSQL CRM/commercial foundation", () => {
-  it("preserves the restricted R4 runtime role and excludes R7 tables", async () => {
+  it("preserves the restricted runtime role across the authorized R7 persistence boundary", async () => {
     const role = await client.query<{
       rolcanlogin: boolean;
       rolsuper: boolean;
@@ -126,10 +126,10 @@ describe("R6 PostgreSQL CRM/commercial foundation", () => {
     `);
 
     expect(excluded.rows[0]).toEqual({
-      proposals: null,
+      proposals: "commercial.proposals",
       contracts: null,
-      invoices: null,
-      payments: null,
+      invoices: "commercial.invoices",
+      payments: "commercial.payments",
     });
   });
 
