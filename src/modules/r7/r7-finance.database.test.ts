@@ -22,6 +22,13 @@ const primaryMembershipId = crypto.randomUUID();
 const secondaryMembershipId = crypto.randomUUID();
 const dealId = crypto.randomUUID();
 
+const REQUIRED_TABLES = [
+  "commercial.products",
+  "commercial.proposals",
+  "commercial.proposal_versions",
+  "commercial.proposal_lines",
+] as const;
+
 function teamContext(input: {
   organizationId: string;
   membershipId: string;
@@ -66,15 +73,13 @@ const foreign = teamContext({
   requestId: "r7-finance-foreign",
 });
 
-let tablesReady = false;
-
 beforeAll(async () => {
-  const present = await database.$queryRawUnsafe<Array<{ exists: boolean | null }>>(
-    `SELECT to_regclass('commercial.products') IS NOT NULL AS exists`,
-  );
-  tablesReady = Boolean(present[0]?.exists);
-  if (!tablesReady) {
-    return;
+  for (const relation of REQUIRED_TABLES) {
+    const present = await database.$queryRawUnsafe<Array<{ exists: boolean | null }>>(
+      `SELECT to_regclass($1::text) IS NOT NULL AS exists`,
+      relation,
+    );
+    expect(present[0]?.exists, `${relation} must exist after R7 migrate`).toBe(true);
   }
 
   await database.organization.createMany({
@@ -124,13 +129,8 @@ afterAll(async () => {
 });
 
 describe("R7 finance persistence", () => {
-  it("writes a tenant-owned draft proposal and hides it from a foreign tenant", async () => {
-    if (!tablesReady) {
-      expect(tablesReady).toBe(false);
-      return;
-    }
-
-    await insertProduct(
+  it("persists a draft proposal and hides it from a foreign tenant", async () => {
+    const product = await insertProduct(
       platform,
       {
         key: "magazine-pack",
@@ -139,6 +139,9 @@ describe("R7 finance persistence", () => {
         unitAmountMinor: 150000n,
       },
       database,
+    );
+    expect(product.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
 
     const created = await insertDraftProposal(
@@ -150,9 +153,17 @@ describe("R7 finance persistence", () => {
       },
       database,
     );
-    expect(created.kind).toBe("ok");
+    expect(created).toMatchObject({
+      kind: "ok",
+      value: { totalMinor: 300000n },
+    });
     if (created.kind !== "ok") return;
-    expect(created.value.totalMinor).toBe(300000n);
+
+    const rows = await database.$queryRawUnsafe<Array<{ total_minor: bigint }>>(
+      `SELECT total_minor FROM commercial.proposal_versions WHERE id = $1::uuid`,
+      created.value.versionId,
+    );
+    expect(rows[0]?.total_minor).toBe(300000n);
 
     expect(await countTenantProposals(platform, database)).toBeGreaterThanOrEqual(1);
     expect(await countTenantProposals(foreign, database)).toBe(0);
