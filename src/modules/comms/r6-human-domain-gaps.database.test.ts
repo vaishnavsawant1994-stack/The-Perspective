@@ -332,24 +332,22 @@ describe("R6 Communications human-owned domain gaps", () => {
     );
     expect(result).toEqual({ kind: "ok", value: { meetingId: meeting.id, rowVersion: 2 } });
 
-    const history = await database.commsMeetingScheduleHistory.findFirstOrThrow({
-      where: { meetingId: meeting.id },
+    const history = await database.commsMeetingNote.findFirstOrThrow({
+      where: { meetingId: meeting.id, visibility: "SYSTEM_HISTORY" },
     });
-    expect(history).toMatchObject({
-      fromStartsAt: startsAt,
-      fromEndsAt: endsAt,
-      fromTimezone: "UTC",
-      toStartsAt: nextStartsAt,
-      toEndsAt: nextEndsAt,
-      toTimezone: "Europe/Berlin",
+    expect(history.body).toBe("Meeting rescheduled");
+    expect(history.decisions).toMatchObject({
+      kind: "MEETING_RESCHEDULE_HISTORY",
+      from: { startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), timezone: "UTC" },
+      to: { startsAt: nextStartsAt.toISOString(), endsAt: nextEndsAt.toISOString(), timezone: "Europe/Berlin" },
       meetingVersion: 2,
       reason: "Customer requested",
     });
 
     await expect(
-      database.commsMeetingScheduleHistory.update({
+      database.commsMeetingNote.update({
         where: { id: history.id },
-        data: { reason: "tampered" },
+        data: { body: "tampered" },
       }),
     ).rejects.toThrow();
 
@@ -366,7 +364,7 @@ describe("R6 Communications human-owned domain gaps", () => {
     );
     expect(stale).toEqual({ kind: "error", code: "STALE_WRITE" });
     expect(
-      await database.commsMeetingScheduleHistory.count({ where: { meetingId: meeting.id } }),
+      await database.commsMeetingNote.count({ where: { meetingId: meeting.id, visibility: "SYSTEM_HISTORY" } }),
     ).toBe(1);
   });
 
