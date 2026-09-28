@@ -531,13 +531,13 @@ export const R6_FIELD_POLICIES: Record<
     ["title", "meetingType", "startsAt", "endsAt", "timezone", "locationUrl"],
     groups({
       publicBusiness: ["id", "resourceId", "title", "meetingType", "startsAt", "endsAt", "timezone", "status", "locationUrl"],
-      internal: ["dealId", "clientAccountId", "ownerMembershipId", "rowVersion", "rescheduleHistory"],
+      internal: ["dealId", "clientAccountId", "ownerMembershipId", "rowVersion", "rescheduleHistory", "reason"],
     }),
     {
       createOnlyFields: ["dealId", "clientAccountId"],
       serverOwnedFields: ["id", "resourceId", "status", "ownerMembershipId", "rowVersion", "rescheduleHistory"],
       actionFields: {
-        reschedule: ["startsAt", "endsAt", "timezone"],
+        reschedule: ["startsAt", "endsAt", "timezone", "reason"],
       },
     },
   ),
