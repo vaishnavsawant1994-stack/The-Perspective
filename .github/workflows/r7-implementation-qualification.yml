@@ -80,7 +80,19 @@ jobs:
           npm run db:seed:assert
 
       - name: Run R7 finance live test
-        run: npx vitest run --config vitest.database.config.mts src/modules/r7/r7-finance.database.test.ts
+        run: |
+          set -o pipefail
+          npx vitest run --reporter=verbose --config vitest.database.config.mts src/modules/r7/r7-finance.database.test.ts | tee r7-finance-vitest.log
 
       - name: Run live PostgreSQL tests
-        run: npm run test:db
+        run: |
+          set -o pipefail
+          npm run test:db -- --reporter=verbose | tee r7-fulldb-vitest.log
+
+      - name: Print first Vitest failure
+        if: failure()
+        run: |
+          echo "==== r7-finance-vitest.log ===="
+          sed -n '1,200p' r7-finance-vitest.log || true
+          echo "==== r7-fulldb-vitest.log (fail excerpt) ===="
+          rg -n -m 40 "FAIL |AssertionError|Error:|\u2716|x " r7-fulldb-vitest.log || tail -n 120 r7-fulldb-vitest.log || true
