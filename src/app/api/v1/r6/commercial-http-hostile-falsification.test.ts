@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   convertDeal: vi.fn(),
   addRelationship: vi.fn(),
   createPipeline: vi.fn(),
+  listDeals: vi.fn(),
 }));
 
 function json(body: unknown, status = 200) {
@@ -54,7 +55,7 @@ vi.mock("@/modules/commercial/core", () => ({
 }));
 
 vi.mock("@/modules/r6/queries", () => ({
-  listAuthorizedDeals: vi.fn(),
+  listAuthorizedDeals: mocks.listDeals,
   listAuthorizedDealPipelines: vi.fn(),
   listAuthorizedClients: vi.fn(),
   listAuthorizedClientRelationships: vi.fn(),
@@ -62,7 +63,7 @@ vi.mock("@/modules/r6/queries", () => ({
   getAuthorizedClient: vi.fn(),
 }));
 
-import { POST as createDeal } from "./deals/route";
+import { GET as listDeals, POST as createDeal } from "./deals/route";
 import { PATCH as patchDeal } from "./deals/[dealId]/route";
 import { POST as moveDeal } from "./deals/[dealId]/move/route";
 import { POST as convertDeal } from "./deals/[dealId]/convert-to-client/route";
@@ -117,6 +118,29 @@ afterEach(() => {
 });
 
 describe("R6 Commercial HTTP hostile falsification", () => {
+  it("fails closed when deal list has no authenticated team context", async () => {
+    mocks.resolve.mockResolvedValueOnce({
+      kind: "response",
+      response: json({ code: "AUTHZ_UNAUTHENTICATED" }, 401),
+    });
+    const response = await listDeals(new Request(`${origin}/api/v1/r6/deals?limit=20`));
+    expect(response.status).toBe(401);
+    expect(mocks.listDeals).not.toHaveBeenCalled();
+  });
+
+  it("maps illegal stage transitions to conflict without durable success", async () => {
+    mocks.moveDeal.mockResolvedValueOnce({ kind: "error", code: "TRANSITION_DENIED" });
+    const response = await moveDeal(
+      request(`/api/v1/r6/deals/${dealId}/move`, {
+        toStageId: stageId,
+        expectedRowVersion: 1,
+      }),
+      { params: Promise.resolve({ dealId }) },
+    );
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({ code: "R6_COMMAND_REJECTED" });
+  });
+
   it("rejects cross-origin deal creation before domain mutation", async () => {
     const response = await createDeal(
       request(
