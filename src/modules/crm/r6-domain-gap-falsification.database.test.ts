@@ -303,7 +303,25 @@ describe("R6 CRM missing domain command falsification", () => {
 
   it("conceals archived update targets and preserves protected state", async () => {
     const company = mustOk(await createCompany(context, { name: "Gap archived company" }, database));
-    await database.crmCompany.update({ where: { id: company.id }, data: { archivedAt: now } });
+    await database.$transaction(async (transaction) => {
+      await transaction.$executeRawUnsafe("SET LOCAL ROLE perspective_runtime");
+      await transaction.$queryRaw`
+        SELECT set_config('app.organization_id', ${organizationId}, true),
+               set_config('app.client_organization_id', '', true)
+      `;
+      const row = await transaction.crmCompany.findUniqueOrThrow({ where: { id: company.id } });
+      await transaction.$queryRaw`
+        SELECT platform.update_r6_resource(
+          ${row.resourceId}::uuid,
+          ${row.name}::text,
+          ${row.clientOrganizationId}::uuid,
+          ${row.visibility}::platform."Visibility",
+          ${row.sensitivity}::platform."Sensitivity",
+          ${now}::timestamptz
+        )
+      `;
+      await transaction.crmCompany.update({ where: { id: company.id }, data: { archivedAt: now } });
+    });
 
     await expect(updateCompany(context, {
       companyId: company.id,
