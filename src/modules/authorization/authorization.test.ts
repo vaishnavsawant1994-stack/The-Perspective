@@ -9,12 +9,16 @@ import {
 import { parseRolePermissionConstraints } from "./constraints";
 
 describe("R5 authorization registry", () => {
-  it("materializes exactly the owner-approved 170 permission keys", () => {
-    expect(PERMISSION_DEFINITIONS).toHaveLength(170);
-    expect(PERMISSION_REGISTRY.size).toBe(170);
-    expect(new Set(PERMISSION_DEFINITIONS.map((permission) => permission.key)).size).toBe(
-      170,
+  it("preserves the 170-key R5 baseline plus the single G0-approved R7 key", () => {
+    const r5Baseline = PERMISSION_DEFINITIONS.filter(
+      (permission) => permission.key !== "proposal.accept",
     );
+
+    expect(r5Baseline).toHaveLength(170);
+    expect(PERMISSION_DEFINITIONS).toHaveLength(171);
+    expect(PERMISSION_REGISTRY.size).toBe(171);
+    expect(new Set(PERMISSION_DEFINITIONS.map((permission) => permission.key)).size).toBe(171);
+    expect(PERMISSION_REGISTRY.has("proposal.accept")).toBe(true);
   });
 
   it("keeps wildcard permissions out of the canonical registry", () => {

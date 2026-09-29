@@ -150,6 +150,7 @@ describe("R6 authorization activation", () => {
           recentAuthenticationSatisfied: true,
           mfaSatisfied: true,
         },
+        { activeStages: new Set(["R5", "R6"]) },
       );
 
       expect(decision).toMatchObject({

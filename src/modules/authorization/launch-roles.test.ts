@@ -45,9 +45,11 @@ describe("R5 launch role matrix", () => {
       .sort();
 
     expect(FROZEN_TEAM_ROLE_PERMISSION_KEYS).toHaveLength(131);
-    expect([...FROZEN_TEAM_ROLE_PERMISSION_KEYS].sort()).toEqual(
-      currentTeamRolePermissions,
-    );
+    expect(
+      [...FROZEN_TEAM_ROLE_PERMISSION_KEYS, "proposal.accept"].sort(),
+    ).toEqual(currentTeamRolePermissions);
+    expect(getLaunchRoleDefinition("R01").permissions).not.toContain("proposal.accept");
+    expect(getLaunchRoleDefinition("R02").permissions).not.toContain("proposal.accept");
     expect(getLaunchRoleDefinition("R01").permissions).toEqual(
       FROZEN_TEAM_ROLE_PERMISSION_KEYS,
     );
