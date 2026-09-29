@@ -41,7 +41,7 @@ A successful `proposal.accept` command must:
 6. Require a validated idempotency key and payload binding. A duplicate identical request returns the original outcome without a second transition/evidence effect; a conflicting reuse is rejected.
 7. Persist acceptance evidence, proposal transition, idempotency receipt, and immutable audit evidence in one transaction. Audit/evidence failure rolls back the transition.
 8. Revalidate active CLIENT membership and exact proposal version inside the transaction boundary. Concurrent edits, supersession, revocation, or acceptance must not produce duplicate or stale acceptance.
-9. Preserve the existing audit, exact-version, and separation-of-duties obligations where applicable. The R7 policy must explicitly define client-side SoD semantics rather than bypassing the obligation.
+9. Preserve the existing audit, exact-version, and separation-of-duties obligations. Client-side SoD requires the accepting CLIENT user's account to differ from the user account attached to the proposal's creator membership. A missing or unresolvable creator membership fails closed; TEAM `proposal.approve` remains unrelated and cannot satisfy customer consent.
 10. Expose only a client-safe response projection.
 
 The acceptance route remains disabled until CLIENT authorization, trusted relationship/resource loading, transaction/RLS policy, persistence/evidence, audit, idempotency, concurrency, and hostile tests are implemented and qualified.
