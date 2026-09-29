@@ -52,6 +52,8 @@ function mapError(value: unknown): Result | undefined {
       return { kind: "error", code: "CONFLICT" };
     case "P2003": case "P2004": case "23503": case "23514": case "22023": case "22P02": case "22003":
       return { kind: "error", code: "INVALID" };
+    case "42501":
+      return { kind: "error", code: "TEAM_REQUIRED" };
     default: return undefined;
   }
 }
@@ -76,15 +78,9 @@ async function replay(tx: Prisma.TransactionClient, context: CommercialContext, 
     proposal_id: string | null; version_id: string | null; version: number | null;
     currency: string | null; total_minor: string | null;
   }>>(
-    `SELECT redacted_diff->'proposalCreate'->>'proposalId' AS proposal_id,
-            redacted_diff->'proposalCreate'->>'versionId' AS version_id,
-            (redacted_diff->'proposalCreate'->>'version')::int AS version,
-            redacted_diff->'proposalCreate'->>'currency' AS currency,
-            redacted_diff->'proposalCreate'->>'totalMinor' AS total_minor
-       FROM platform.audit_events
-      WHERE owner_organization_id=$1::uuid AND idempotency_key=$2::text
-        AND action='r7.proposal.created' LIMIT 1`,
-    context.tenant.organizationId, key,
+    `SELECT proposal_id, version_id, version, currency, total_minor
+       FROM platform.read_r7_proposal_create_replay($1::text)`,
+    key,
   );
   const row = rows[0];
   if (!row?.proposal_id || !row.version_id || row.version !== 1 || !row.currency || !row.total_minor) {
@@ -159,23 +155,27 @@ async function perform(
     currency: input.currency, totalMinor: assembled.value.totalMinor.toString(),
   };
   const responseHash = createHash("sha256").update(JSON.stringify(value)).digest("hex");
-  await tx.auditEvent.create({
-    data: {
-      id: randomUUID(), ownerOrganizationId: ownerId, targetResourceId: null,
-      actorType: AuditActorType.USER, actorUserId: context.identity.userId,
-      actorMembershipId: context.membership.membershipId,
-      action: "r7.proposal.created", requestId: context.requestId,
-      correlationId: context.requestId, afterHash: responseHash,
-      redactedDiff: {
-        proposalCreate: {
-          proposalId, versionId, version: 1, currency: input.currency,
-          totalMinor: assembled.value.totalMinor.toString(),
-          dealId: deal.deal_id, clientAccountId: deal.client_account_id,
-        },
-      } satisfies Prisma.InputJsonObject,
-      idempotencyKey: key, occurredAt: now,
+  const auditDiff = {
+    proposalCreate: {
+      proposalId, versionId, version: 1, currency: input.currency,
+      totalMinor: assembled.value.totalMinor.toString(),
+      dealId: deal.deal_id, clientAccountId: deal.client_account_id,
     },
-  });
+  } satisfies Prisma.InputJsonObject;
+  await tx.$queryRawUnsafe(
+    `SELECT platform.append_r7_proposal_create_audit(
+      $1::uuid,$2::uuid,$3::uuid,$4::text,$5::text,$6::text,$7::jsonb,$8::text,$9::timestamptz
+    )`,
+    randomUUID(),
+    ownerId,
+    context.identity.userId,
+    context.membership.membershipId,
+    context.requestId,
+    responseHash,
+    JSON.stringify(auditDiff),
+    key,
+    now,
+  );
   await complete(tx, input.idempotencyKey, hash, responseHash);
   return value;
 }

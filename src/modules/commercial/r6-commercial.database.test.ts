@@ -2541,6 +2541,32 @@ describe("R6 commercial deeper falsification", () => {
     const replay = await createDraftProposal(platform, input, database);
     expect(replay).toEqual(created);
     expect((await auditCount())[0]?.count).toBe(BigInt(1));
+
+    const beforeCount = await database.$queryRawUnsafe<Array<{ count: bigint }>>(
+      `SELECT count(*)::bigint AS count FROM commercial.proposals
+        WHERE owner_organization_id=$1::uuid AND deal_id=$2::uuid`,
+      primaryOrganizationId,
+      deal.id,
+    );
+    const invalidMembershipId = crypto.randomUUID();
+    const invalidActor = {
+      ...platform,
+      membership: { ...platform.membership, membershipId: invalidMembershipId as MembershipId },
+      tenant: { ...platform.tenant, membershipId: invalidMembershipId as MembershipId },
+    };
+    const denied = await createDraftProposal(
+      invalidActor,
+      { ...input, idempotencyKey: "r7-proposal-audit-failure-" + crypto.randomUUID() },
+      database,
+    );
+    expect(denied).toEqual({ kind: "error", code: "TEAM_REQUIRED" });
+    const afterCount = await database.$queryRawUnsafe<Array<{ count: bigint }>>(
+      `SELECT count(*)::bigint AS count FROM commercial.proposals
+        WHERE owner_organization_id=$1::uuid AND deal_id=$2::uuid`,
+      primaryOrganizationId,
+      deal.id,
+    );
+    expect(afterCount[0]?.count).toBe(beforeCount[0]?.count);
   });
 
   it("preserves the R6 authority ceiling after authorized R7 persistence is introduced", async () => {
