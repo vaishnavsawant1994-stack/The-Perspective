@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION platform.append_r7_proposal_create_audit(
   p_idempotency_key text,
   p_occurred_at timestamptz
 )
-RETURNS void
+RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, platform, iam, audit
@@ -53,8 +53,9 @@ BEGIN
     p_request_id, p_request_id, p_after_hash, p_redacted_diff,
     p_idempotency_key, p_occurred_at
   );
+  RETURN 'APPENDED';
 END
-$$;
+$;
 
 CREATE OR REPLACE FUNCTION platform.read_r7_proposal_create_replay(p_idempotency_key text)
 RETURNS TABLE(
