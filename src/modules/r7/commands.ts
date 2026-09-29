@@ -110,7 +110,6 @@ async function perform(
        FROM commercial.deals AS deal
        JOIN commercial.deal_stages AS stage
          ON stage.id=deal.stage_id AND stage.pipeline_id=deal.pipeline_id
-        AND stage.pipeline_version=deal.pipeline_version
         AND stage.owner_organization_id=deal.owner_organization_id
        JOIN commercial.client_accounts AS account
          ON account.owner_organization_id=deal.owner_organization_id
