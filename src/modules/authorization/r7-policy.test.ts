@@ -222,7 +222,7 @@ function resource(
     "evaluates active R7 permission $permissionKey end to end and denies without its grant",
     ({ permissionKey, resourceType, command, surface, scope }) => {
       const decision = evaluateAuthorization(
-        context([grant(permissionKey, { scope })], "org-r7", surface),
+        context([grant(permissionKey, { scope: scope ?? (permissionKey === "proposal.accept" ? "CLIENT" : "ORG") })], "org-r7", surface ?? (permissionKey === "proposal.accept" ? "CLIENT" : "TEAM")),
         permissionKey,
         resource(resourceType),
         command,
@@ -234,7 +234,7 @@ function resource(
       });
       expect(
         evaluateAuthorization(
-          context([], "org-r7", surface),
+          context([], "org-r7", surface ?? (permissionKey === "proposal.accept" ? "CLIENT" : "TEAM")),
           permissionKey,
           resource(resourceType),
           command,
