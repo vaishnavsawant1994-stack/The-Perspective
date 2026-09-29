@@ -22,6 +22,7 @@ describe("R7 schema/migration parity", () => {
     "utf8",
   );
   const models = readFileSync(join(process.cwd(), "prisma/r7-models.prisma"), "utf8");
+  const contractMigration = readFileSync(join(process.cwd(), "prisma/migrations/20260929183000_r7_contract_signing_foundation/migration.sql"), "utf8");
   const acceptanceMigration = readFileSync(
     join(process.cwd(), "prisma/migrations/20260929170000_r7_proposal_acceptance/migration.sql"),
     "utf8",
@@ -33,8 +34,11 @@ describe("R7 schema/migration parity", () => {
       expect(models).toContain(`@@map("${table}")`);
     }
     expect(migration).not.toContain("editorial_works");
+    for (const table of ["contracts", "contract_versions", "contract_signers", "signature_requests", "signature_events"]) {
+      expect(contractMigration).toContain(`commercial.${table}`);
+      expect(models).toContain(`@@map("${table}")`);
+    }
     expect(models).not.toContain("EditorialWork");
-    expect(models).not.toContain("CommercialContract");
     expect(models).not.toContain("CommercialPackage");
   });
 
@@ -53,7 +57,22 @@ describe("R7 schema/migration parity", () => {
       "CommercialSubscription",
     );
     expect(Prisma.ModelName.CommercialEntitlement).toBe("CommercialEntitlement");
-    expect("CommercialContract" in Prisma.ModelName).toBe(false);
+    expect(Prisma.ModelName.CommercialContract).toBe("CommercialContract");
+    expect(Prisma.ModelName.CommercialContractVersion).toBe("CommercialContractVersion");
+    expect(Prisma.ModelName.CommercialContractSigner).toBe("CommercialContractSigner");
+    expect(Prisma.ModelName.CommercialSignatureRequest).toBe("CommercialSignatureRequest");
+    expect(Prisma.ModelName.CommercialSignatureEvent).toBe("CommercialSignatureEvent");
+    expect(contractMigration).toContain("ENABLE ROW LEVEL SECURITY");
+    expect(contractMigration).toContain("FORCE ROW LEVEL SECURITY");
+    expect(contractMigration).toContain("signature_events_provider_event");
+    expect(contractMigration).toContain("signature_events_immutable");
+    expect(contractMigration).toContain("contract_versions_lifecycle_guard");
+    expect(contractMigration).toContain("guard_r7_contract_version_mutation");
+    expect(contractMigration).toContain("REVOKE ALL ON commercial.contracts");
+    expect(contractMigration).not.toContain("CREATE TRIGGER contract_versions_immutable");
+    expect(contractMigration).toContain("document_sha256");
+    expect(contractMigration).toContain("contract_versions_immutable");
+    expect(contractMigration).toContain("signed_at evidence is immutable");
     expect("CommercialPackage" in Prisma.ModelName).toBe(false);
   });
 

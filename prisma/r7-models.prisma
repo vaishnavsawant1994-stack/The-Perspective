@@ -189,3 +189,120 @@ model CommercialEntitlement {
   @@map("entitlements")
   @@schema("commercial")
 }
+
+model CommercialContract {
+  id                      String   @id @db.Uuid
+  resourceId              String   @unique @map("resource_id") @db.Uuid
+  ownerOrganizationId     String   @map("owner_organization_id") @db.Uuid
+  clientAccountId         String   @map("client_account_id") @db.Uuid
+  sourceProposalId        String   @map("source_proposal_id") @db.Uuid
+  sourceProposalVersionId String   @map("source_proposal_version_id") @db.Uuid
+  sourceProposalVersion   Int      @map("source_proposal_version")
+  status                  String   @default("DRAFT")
+  currentVersion          Int      @default(1) @map("current_version")
+  rowVersion              Int      @default(1) @map("row_version")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([id, ownerOrganizationId], map: "contracts_id_owner_org_key")
+  @@unique([id, ownerOrganizationId, sourceProposalId, sourceProposalVersionId, sourceProposalVersion], map: "contracts_source_identity_key")
+  @@unique([sourceProposalId, sourceProposalVersion], map: "contracts_source_proposal_version")
+  @@index([ownerOrganizationId, clientAccountId, status], map: "contracts_owner_client_status")
+  @@map("contracts")
+  @@schema("commercial")
+}
+
+model CommercialContractVersion {
+  id                      String    @id @db.Uuid
+  ownerOrganizationId     String    @map("owner_organization_id") @db.Uuid
+  contractId              String    @map("contract_id") @db.Uuid
+  version                 Int
+  sourceProposalId        String    @map("source_proposal_id") @db.Uuid
+  sourceProposalVersionId String    @map("source_proposal_version_id") @db.Uuid
+  sourceProposalVersion   Int       @map("source_proposal_version")
+  status                  String    @default("DRAFT")
+  immutable               Boolean   @default(true)
+  documentSnapshot        Json      @map("document_snapshot")
+  documentSha256          String    @map("document_sha256") @db.Char(64)
+  currency                String    @db.Char(3)
+  subtotalMinor           BigInt    @map("subtotal_minor")
+  taxMinor                BigInt    @default(0) @map("tax_minor")
+  totalMinor              BigInt    @map("total_minor")
+  createdAuditEventId     String    @map("created_audit_event_id") @db.Uuid
+  issuedAt                DateTime? @map("issued_at") @db.Timestamptz(6)
+  signedAt                DateTime? @map("signed_at") @db.Timestamptz(6)
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([contractId, version], map: "contract_versions_contract_version")
+  @@unique([id, contractId, ownerOrganizationId, version], map: "contract_versions_reference_key")
+  @@index([ownerOrganizationId, status, contractId], map: "contract_versions_owner_status")
+  @@map("contract_versions")
+  @@schema("commercial")
+}
+
+model CommercialContractSigner {
+  id                  String  @id @db.Uuid
+  ownerOrganizationId String  @map("owner_organization_id") @db.Uuid
+  contractId          String  @map("contract_id") @db.Uuid
+  contractVersionId   String  @map("contract_version_id") @db.Uuid
+  contractVersion     Int     @map("contract_version")
+  signerKey           String  @map("signer_key")
+  signerKind          String  @map("signer_kind")
+  required            Boolean @default(true)
+  providerSignerId    String? @map("provider_signer_id")
+
+  @@unique([contractVersionId, signerKey], map: "contract_signers_version_signer")
+  @@unique([id, ownerOrganizationId], map: "contract_signers_id_owner_org_key")
+  @@index([ownerOrganizationId, contractId, contractVersion], map: "contract_signers_owner_contract_version")
+  @@map("contract_signers")
+  @@schema("commercial")
+}
+
+model CommercialSignatureRequest {
+  id                  String    @id @db.Uuid
+  ownerOrganizationId String    @map("owner_organization_id") @db.Uuid
+  contractId          String    @map("contract_id") @db.Uuid
+  contractVersionId   String    @map("contract_version_id") @db.Uuid
+  contractVersion     Int       @map("contract_version")
+  provider            String
+  providerRequestId   String?   @map("provider_request_id")
+  status              String    @default("REQUESTED")
+  documentSha256      String    @map("document_sha256") @db.Char(64)
+  idempotencyKey      String    @map("idempotency_key")
+  requestHash         String    @map("request_hash") @db.Char(64)
+  auditEventId        String    @map("audit_event_id") @db.Uuid
+  requestedAt         DateTime  @default(now()) @map("requested_at") @db.Timestamptz(6)
+  completedAt         DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@unique([contractVersionId], map: "signature_requests_version_once")
+  @@unique([provider, providerRequestId], map: "signature_requests_provider_request")
+  @@unique([ownerOrganizationId, idempotencyKey], map: "signature_requests_owner_idempotency")
+  @@unique([id, ownerOrganizationId], map: "signature_requests_id_owner_org_key")
+  @@index([ownerOrganizationId, status, requestedAt], map: "signature_requests_owner_status")
+  @@map("signature_requests")
+  @@schema("commercial")
+}
+
+model CommercialSignatureEvent {
+  id                  String    @id @db.Uuid
+  ownerOrganizationId String    @map("owner_organization_id") @db.Uuid
+  signatureRequestId  String    @map("signature_request_id") @db.Uuid
+  provider            String
+  providerEventId     String    @map("provider_event_id")
+  eventType           String    @map("event_type")
+  eventHash           String    @map("event_hash") @db.Char(64)
+  signerKey           String?   @map("signer_key")
+  providerOccurredAt  DateTime? @map("provider_occurred_at") @db.Timestamptz(6)
+  receivedAt          DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+  verifiedAt          DateTime  @map("verified_at") @db.Timestamptz(6)
+  normalizedEvidence  Json      @map("normalized_evidence")
+  appliedAt           DateTime? @map("applied_at") @db.Timestamptz(6)
+  auditEventId        String    @map("audit_event_id") @db.Uuid
+
+  @@unique([provider, providerEventId], map: "signature_events_provider_event")
+  @@unique([id, ownerOrganizationId], map: "signature_events_id_owner_org_key")
+  @@index([ownerOrganizationId, signatureRequestId, receivedAt], map: "signature_events_owner_request")
+  @@map("signature_events")
+  @@schema("commercial")
+}
+
