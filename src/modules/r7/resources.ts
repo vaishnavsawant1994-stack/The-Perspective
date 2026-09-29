@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { PrismaClient } from "@/generated/prisma/client";
-import type { AuthorizedRequestContext } from "@/modules/foundation/request-context";
+import type { AuthorizedRequestContext, TenantScopedRequestContext } from "@/modules/foundation/request-context";
 import type { CommercialContext } from "@/modules/commercial/persistence";
 import {
   withCommercialTenantTransaction,

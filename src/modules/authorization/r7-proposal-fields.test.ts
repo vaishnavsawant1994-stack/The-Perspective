@@ -6,6 +6,7 @@ import type {
   EffectiveAuthorizationGrant,
   PermissionKey,
 } from "@/modules/foundation/request-context";
+import type { AuthorizationResourceContext } from "@/modules/authorization/types";
 
 const now = new Date("2026-09-29T04:00:00.000Z");
 const permissionKey = "proposal.view" as PermissionKey;
@@ -122,7 +123,7 @@ describe("R7 proposal creation field policy", () => {
       grantPaths: [editGrant],
     },
   } as unknown as AuthorizedRequestContext;
-  const resource = {
+  const resource: AuthorizationResourceContext = {
     resourceId: "server-generated-prospective-resource",
     resourceType: "proposal",
     ownerOrganizationId: "org",
