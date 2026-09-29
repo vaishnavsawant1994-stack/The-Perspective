@@ -1,0 +1,267 @@
+import "server-only";
+
+import type { PrismaClient } from "@/generated/prisma/client";
+import { evaluateAuthorization } from "@/modules/authorization/policy";
+import type { AuthorizationResourceContext } from "@/modules/authorization/types";
+import type { AuthorizedRequestContext } from "@/modules/foundation/request-context";
+import {
+  withCommercialTenantTransaction,
+} from "@/modules/commercial/persistence";
+import { getPrismaClient } from "@/modules/persistence/client";
+
+type ProposalRow = {
+  readonly id: string;
+  readonly resource_id: string;
+  readonly owner_organization_id: string;
+  readonly deal_id: string;
+  readonly status: string;
+  readonly current_version: number;
+  readonly row_version: number;
+  readonly currency: string;
+};
+
+type ProposalVersionRow = {
+  readonly id: string;
+  readonly version: number;
+  readonly status: string;
+  readonly currency: string;
+  readonly subtotal_minor: bigint;
+  readonly tax_minor: bigint;
+  readonly total_minor: bigint;
+};
+
+type ProposalLineRow = {
+  readonly description: string;
+  readonly quantity: number;
+  readonly unit_amount_minor: bigint;
+  readonly line_total_minor: bigint;
+  readonly position: number;
+};
+
+const PROPOSAL_READ_FIELDS = [
+  "id",
+  "status",
+  "currency",
+  "dealId",
+  "currentVersion",
+  "rowVersion",
+] as const;
+
+const VERSION_READ_FIELDS = [
+  "id",
+  "status",
+  "currency",
+  "subtotalMinor",
+  "taxMinor",
+  "totalMinor",
+  "version",
+] as const;
+
+const LINE_READ_FIELDS = [
+  "description",
+  "quantity",
+  "unitAmountMinor",
+  "lineTotalMinor",
+  "position",
+] as const;
+
+function proposalResource(row: ProposalRow): AuthorizationResourceContext {
+  return {
+    resourceId: row.resource_id,
+    resourceType: "proposal",
+    ownerOrganizationId: row.owner_organization_id,
+    visibility: "INTERNAL",
+    sensitivity: "FINANCIAL",
+    lifecycleState: row.status,
+    version: row.row_version,
+  };
+}
+
+function versionResource(
+  row: ProposalVersionRow,
+  ownerOrganizationId: string,
+): AuthorizationResourceContext {
+  return {
+    resourceId: row.id,
+    resourceType: "proposal-version",
+    ownerOrganizationId,
+    visibility: "INTERNAL",
+    sensitivity: "FINANCIAL",
+    lifecycleState: row.status,
+    version: row.version,
+  };
+}
+
+function project<T extends Readonly<Record<string, unknown>>>(
+  value: T,
+  allowed: readonly string[],
+) {
+  const fields = new Set(allowed);
+  return Object.fromEntries(
+    Object.entries(value).filter(([field]) => fields.has(field)),
+  ) as Partial<T>;
+}
+
+function authorizedProposalSummary(
+  context: AuthorizedRequestContext,
+  row: ProposalRow,
+  action: "list" | "view",
+) {
+  const decision = evaluateAuthorization(
+    context,
+    "proposal.view",
+    proposalResource(row),
+    { action, requestedFields: PROPOSAL_READ_FIELDS },
+  );
+  if (decision.decision !== "ALLOW") return null;
+
+  return project(
+    {
+      id: row.id,
+      status: row.status,
+      currency: row.currency,
+      dealId: row.deal_id,
+      currentVersion: row.current_version,
+      rowVersion: row.row_version,
+    },
+    decision.readableFields ?? [],
+  );
+}
+
+export async function listAuthorizedProposals(
+  context: AuthorizedRequestContext,
+  limit: number,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const rows = await withCommercialTenantTransaction(
+    context,
+    async (transaction) =>
+      transaction.$queryRawUnsafe<ProposalRow[]>(
+        `SELECT id, resource_id, owner_organization_id, deal_id, status,
+                current_version, row_version, currency
+         FROM commercial.proposals
+         WHERE owner_organization_id = $1::uuid
+           AND archived_at IS NULL
+         ORDER BY created_at DESC, id ASC
+         LIMIT $2::int`,
+        context.tenant.organizationId,
+        limit,
+      ),
+    database,
+  );
+
+  return rows.flatMap((row) => {
+    const summary = authorizedProposalSummary(context, row, "list");
+    return summary ? [summary] : [];
+  });
+}
+
+export async function getAuthorizedProposal(
+  context: AuthorizedRequestContext,
+  proposalId: string,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const row = await withCommercialTenantTransaction(
+    context,
+    async (transaction) => {
+      const rows = await transaction.$queryRawUnsafe<ProposalRow[]>(
+        `SELECT id, resource_id, owner_organization_id, deal_id, status,
+                current_version, row_version, currency
+         FROM commercial.proposals
+         WHERE id = $1::uuid
+           AND owner_organization_id = $2::uuid
+           AND archived_at IS NULL`,
+        proposalId,
+        context.tenant.organizationId,
+      );
+      return rows[0] ?? null;
+    },
+    database,
+  );
+  if (!row) return null;
+
+  const proposal = authorizedProposalSummary(context, row, "view");
+  if (!proposal) return null;
+
+  const version = await withCommercialTenantTransaction(
+    context,
+    async (transaction) => {
+      const rows = await transaction.$queryRawUnsafe<ProposalVersionRow[]>(
+        `SELECT id, version, status, currency, subtotal_minor, tax_minor, total_minor
+         FROM commercial.proposal_versions
+         WHERE proposal_id = $1::uuid
+           AND owner_organization_id = $2::uuid
+           AND version = $3::int`,
+        row.id,
+        context.tenant.organizationId,
+        row.current_version,
+      );
+      return rows[0] ?? null;
+    },
+    database,
+  );
+  if (!version) return { proposal, version: null, lines: [] };
+
+  const versionDecision = evaluateAuthorization(
+    context,
+    "proposal.view",
+    versionResource(version, row.owner_organization_id),
+    { action: "view", requestedFields: VERSION_READ_FIELDS },
+  );
+  if (versionDecision.decision !== "ALLOW") {
+    return { proposal, version: null, lines: [] };
+  }
+
+  const lines = await withCommercialTenantTransaction(
+    context,
+    async (transaction) =>
+      transaction.$queryRawUnsafe<ProposalLineRow[]>(
+        `SELECT description, quantity, unit_amount_minor, line_total_minor, position
+         FROM commercial.proposal_lines
+         WHERE proposal_version_id = $1::uuid
+           AND owner_organization_id = $2::uuid
+         ORDER BY position ASC`,
+        version.id,
+        context.tenant.organizationId,
+      ),
+    database,
+  );
+
+  const lineDecision = evaluateAuthorization(
+    context,
+    "proposal.view",
+    versionResource(version, row.owner_organization_id),
+    { action: "view", requestedFields: LINE_READ_FIELDS },
+  );
+
+  return {
+    proposal,
+    version: project(
+      {
+        id: version.id,
+        status: version.status,
+        currency: version.currency,
+        subtotalMinor: version.subtotal_minor.toString(),
+        taxMinor: version.tax_minor.toString(),
+        totalMinor: version.total_minor.toString(),
+        version: version.version,
+      },
+      versionDecision.readableFields ?? [],
+    ),
+    lines:
+      lineDecision.decision === "ALLOW"
+        ? lines.map((line) =>
+            project(
+              {
+                description: line.description,
+                quantity: line.quantity,
+                unitAmountMinor: line.unit_amount_minor.toString(),
+                lineTotalMinor: line.line_total_minor.toString(),
+                position: line.position,
+              },
+              lineDecision.readableFields ?? [],
+            ),
+          )
+        : [],
+  };
+}

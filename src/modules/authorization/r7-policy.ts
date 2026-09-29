@@ -116,11 +116,11 @@ export const R7_FIELD_POLICIES: Partial<
   Record<R7AuthorizationResourceType, AuthorizationFieldPolicy>
 > = {
   proposal: financeFieldPolicy(
-    ["id", "status", "currency", "dealId"],
+    ["id", "status", "currency", "dealId", "currentVersion", "rowVersion"],
     ["currency"],
   ),
   "proposal-version": financeFieldPolicy(
-    ["id", "status", "currency", "totalMinor"],
+    ["id", "status", "currency", "totalMinor", "subtotalMinor", "taxMinor", "version", "description", "quantity", "unitAmountMinor", "lineTotalMinor", "position"],
     [],
   ),
   invoice: financeFieldPolicy(
