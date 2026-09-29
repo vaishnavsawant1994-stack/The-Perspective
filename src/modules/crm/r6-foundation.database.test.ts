@@ -115,19 +115,22 @@ describe("R6 PostgreSQL CRM/commercial foundation", () => {
     const excluded = await client.query<{
       proposals: string | null;
       contracts: string | null;
+      contractRuntimeSelect: boolean;
       invoices: string | null;
       payments: string | null;
     }>(`
       SELECT
         to_regclass('commercial.proposals')::text AS proposals,
         to_regclass('commercial.contracts')::text AS contracts,
+        has_table_privilege('perspective_runtime', 'commercial.contracts', 'SELECT') AS "contractRuntimeSelect",
         to_regclass('commercial.invoices')::text AS invoices,
         to_regclass('commercial.payments')::text AS payments
     `);
 
     expect(excluded.rows[0]).toEqual({
       proposals: "commercial.proposals",
-      contracts: null,
+      contracts: "commercial.contracts",
+      contractRuntimeSelect: false,
       invoices: "commercial.invoices",
       payments: "commercial.payments",
     });

@@ -3245,7 +3245,7 @@ describe("R6 commercial deeper falsification", () => {
     expect(distinctKeyReplay).toEqual({ kind: "error", code: "TRANSITION_DENIED" });
   });
 
-  it("preserves the R6 authority ceiling after authorized R7 persistence is introduced", async () => {
+  it("preserves the R6 authority ceiling when R7 Contract tables exist", async () => {
     const rows = await database.$queryRawUnsafe<
       Array<{
         proposals: string | null;
@@ -3254,6 +3254,8 @@ describe("R6 commercial deeper falsification", () => {
         contracts: string | null;
         invoices: string | null;
         payments: string | null;
+        contractRuntimeSelect: boolean;
+        contractRuntimeInsert: boolean;
       }>
     >(
       `SELECT
@@ -3262,16 +3264,20 @@ describe("R6 commercial deeper falsification", () => {
          to_regclass('commercial.packages')::text AS packages,
          to_regclass('commercial.contracts')::text AS contracts,
          to_regclass('commercial.invoices')::text AS invoices,
-         to_regclass('commercial.payments')::text AS payments`,
+         to_regclass('commercial.payments')::text AS payments,
+         has_table_privilege('perspective_runtime', 'commercial.contracts', 'SELECT') AS "contractRuntimeSelect",
+         has_table_privilege('perspective_runtime', 'commercial.contracts', 'INSERT') AS "contractRuntimeInsert"`,
     );
 
     expect(rows[0]).toEqual({
       proposals: "commercial.proposals",
       products: "commercial.products",
       packages: null,
-      contracts: null,
+      contracts: "commercial.contracts",
       invoices: "commercial.invoices",
       payments: "commercial.payments",
+      contractRuntimeSelect: false,
+      contractRuntimeInsert: false,
     });
   });
 });

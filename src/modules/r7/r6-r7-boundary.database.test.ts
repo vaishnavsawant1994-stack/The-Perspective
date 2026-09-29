@@ -9,7 +9,7 @@ afterAll(async () => {
 });
 
 describe("R6 authority ceiling after authorized R7 persistence", () => {
-  it("keeps authorized finance tables present and later-slice tables absent", async () => {
+  it("keeps authorized R7 Contract persistence present while later-slice tables remain absent", async () => {
     const rows = await database.$queryRawUnsafe<
       Array<{
         proposals: string | null;
@@ -33,13 +33,13 @@ describe("R6 authority ceiling after authorized R7 persistence", () => {
       proposals: "commercial.proposals",
       products: "commercial.products",
       packages: null,
-      contracts: null,
+      contracts: "commercial.contracts",
       invoices: "commercial.invoices",
       payments: "commercial.payments",
     });
   });
 
-  it("does not grant the runtime role access to still-absent contract tables", async () => {
+  it("does not grant the runtime role table access to Contract tables before the R7 policy/command is qualified", async () => {
     const grants = await database.$queryRawUnsafe<Array<{ table_name: string }>>(
       `SELECT table_name
          FROM information_schema.role_table_grants

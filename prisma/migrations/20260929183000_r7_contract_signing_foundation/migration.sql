@@ -233,6 +233,3 @@ FOR EACH ROW EXECUTE FUNCTION platform.reject_immutable_mutation();
 REVOKE ALL ON commercial.contracts, commercial.contract_versions,
   commercial.contract_signers, commercial.signature_requests,
   commercial.signature_events FROM PUBLIC, perspective_runtime;
-GRANT SELECT ON commercial.contracts, commercial.contract_versions,
-  commercial.contract_signers, commercial.signature_requests,
-  commercial.signature_events TO perspective_runtime;
