@@ -299,8 +299,8 @@ export async function sendProposal(
       };
       await tx.$queryRawUnsafe(
         `SELECT platform.complete_r7_proposal_send(
-          $1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7::int,
-          $8::int,$9::text,$10::text,$11::text,$12::jsonb,$13::text,
+          $1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7::uuid,
+          $8::int,$9::int,$10::text,$11::text,$12::jsonb,$13::text,
           $14::text,$15::text,$16::timestamptz
         )`,
         randomUUID(), context.tenant.organizationId, proposal.resource_id,
