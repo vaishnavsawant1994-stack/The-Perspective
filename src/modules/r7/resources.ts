@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { PrismaClient } from "@/generated/prisma/client";
-import type { TenantScopedRequestContext } from "@/modules/foundation/request-context";
+import type { AuthorizedRequestContext, TenantScopedRequestContext } from "@/modules/foundation/request-context";
 import {
   withCommercialTenantTransaction,
 } from "@/modules/commercial/persistence";
@@ -56,6 +56,114 @@ export async function loadR7ProposalResource(
     database,
   );
   return row ? resourceContext(row, "proposal") : null;
+}
+
+export interface ClientProposalAcceptanceResource {
+  readonly proposalId: string;
+  readonly proposalVersionId: string;
+  readonly currentVersion: number;
+  readonly rowVersion: number;
+  readonly authorizationResource: AuthorizationResourceContext;
+  readonly separationOfDutySatisfied: true;
+}
+
+type ClientProposalAcceptanceRow = {
+  readonly proposal_id: string;
+  readonly proposal_resource_id: string;
+  readonly owner_organization_id: string;
+  readonly client_organization_id: string;
+  readonly proposal_status: string;
+  readonly current_version: number;
+  readonly row_version: number;
+  readonly proposal_version_id: string;
+  readonly proposal_version: number;
+};
+
+/**
+ * Loads the canonical client relationship and exact current immutable version.
+ * The only caller-controlled identifier is the proposal ID. Tenant, user and
+ * membership identifiers come from the resolved authenticated CLIENT context.
+ */
+export async function loadClientProposalAcceptanceResource(
+  context: AuthorizedRequestContext,
+  proposalId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<ClientProposalAcceptanceResource | null> {
+  if (
+    context.authentication !== "authenticated" ||
+    context.membership.surface !== "CLIENT" ||
+    context.tenant.surface !== "CLIENT" ||
+    context.membership.membershipId !== context.tenant.membershipId ||
+    context.membership.organizationId !== context.tenant.organizationId
+  ) {
+    return null;
+  }
+
+  const rows = await database.$queryRawUnsafe<ClientProposalAcceptanceRow[]>(
+    `SELECT proposal.id AS proposal_id,
+            proposal.resource_id AS proposal_resource_id,
+            proposal.owner_organization_id,
+            client_account.client_organization_id,
+            proposal.status AS proposal_status,
+            proposal.current_version,
+            proposal.row_version,
+            version.id AS proposal_version_id,
+            version.version AS proposal_version
+     FROM commercial.proposals AS proposal
+     JOIN commercial.client_accounts AS client_account
+       ON client_account.id = proposal.client_account_id
+      AND client_account.owner_organization_id = proposal.owner_organization_id
+      AND client_account.archived_at IS NULL
+     JOIN iam.organization_memberships AS customer_membership
+       ON customer_membership.id = $3::uuid
+      AND customer_membership.organization_id = client_account.client_organization_id
+      AND customer_membership.user_account_id = $4::uuid
+      AND customer_membership.membership_type = 'CLIENT'
+      AND customer_membership.status = 'ACTIVE'
+     JOIN iam.organization_memberships AS creator_membership
+       ON creator_membership.id = proposal.created_by_membership_id
+      AND creator_membership.organization_id = proposal.owner_organization_id
+      AND creator_membership.user_account_id <> customer_membership.user_account_id
+     JOIN commercial.proposal_versions AS version
+       ON version.proposal_id = proposal.id
+      AND version.owner_organization_id = proposal.owner_organization_id
+      AND version.version = proposal.current_version
+     WHERE proposal.id = $1::uuid
+       AND client_account.client_organization_id = $2::uuid
+       AND proposal.archived_at IS NULL
+       AND proposal.status IN ('SENT', 'VIEWED')
+       AND version.status IN ('SENT', 'VIEWED')
+       AND version.immutable IS TRUE
+       AND version.issued_at IS NOT NULL
+     LIMIT 1`,
+    proposalId,
+    context.tenant.organizationId,
+    context.membership.membershipId,
+    context.identity.userId,
+  );
+
+  const row = rows[0];
+  if (!row || row.client_organization_id !== context.tenant.organizationId) {
+    return null;
+  }
+
+  return {
+    proposalId: row.proposal_id,
+    proposalVersionId: row.proposal_version_id,
+    currentVersion: row.current_version,
+    rowVersion: row.row_version,
+    separationOfDutySatisfied: true,
+    authorizationResource: {
+      resourceType: "client-proposal",
+      resourceId: row.proposal_resource_id,
+      ownerOrganizationId: row.owner_organization_id,
+      clientOrganizationId: row.client_organization_id,
+      visibility: "CLIENT_SHARED",
+      sensitivity: "FINANCIAL",
+      lifecycleState: row.proposal_status,
+      version: row.current_version,
+    },
+  };
 }
 
 export async function loadR7ProposalVersionResource(
