@@ -2880,7 +2880,7 @@ describe("R6 commercial deeper falsification", () => {
     )).toBe(1);
   });
 
-  it("serializes competing edits and rolls back all state when audit rejects the actor", async () => {
+  it("serializes competing edits and rolls back all state when audit append rejects the request", async () => {
     const company = mustDomainOk(await createCompany(
       platform, { name: "R7 Proposal Edit Race " + crypto.randomUUID() }, database,
     ));
@@ -2943,11 +2943,8 @@ describe("R6 commercial deeper falsification", () => {
       primaryOrganizationId, created.value.id,
     )).toBe(1);
 
-    const forgedActor = {
-      ...platform,
-      identity: { userId: seedIds.user.asteriaAdmin as UserId },
-    };
-    const rollback = await editDraftProposal(forgedActor, {
+    const invalidAuditContext = { ...platform, requestId: "" };
+    const rollback = await editDraftProposal(invalidAuditContext, {
       ...input,
       expectedRowVersion: 2,
       lines: [{ description: "Must rollback", quantity: 5, unitAmountMinor: BigInt(1500) }],
