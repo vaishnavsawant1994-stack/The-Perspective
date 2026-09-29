@@ -265,3 +265,101 @@ export async function getAuthorizedProposal(
         : [],
   };
 }
+type InvoiceRow = {
+  readonly id: string;
+  readonly resource_id: string;
+  readonly owner_organization_id: string;
+  readonly status: string;
+  readonly row_version: number;
+  readonly currency: string;
+  readonly total_minor: bigint;
+  readonly allocated_minor: bigint;
+};
+
+const INVOICE_READ_FIELDS = [
+  "id", "status", "currency", "totalMinor", "allocatedMinor",
+] as const;
+
+function invoiceResource(row: InvoiceRow): AuthorizationResourceContext {
+  return {
+    resourceId: row.resource_id,
+    resourceType: "invoice",
+    ownerOrganizationId: row.owner_organization_id,
+    visibility: "INTERNAL",
+    sensitivity: "FINANCIAL",
+    lifecycleState: row.status,
+    version: row.row_version,
+  };
+}
+
+function authorizedInvoiceSummary(
+  context: AuthorizedRequestContext,
+  row: InvoiceRow,
+  action: "list" | "view",
+) {
+  const decision = evaluateAuthorization(
+    context,
+    "invoice.view",
+    invoiceResource(row),
+    { action, requestedFields: INVOICE_READ_FIELDS },
+  );
+  if (decision.decision !== "ALLOW") return null;
+  return project({
+    id: row.id,
+    status: row.status,
+    currency: row.currency,
+    totalMinor: row.total_minor.toString(),
+    allocatedMinor: row.allocated_minor.toString(),
+  }, decision.readableFields ?? []);
+}
+
+export async function listAuthorizedInvoices(
+  context: AuthorizedRequestContext,
+  limit: number,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const rows = await withCommercialTenantTransaction(
+    context,
+    async (transaction) => transaction.$queryRawUnsafe<InvoiceRow[]>(
+      `SELECT id, resource_id, owner_organization_id, status, row_version,
+              currency, total_minor, allocated_minor
+       FROM commercial.invoices
+       WHERE owner_organization_id = $1::uuid
+         AND archived_at IS NULL
+       ORDER BY created_at DESC, id ASC
+       LIMIT $2::int`,
+      context.tenant.organizationId,
+      limit,
+    ),
+    database,
+  );
+  return rows.flatMap((row) => {
+    const summary = authorizedInvoiceSummary(context, row, "list");
+    return summary ? [summary] : [];
+  });
+}
+
+export async function getAuthorizedInvoice(
+  context: AuthorizedRequestContext,
+  invoiceId: string,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const row = await withCommercialTenantTransaction(
+    context,
+    async (transaction) => {
+      const rows = await transaction.$queryRawUnsafe<InvoiceRow[]>(
+        `SELECT id, resource_id, owner_organization_id, status, row_version,
+                currency, total_minor, allocated_minor
+         FROM commercial.invoices
+         WHERE id = $1::uuid
+           AND owner_organization_id = $2::uuid
+           AND archived_at IS NULL`,
+        invoiceId,
+        context.tenant.organizationId,
+      );
+      return rows[0] ?? null;
+    },
+    database,
+  );
+  return row ? authorizedInvoiceSummary(context, row, "view") : null;
+}
