@@ -365,6 +365,29 @@ function resource(
     ).toMatchObject({ decision: "DENY", reasonCode: "POLICY_INVALID" });
   });
 
+  it("rejects selected-organization context that disagrees with the trusted membership", () => {
+    const authorized = context([grant("invoice.view")]);
+    const mismatchedContext: AuthorizedRequestContext = {
+      ...authorized,
+      tenant: {
+        ...authorized.tenant,
+        organizationId: "org-forged-selection" as OrganizationId,
+      },
+    };
+
+    expect(
+      evaluateAuthorization(
+        mismatchedContext,
+        "invoice.view",
+        resource("invoice", "org-forged-selection"),
+        { action: "view", requestedFields: ["id"] },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "POLICY_INVALID",
+    });
+  });
+
   it("fails closed for unknown permission keys", () => {
     expect(
       evaluateAuthorizationByKey(

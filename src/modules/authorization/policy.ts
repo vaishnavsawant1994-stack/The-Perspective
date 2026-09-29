@@ -425,6 +425,14 @@ export function evaluateAuthorization(
       return deny(permissionKey, "POLICY_INVALID");
     }
 
+    if (
+      context.membership.membershipId !== context.tenant.membershipId ||
+      context.membership.organizationId !== context.tenant.organizationId ||
+      context.membership.surface !== context.tenant.surface
+    ) {
+      return deny(permissionKey, "POLICY_INVALID");
+    }
+
     const binding = getR7PermissionBinding(permissionKey);
     if (!(binding.actions as readonly string[]).includes(command.action)) {
       return deny(permissionKey, "WORKFLOW_DENIED");
