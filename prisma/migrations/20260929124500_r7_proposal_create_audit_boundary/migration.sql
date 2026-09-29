@@ -54,8 +54,8 @@ BEGIN
     p_idempotency_key, p_occurred_at
   );
   RETURN 'APPENDED';
-END
-$;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION platform.read_r7_proposal_create_replay(p_idempotency_key text)
 RETURNS TABLE(
