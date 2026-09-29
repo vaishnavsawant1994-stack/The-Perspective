@@ -16,6 +16,10 @@ export async function resolveR7TeamRequest(request: Request) {
   return resolveAuthorizedHttpRequest(request, "TEAM");
 }
 
+export async function resolveR7ClientRequest(request: Request) {
+  return resolveAuthorizedHttpRequest(request, "CLIENT");
+}
+
 export interface R7ListRequest {
   readonly limit: number;
 }
@@ -60,7 +64,7 @@ export function r7CommandError(code: string) {
       "PROPOSAL_IMMUTABLE",
       "INVOICE_CLOSED",
     ].includes(code) ? 409 :
-    code === "TEAM_REQUIRED" ? 403 : 400;
+    code === "TEAM_REQUIRED" || code === "CLIENT_REQUIRED" ? 403 : 400;
 
   return NextResponse.json(
     {

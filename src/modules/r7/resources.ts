@@ -132,8 +132,8 @@ export async function loadClientProposalAcceptanceResource(
      WHERE proposal.id = $1::uuid
        AND client_account.client_organization_id = $2::uuid
        AND proposal.archived_at IS NULL
-       AND proposal.status IN ('SENT', 'VIEWED')
-       AND version.status IN ('SENT', 'VIEWED')
+       AND proposal.status IN ('SENT', 'VIEWED', 'ACCEPTED')
+       AND version.status IN ('SENT', 'VIEWED', 'ACCEPTED')
        AND version.immutable IS TRUE
        AND version.issued_at IS NOT NULL
      LIMIT 1`,

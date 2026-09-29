@@ -92,7 +92,21 @@ describe("R7 customer acceptance resource", () => {
     expect(sql).toContain("version.version = proposal.current_version");
     expect(sql).toContain("version.immutable IS TRUE");
     expect(sql).toContain("version.issued_at IS NOT NULL");
-    expect(sql).toContain("proposal.status IN ('SENT', 'VIEWED')");
+    expect(sql).toContain("proposal.status IN ('SENT', 'VIEWED', 'ACCEPTED')");
+  });
+
+  it("loads the accepted exact version only so the domain can enforce idempotent replay", async () => {
+    const query = vi.fn().mockResolvedValue([{
+      ...canonicalRow,
+      proposal_status: "ACCEPTED",
+      proposal_version_status: "ACCEPTED",
+    }]);
+    const loaded = await loadClientProposalAcceptanceResource(
+      clientContext(), "proposal-1", { $queryRawUnsafe: query } as unknown as PrismaClient,
+    );
+    expect(loaded?.authorizationResource.lifecycleState).toBe("ACCEPTED");
+    // Resource loading alone does not confer replay authority; the transaction
+    // command still requires the matching completed idempotency receipt.
   });
 
   it("rejects TEAM contexts and mismatched selected organizations before querying", async () => {

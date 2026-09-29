@@ -10,6 +10,7 @@ import type {
 } from "@/modules/foundation/request-context";
 import { createPrismaClient } from "@/modules/persistence/client";
 import { registerCommercialResource, withCommercialTenantTransaction } from "@/modules/commercial/persistence";
+import { acceptProposal } from "./proposal-acceptance";
 import {
   loadClientProposalAcceptanceResource,
   loadR7InvoiceResource,
@@ -19,6 +20,11 @@ import {
 } from "./resources";
 
 const database = createPrismaClient();
+
+async function count(sql: string, ...params: readonly (string | number | Date)[]) {
+  const rows = await database.$queryRawUnsafe<Array<{ count: bigint }>>(sql, ...params);
+  return Number(rows[0]?.count ?? 0);
+}
 const epoch = new Date("2026-09-29T04:00:00.000Z");
 const primaryOrganizationId = crypto.randomUUID();
 const foreignOrganizationId = crypto.randomUUID();
@@ -344,6 +350,113 @@ describe("R7 trusted resource loaders", () => {
     expect(
       await loadClientProposalAcceptanceResource(customer, customerProposalId, database),
     ).toBeNull();
+  });
+
+  it("accepts the exact immutable customer version once and rolls back evidence when audit fails", async () => {
+    await database.organizationMembership.update({
+      where: { id: customerMembershipId },
+      data: { status: "ACTIVE" },
+    });
+    const idempotencyKey = `r7-accept-${crypto.randomUUID()}`;
+    const input = {
+      proposalId: customerProposalId,
+      expectedVersionId: customerProposalVersionId,
+      expectedVersion: 1,
+      expectedRowVersion: 3,
+      idempotencyKey,
+    };
+
+    const auditFailure = await acceptProposal({ ...customer, requestId: "" }, input, database);
+    expect(auditFailure).toEqual({ kind: "error", code: "CLIENT_REQUIRED" });
+    const beforeSuccess = await database.$queryRawUnsafe<Array<{
+      proposal_status: string; row_version: number; version_status: string; immutable: boolean;
+    }>>(
+      `SELECT proposal.status AS proposal_status, proposal.row_version,
+              version.status AS version_status, version.immutable
+         FROM commercial.proposals AS proposal
+         JOIN commercial.proposal_versions AS version
+           ON version.proposal_id=proposal.id AND version.version=proposal.current_version
+        WHERE proposal.id=$1::uuid AND proposal.owner_organization_id=$2::uuid`,
+      customerProposalId, primaryOrganizationId,
+    );
+    expect(beforeSuccess[0]).toMatchObject({
+      proposal_status: "SENT", row_version: 3, version_status: "SENT", immutable: true,
+    });
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM commercial.proposal_acceptances WHERE proposal_id=$1::uuid`,
+      customerProposalId,
+    )).toBe(0);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE action='r7.proposal.accepted' AND idempotency_key=$1::text`,
+      `r7:proposal-accept:${clientOrganizationId}:${idempotencyKey}`,
+    )).toBe(0);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM platform.idempotency_receipts
+        WHERE owner_organization_id=$1::uuid AND scope='commercial.proposal-accept'
+          AND idempotency_key=$2::text`,
+      clientOrganizationId, `r7:proposal-accept:${clientOrganizationId}:${idempotencyKey}`,
+    )).toBe(0);
+
+    const [first, duplicate] = await Promise.all([
+      acceptProposal(customer, input, database),
+      acceptProposal(customer, input, database),
+    ]);
+    expect(first.kind).toBe("ok");
+    expect(duplicate).toEqual(first);
+    if (first.kind !== "ok") return;
+    expect(first.value).toMatchObject({
+      proposalId: customerProposalId,
+      versionId: customerProposalVersionId,
+      version: 1,
+      status: "ACCEPTED",
+    });
+    expect(Number.isNaN(Date.parse(first.value.acceptedAt))).toBe(false);
+
+    const persisted = await database.$queryRawUnsafe<Array<{
+      proposal_status: string; row_version: number; version_status: string; immutable: boolean;
+      accepted_at: Date; expected_row_version: number; accepted_row_version: number;
+      actor_user_id: string; actor_membership_id: string;
+    }>>(
+      `SELECT proposal.status AS proposal_status, proposal.row_version,
+              version.status AS version_status, version.immutable,
+              evidence.accepted_at, evidence.expected_row_version, evidence.accepted_row_version,
+              evidence.actor_user_id, evidence.actor_membership_id
+         FROM commercial.proposals AS proposal
+         JOIN commercial.proposal_versions AS version
+           ON version.proposal_id=proposal.id AND version.version=proposal.current_version
+         JOIN commercial.proposal_acceptances AS evidence
+           ON evidence.proposal_id=proposal.id AND evidence.proposal_version_id=version.id
+        WHERE proposal.id=$1::uuid AND proposal.owner_organization_id=$2::uuid`,
+      customerProposalId, primaryOrganizationId,
+    );
+    expect(persisted[0]).toMatchObject({
+      proposal_status: "ACCEPTED", row_version: 4, version_status: "ACCEPTED", immutable: true,
+      expected_row_version: 3, accepted_row_version: 4,
+      actor_user_id: seedIds.user.asteriaAdmin, actor_membership_id: customerMembershipId,
+    });
+    expect(persisted[0]?.accepted_at.toISOString()).toBe(first.value.acceptedAt);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM commercial.proposal_acceptances WHERE proposal_id=$1::uuid`,
+      customerProposalId,
+    )).toBe(1);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE action='r7.proposal.accepted' AND idempotency_key=$1::text`,
+      `r7:proposal-accept:${clientOrganizationId}:${idempotencyKey}`,
+    )).toBe(1);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM platform.idempotency_receipts
+        WHERE owner_organization_id=$1::uuid AND scope='commercial.proposal-accept'
+          AND idempotency_key=$2::text AND state='COMPLETED'`,
+      clientOrganizationId, `r7:proposal-accept:${clientOrganizationId}:${idempotencyKey}`,
+    )).toBe(1);
+
+    const conflict = await acceptProposal(customer, {
+      ...input,
+      expectedRowVersion: 4,
+    }, database);
+    expect(conflict).toEqual({ kind: "error", code: "IDEMPOTENCY_CONFLICT" });
   });
 
   it("hides invoice and payment resources across tenant boundaries", async () => {

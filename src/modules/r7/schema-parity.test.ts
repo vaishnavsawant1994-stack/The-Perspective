@@ -22,6 +22,10 @@ describe("R7 schema/migration parity", () => {
     "utf8",
   );
   const models = readFileSync(join(process.cwd(), "prisma/r7-models.prisma"), "utf8");
+  const acceptanceMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20260929170000_r7_proposal_acceptance/migration.sql"),
+    "utf8",
+  );
 
   it("creates exactly the authorized finance tables", () => {
     for (const table of TABLES) {
@@ -41,6 +45,7 @@ describe("R7 schema/migration parity", () => {
       "CommercialProposalVersion",
     );
     expect(Prisma.ModelName.CommercialProposalLine).toBe("CommercialProposalLine");
+    expect(Prisma.ModelName.CommercialProposalAcceptanceEvidence).toBe("CommercialProposalAcceptanceEvidence");
     expect(Prisma.ModelName.CommercialInvoice).toBe("CommercialInvoice");
     expect(Prisma.ModelName.CommercialPayment).toBe("CommercialPayment");
     expect(Prisma.ModelName.CommercialLedgerEntry).toBe("CommercialLedgerEntry");
@@ -50,6 +55,17 @@ describe("R7 schema/migration parity", () => {
     expect(Prisma.ModelName.CommercialEntitlement).toBe("CommercialEntitlement");
     expect("CommercialContract" in Prisma.ModelName).toBe(false);
     expect("CommercialPackage" in Prisma.ModelName).toBe(false);
+  });
+
+  it("adds only the owner-authorized immutable customer acceptance evidence model", () => {
+    expect(acceptanceMigration).toContain("CREATE TABLE commercial.proposal_acceptances");
+    expect(acceptanceMigration).toContain("ENABLE ROW LEVEL SECURITY");
+    expect(acceptanceMigration).toContain("FORCE ROW LEVEL SECURITY");
+    expect(acceptanceMigration).toContain("CREATE OR REPLACE FUNCTION platform.complete_r7_proposal_acceptance");
+    expect(acceptanceMigration).toContain("proposal_acceptances_immutable");
+    expect(models).toContain('@@map("proposal_acceptances")');
+    expect(acceptanceMigration).not.toContain("commercial.contracts");
+    expect(acceptanceMigration).not.toContain("commercial.packages");
   });
 
   it("keeps money as integer minor units and explicit currency", () => {

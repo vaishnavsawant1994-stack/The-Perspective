@@ -54,6 +54,7 @@ model CommercialProposalVersion {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([proposalId, version], map: "proposal_versions_proposal_version")
+  @@unique([id, proposalId, ownerOrganizationId, version], map: "proposal_versions_acceptance_reference_key")
   @@map("proposal_versions")
   @@schema("commercial")
 }
@@ -70,6 +71,31 @@ model CommercialProposalLine {
   position            Int
 
   @@map("proposal_lines")
+  @@schema("commercial")
+}
+
+model CommercialProposalAcceptanceEvidence {
+  id                  String   @id @db.Uuid
+  ownerOrganizationId String   @map("owner_organization_id") @db.Uuid
+  clientOrganizationId String  @map("client_organization_id") @db.Uuid
+  clientAccountId     String   @map("client_account_id") @db.Uuid
+  proposalId          String   @unique(map: "proposal_acceptances_proposal_once") @map("proposal_id") @db.Uuid
+  proposalVersionId   String   @map("proposal_version_id") @db.Uuid
+  proposalVersion     Int      @map("proposal_version")
+  expectedRowVersion  Int      @map("expected_row_version")
+  acceptedRowVersion  Int      @map("accepted_row_version")
+  actorUserId         String   @map("actor_user_id") @db.Uuid
+  actorMembershipId   String   @map("actor_membership_id") @db.Uuid
+  acceptedAt          DateTime @map("accepted_at") @db.Timestamptz(6)
+  idempotencyKey      String   @map("idempotency_key")
+  requestHash         String   @map("request_hash")
+  afterHash           String   @map("after_hash")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([id, ownerOrganizationId], map: "proposal_acceptances_id_owner_org_key")
+  @@unique([clientOrganizationId, idempotencyKey], map: "proposal_acceptances_client_idempotency")
+  @@index([ownerOrganizationId, proposalId, acceptedAt], map: "proposal_acceptances_owner_proposal_idx")
+  @@map("proposal_acceptances")
   @@schema("commercial")
 }
 
