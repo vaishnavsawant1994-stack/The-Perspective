@@ -1,6 +1,6 @@
-# R7 Proposal Acceptance Actor Model — Owner Decision Required
+# R7 Proposal Acceptance Actor Model — Decision Recorded
 
-Status: **BLOCKED — no actor model is frozen**  
+Status: **MODEL 1 SELECTED — implementation remains unqualified and unroutable**  
 Reviewed branch HEAD: `c7e0d21fd469049391aa5056beba3dfeb140974e`  
 Reviewed qualification: R7 Implementation Qualification #48 — SUCCESS  
 G0 contract: `f720f22f2500a89ae48819c715eb0e72f21e532e`
@@ -47,12 +47,8 @@ Whichever model is selected, implementation must retain:
 - SoD and tenant/resource checks required by the frozen policy.
 - No generic status PATCH and no browser-supplied identity, organization, resource context, lifecycle state, or evidence claims.
 
-## Owner decision required
+## Owner decision recorded
 
-Choose exactly one authority model before implementation proceeds:
+The Owner selected **authenticated client/customer membership** as the R7 V1 authority model. The authoritative requirements are recorded in `PHASE-4-R7-G0-PROPOSAL-ACCEPTANCE-ADDENDUM.md`.
 
-1. **Authenticated client/customer membership.** Confirm that the accepting actor must have an active CLIENT membership in the customer organization bound to the proposal.
-2. **External acceptance principal/token.** Specify the intended verification and token lifecycle authority, or authorize a narrow follow-up contract design before implementation.
-3. **Team recording verified customer consent.** Define the independently verifiable evidence source and the staff verification/SoD requirements.
-
-Until that choice is recorded in the R7 contract, `proposal.accept` remains non-routable. Proposal read-only HTTP remains qualified. No R8 behavior is introduced.
+The current code remains TEAM-only and must not route acceptance until its registry, policy, resource relationship, persistence/RLS, evidence/audit, idempotency, and hostile qualification implement this model. No staff or token fallback is permitted. Proposal read-only HTTP remains qualified. No R8 behavior is introduced.
