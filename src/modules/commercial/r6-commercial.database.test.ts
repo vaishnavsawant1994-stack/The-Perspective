@@ -2569,6 +2569,179 @@ describe("R6 commercial deeper falsification", () => {
     expect(afterCount[0]?.count).toBe(beforeCount[0]?.count);
   });
 
+  it("conceals foreign and unconverted deals and leaves no proposal creation residue", async () => {
+    const foreignDeal = mustOk(
+      await createDeal(
+        foreign,
+        {
+          pipelineId: fixture.foreignPipelineId,
+          companyId: fixture.foreignCompanyId,
+          primaryContactId: fixture.foreignContactId,
+          amountMinor: BigInt(250000),
+          currency: "USD",
+        },
+        database,
+      ),
+    );
+    const unconvertedDeal = await createProposalPreparationDeal({
+      companyId: fixture.ownCompanyId,
+      contactId: fixture.ownContactId,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "r7-unconverted-" + crypto.randomUUID(),
+    });
+    const before = await resourceCount(primaryOrganizationId, "proposal");
+    const foreignKey = "r7-foreign-deal-" + crypto.randomUUID();
+    const unconvertedKey = "r7-unconverted-deal-" + crypto.randomUUID();
+    const foreignResult = await createDraftProposal(platform, {
+      dealId: foreignDeal.id,
+      currency: "USD",
+      lines: [{ description: "Foreign deal", quantity: 1, unitAmountMinor: BigInt(500) }],
+      idempotencyKey: foreignKey,
+    }, database);
+    const unconvertedResult = await createDraftProposal(platform, {
+      dealId: unconvertedDeal.id,
+      currency: "USD",
+      lines: [{ description: "Unconverted deal", quantity: 1, unitAmountMinor: BigInt(500) }],
+      idempotencyKey: unconvertedKey,
+    }, database);
+
+    expect(foreignResult).toEqual({ kind: "error", code: "NOT_FOUND" });
+    expect(unconvertedResult).toEqual({ kind: "error", code: "NOT_FOUND" });
+    expect(await resourceCount(primaryOrganizationId, "proposal")).toBe(before);
+    for (const key of [foreignKey, unconvertedKey]) {
+      expect(await count(
+        `SELECT count(*)::bigint AS count FROM platform.idempotency_receipts
+          WHERE owner_organization_id=$1::uuid AND scope='commercial.proposal-create'
+            AND idempotency_key=$2::text`,
+        primaryOrganizationId, key,
+      )).toBe(0);
+      expect(await count(
+        `SELECT count(*)::bigint AS count FROM audit.audit_events
+          WHERE owner_organization_id=$1::uuid AND action='r7.proposal.created'
+            AND idempotency_key=$2::text`,
+        primaryOrganizationId, `r7:proposal-create:${primaryOrganizationId}:${key}`,
+      )).toBe(0);
+    }
+  });
+
+  it("rejects a deal currency mismatch before creating proposal records", async () => {
+    const deal = await createProposalPreparationDeal({
+      companyId: fixture.ownCompanyId,
+      contactId: fixture.ownContactId,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "r7-currency-mismatch-" + crypto.randomUUID(),
+    });
+    mustOk(await convertDealToClient(platform, {
+      dealId: deal.id,
+      expectedRowVersion: deal.rowVersion,
+      idempotencyKey: "r7-currency-convert-" + crypto.randomUUID(),
+    }, database));
+    const before = await resourceCount(primaryOrganizationId, "proposal");
+
+    const result = await createDraftProposal(platform, {
+      dealId: deal.id,
+      currency: "EUR",
+      lines: [{ description: "Wrong currency", quantity: 1, unitAmountMinor: BigInt(500) }],
+      idempotencyKey: "r7-currency-" + crypto.randomUUID(),
+    }, database);
+
+    expect(result).toEqual({ kind: "error", code: "INVALID" });
+    expect(await resourceCount(primaryOrganizationId, "proposal")).toBe(before);
+  });
+
+  it("rejects idempotency-key reuse with a different request without duplicate evidence", async () => {
+    const deal = await createProposalPreparationDeal({
+      companyId: fixture.ownCompanyId,
+      contactId: fixture.ownContactId,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "r7-idempotency-mismatch-" + crypto.randomUUID(),
+    });
+    mustOk(await convertDealToClient(platform, {
+      dealId: deal.id,
+      expectedRowVersion: deal.rowVersion,
+      idempotencyKey: "r7-idempotency-convert-" + crypto.randomUUID(),
+    }, database));
+    const idempotencyKey = "r7-idempotency-key-" + crypto.randomUUID();
+    const input = {
+      dealId: deal.id,
+      currency: "USD",
+      lines: [{ description: "Original request", quantity: 1, unitAmountMinor: BigInt(1000) }],
+      idempotencyKey,
+    };
+    const created = await createDraftProposal(platform, input, database);
+    expect(created.kind).toBe("ok");
+
+    const replayMismatch = await createDraftProposal(platform, {
+      ...input,
+      lines: [{ description: "Changed request", quantity: 1, unitAmountMinor: BigInt(1000) }],
+    }, database);
+    expect(replayMismatch).toEqual({ kind: "error", code: "IDEMPOTENCY_CONFLICT" });
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM commercial.proposals
+        WHERE owner_organization_id=$1::uuid AND deal_id=$2::uuid`,
+      primaryOrganizationId, deal.id,
+    )).toBe(1);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE owner_organization_id=$1::uuid AND action='r7.proposal.created'
+          AND idempotency_key=$2::text`,
+      primaryOrganizationId, `r7:proposal-create:${primaryOrganizationId}:${idempotencyKey}`,
+    )).toBe(1);
+  });
+
+  it("rolls back proposal, idempotency, and audit records when the audit actor cannot be verified", async () => {
+    const deal = await createProposalPreparationDeal({
+      companyId: fixture.ownCompanyId,
+      contactId: fixture.ownContactId,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "r7-audit-rollback-" + crypto.randomUUID(),
+    });
+    mustOk(await convertDealToClient(platform, {
+      dealId: deal.id,
+      expectedRowVersion: deal.rowVersion,
+      idempotencyKey: "r7-audit-convert-" + crypto.randomUUID(),
+    }, database));
+    const idempotencyKey = "r7-audit-rollback-" + crypto.randomUUID();
+    const forgedActor = teamContext({
+      organizationId: primaryOrganizationId,
+      membershipId: primaryMembershipId,
+      userId: seedIds.user.asteriaAdmin,
+      requestId: "r7-audit-actor-mismatch-" + crypto.randomUUID(),
+    });
+    const beforeResources = await resourceCount(primaryOrganizationId, "proposal");
+
+    const result = await createDraftProposal(forgedActor, {
+      dealId: deal.id,
+      currency: "USD",
+      lines: [{ description: "Must roll back", quantity: 1, unitAmountMinor: BigInt(1000) }],
+      idempotencyKey,
+    }, database);
+
+    expect(result).toEqual({ kind: "error", code: "TEAM_REQUIRED" });
+    expect(await resourceCount(primaryOrganizationId, "proposal")).toBe(beforeResources);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM commercial.proposals
+        WHERE owner_organization_id=$1::uuid AND deal_id=$2::uuid`,
+      primaryOrganizationId, deal.id,
+    )).toBe(0);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM platform.idempotency_receipts
+        WHERE owner_organization_id=$1::uuid AND scope='commercial.proposal-create'
+          AND idempotency_key=$2::text`,
+      primaryOrganizationId, idempotencyKey,
+    )).toBe(0);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE owner_organization_id=$1::uuid AND action='r7.proposal.created'
+          AND idempotency_key=$2::text`,
+      primaryOrganizationId, `r7:proposal-create:${primaryOrganizationId}:${idempotencyKey}`,
+    )).toBe(0);
+  });
+
   it("preserves the R6 authority ceiling after authorized R7 persistence is introduced", async () => {
     const rows = await database.$queryRawUnsafe<
       Array<{
