@@ -17,6 +17,11 @@ import {
   getR6PermissionBinding,
   isR6ActivePermissionKey,
 } from "./r6-policy";
+import {
+  getR7FieldPolicy,
+  getR7PermissionBinding,
+  isR7ActivePermissionKey,
+} from "./r7-policy";
 import type {
   AuthorizationCommandContext,
   AuthorizationDecision,
@@ -27,7 +32,7 @@ import type {
   SensitivityLevel,
 } from "./types";
 
-const DEFAULT_ACTIVE_STAGES = new Set(["R5", "R6"]);
+const DEFAULT_ACTIVE_STAGES = new Set(["R5", "R6", "R7"]);
 const READ_ACTIONS = new Set([
   "read",
   "view",
@@ -399,7 +404,58 @@ export function evaluateAuthorization(
 
   let policyCommand = command;
 
-  if (definition.activationStage === "R6") {
+  // Active R7 finance keys are dispatched here even when the registry still
+  // stamps proposal.* as R6. They must not enter the R6 binding path.
+  // Stage-R7 keys outside the active slice (contract.*, payment.refund,
+  // package.manage, commercial.exception.approve) stay workflow-denied.
+  if (
+    isR7ActivePermissionKey(permissionKey) ||
+    definition.activationStage === "R7"
+  ) {
+    if (!activeStages.has("R7") || !isR7ActivePermissionKey(permissionKey)) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
+
+    if (
+      definition.surface !== "TEAM" ||
+      definition.assignability !== "TEAM_ROLE" ||
+      context.membership.surface !== "TEAM" ||
+      context.tenant.surface !== "TEAM"
+    ) {
+      return deny(permissionKey, "POLICY_INVALID");
+    }
+
+    const binding = getR7PermissionBinding(permissionKey);
+    if (!(binding.actions as readonly string[]).includes(command.action)) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
+
+    if (
+      !resource ||
+      !(binding.resourceTypes as readonly string[]).includes(
+        resource.resourceType,
+      )
+    ) {
+      return deny(permissionKey, "RESOURCE_DENIED");
+    }
+
+    const trustedFieldPolicy = getR7FieldPolicy(resource.resourceType);
+    if (!trustedFieldPolicy) {
+      return deny(permissionKey, "FIELD_DENIED");
+    }
+
+    policyCommand = {
+      ...command,
+      fieldPolicy: trustedFieldPolicy,
+    };
+
+    if (
+      binding.workflowActions?.includes(command.action as never) &&
+      command.workflowSatisfied !== true
+    ) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
+  } else if (definition.activationStage === "R6") {
     if (!isR6ActivePermissionKey(permissionKey)) {
       return deny(permissionKey, "WORKFLOW_DENIED");
     }
@@ -473,10 +529,9 @@ export function evaluateAuthorization(
   }
 
   if (
-    definition.activationStage === "R6" &&
-    grants.some(
-      (grant) => !definition.permittedScopes.includes(grant.scope),
-    )
+    (definition.activationStage === "R6" ||
+      definition.activationStage === "R7") &&
+    grants.some((grant) => !definition.permittedScopes.includes(grant.scope))
   ) {
     return deny(permissionKey, "POLICY_INVALID");
   }
