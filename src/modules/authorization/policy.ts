@@ -404,8 +404,9 @@ export function evaluateAuthorization(
 
   let policyCommand = command;
 
-  // Active R7 finance keys are dispatched here even when the registry still
-  // stamps proposal.* as R6. They must not enter the R6 binding path.
+  // Active R7 permissions are dispatched here even when the registry still
+  // stamps proposal.* as R6. They must not enter the R6 binding path. Only
+  // proposal.accept is CLIENT-owned; every other active R7 key remains TEAM-only.
   // Stage-R7 keys outside the active slice (contract.*, payment.refund,
   // package.manage, commercial.exception.approve) stay workflow-denied.
   if (
@@ -416,11 +417,17 @@ export function evaluateAuthorization(
       return deny(permissionKey, "WORKFLOW_DENIED");
     }
 
+    const clientAcceptance = permissionKey === "proposal.accept";
     if (
-      definition.surface !== "TEAM" ||
-      definition.assignability !== "TEAM_ROLE" ||
-      context.membership.surface !== "TEAM" ||
-      context.tenant.surface !== "TEAM"
+      clientAcceptance
+        ? definition.surface !== "CLIENT" ||
+          definition.assignability !== "CLIENT_ROLE" ||
+          context.membership.surface !== "CLIENT" ||
+          context.tenant.surface !== "CLIENT"
+        : definition.surface !== "TEAM" ||
+          definition.assignability !== "TEAM_ROLE" ||
+          context.membership.surface !== "TEAM" ||
+          context.tenant.surface !== "TEAM"
     ) {
       return deny(permissionKey, "POLICY_INVALID");
     }

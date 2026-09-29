@@ -28,6 +28,7 @@ export const R7_DORMANT_PERMISSION_KEYS = [
 export type R7AuthorizationResourceType =
   | "proposal"
   | "proposal-version"
+  | "client-proposal"
   | "invoice"
   | "payment"
   | "product";
@@ -53,7 +54,7 @@ export const R7_PERMISSION_BINDINGS = {
     workflowActions: ["send"],
   },
   "proposal.accept": {
-    resourceTypes: ["proposal", "proposal-version"],
+    resourceTypes: ["client-proposal"],
     actions: ["accept"],
     workflowActions: ["accept"],
   },
@@ -118,6 +119,10 @@ export const R7_FIELD_POLICIES: Partial<
   proposal: financeFieldPolicy(
     ["id", "status", "currency", "dealId", "currentVersion", "rowVersion"],
     ["currency"],
+  ),
+  "client-proposal": financeFieldPolicy(
+    ["id", "status", "currentVersion"],
+    [],
   ),
   "proposal-version": financeFieldPolicy(
     ["id", "status", "currency", "totalMinor", "subtotalMinor", "taxMinor", "version", "description", "quantity", "unitAmountMinor", "lineTotalMinor", "position"],

@@ -99,7 +99,9 @@ function proposalResource(
 describe("R7 authorization slice", () => {
 type R7AuthorizationCase = {
   permissionKey: CanonicalPermissionKey;
-  resourceType: "proposal" | "invoice" | "payment";
+  resourceType: "proposal" | "client-proposal" | "invoice" | "payment";
+  surface?: "TEAM" | "CLIENT";
+  scope?: EffectiveAuthorizationGrant["scope"];
   command: AuthorizationCommandContext;
 };
 
@@ -125,7 +127,9 @@ const ACTIVE_R7_CASES: readonly R7AuthorizationCase[] = [
   },
   {
     permissionKey: "proposal.accept",
-    resourceType: "proposal",
+    resourceType: "client-proposal",
+    surface: "CLIENT",
+    scope: "CLIENT",
     command: {
       action: "accept",
       workflowSatisfied: true,
@@ -195,8 +199,10 @@ function resource(
     resourceType,
     resourceId: `${resourceType}-r7-1`,
     ownerOrganizationId,
+    ...(resourceType === "client-proposal"
+      ? { clientOrganizationId: "org-r7", visibility: "CLIENT_SHARED" as const }
+      : { visibility: "INTERNAL" as const }),
     sensitivity: "FINANCIAL",
-    visibility: "INTERNAL",
   };
 }
 
@@ -214,9 +220,9 @@ function resource(
 
   it.each(ACTIVE_R7_CASES)(
     "evaluates active R7 permission $permissionKey end to end and denies without its grant",
-    ({ permissionKey, resourceType, command }) => {
+    ({ permissionKey, resourceType, command, surface, scope }) => {
       const decision = evaluateAuthorization(
-        context([grant(permissionKey)]),
+        context([grant(permissionKey, { scope })], "org-r7", surface),
         permissionKey,
         resource(resourceType),
         command,
@@ -228,7 +234,7 @@ function resource(
       });
       expect(
         evaluateAuthorization(
-          context([]),
+          context([], "org-r7", surface),
           permissionKey,
           resource(resourceType),
           command,
@@ -511,9 +517,9 @@ function resource(
     ({ permissionKey, action, resourceType }) => {
       expect(
         evaluateAuthorization(
-          context([grant(permissionKey)]),
+          context([grant(permissionKey, { scope: permissionKey === "proposal.accept" ? "CLIENT" : "ORG" })], "org-r7", permissionKey === "proposal.accept" ? "CLIENT" : "TEAM"),
           permissionKey,
-          resource(resourceType),
+          resource(permissionKey === "proposal.accept" ? "client-proposal" : resourceType),
           { action },
         ),
       ).toMatchObject({
@@ -536,9 +542,9 @@ function resource(
     ]) {
       expect(
         evaluateAuthorization(
-          context([grant("proposal.accept")]),
+          context([grant("proposal.accept", { scope: "CLIENT" })], "org-r7", "CLIENT"),
           "proposal.accept",
-          resource("proposal"),
+          resource("client-proposal"),
           command,
         ),
       ).toMatchObject({ decision: "DENY" });
@@ -577,9 +583,9 @@ function resource(
 
   it("allows only the frozen R7 proposal.accept command with version and SoD evidence", () => {
     const decision = evaluateAuthorization(
-      context([grant("proposal.accept")]),
+      context([grant("proposal.accept", { scope: "CLIENT" })], "org-r7", "CLIENT"),
       "proposal.accept",
-      proposalResource(),
+      resource("client-proposal"),
       {
         action: "accept",
         workflowSatisfied: true,
@@ -593,6 +599,52 @@ function resource(
       decision: "ALLOW",
       permissionKey: "proposal.accept",
     });
+  });
+
+  it("restricts proposal.accept to authenticated CLIENT membership and client-shared proposal resources", () => {
+    const command = {
+      action: "accept",
+      workflowSatisfied: true,
+      exactVersionMatches: true,
+      separationOfDutySatisfied: true,
+    } satisfies AuthorizationCommandContext;
+    const clientResource = resource("client-proposal");
+
+    expect(
+      evaluateAuthorization(
+        context([grant("proposal.accept", { scope: "CLIENT" })]),
+        "proposal.accept",
+        clientResource,
+        command,
+      ),
+    ).toMatchObject({ decision: "DENY", reasonCode: "POLICY_INVALID" });
+
+    expect(
+      evaluateAuthorization(
+        context([grant("proposal.accept", { scope: "CLIENT" })], "org-r7", "CLIENT"),
+        "proposal.accept",
+        proposalResource(),
+        command,
+      ),
+    ).toMatchObject({ decision: "DENY", reasonCode: "RESOURCE_DENIED" });
+
+    expect(
+      evaluateAuthorization(
+        context([grant("proposal.accept", { scope: "CLIENT" })], "org-r7", "CLIENT"),
+        "proposal.accept",
+        { ...clientResource, clientOrganizationId: "org-foreign" },
+        command,
+      ),
+    ).toMatchObject({ decision: "DENY", reasonCode: "SCOPE_DENIED" });
+
+    expect(
+      evaluateAuthorization(
+        context([grant("proposal.accept", { scope: "ORG" })], "org-r7", "CLIENT"),
+        "proposal.accept",
+        clientResource,
+        command,
+      ),
+    ).toMatchObject({ decision: "DENY", reasonCode: "POLICY_INVALID" });
   });
 
   it("does not let R6 proposal.approve authorize R7 acceptance", () => {
@@ -617,9 +669,9 @@ function resource(
 
   it("fails closed for proposal.accept when R7 is not active", () => {
     const decision = evaluateAuthorization(
-      context([grant("proposal.accept")]),
+      context([grant("proposal.accept", { scope: "CLIENT" })], "org-r7", "CLIENT"),
       "proposal.accept",
-      proposalResource(),
+      resource("client-proposal"),
       {
         action: "accept",
         workflowSatisfied: true,

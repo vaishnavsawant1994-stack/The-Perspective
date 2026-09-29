@@ -1411,10 +1411,10 @@ export const PERMISSION_DEFINITIONS = [
   },
   {
     key: "proposal.accept",
-    surface: "TEAM",
+    surface: "CLIENT",
     risk: "HIGH",
-    assignability: "TEAM_ROLE",
-    permittedScopes: ["ORG", "DEPT", "ASN", "OWN"],
+    assignability: "CLIENT_ROLE",
+    permittedScopes: ["CLIENT"],
     requiresFieldPolicy: true,
     requiresWorkflowPolicy: true,
     obligations: ["audit", "exact-version", "SoD"],
