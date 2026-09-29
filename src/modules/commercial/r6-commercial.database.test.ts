@@ -2531,7 +2531,7 @@ describe("R6 commercial deeper falsification", () => {
 
     const receiptKey = `r7:proposal-create:${primaryOrganizationId}:${input.idempotencyKey}`;
     const auditCount = async () => database.$queryRawUnsafe<Array<{ count: bigint }>>(
-      `SELECT count(*)::bigint AS count FROM platform.audit_events
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
         WHERE owner_organization_id=$1::uuid AND idempotency_key=$2::text
           AND action='r7.proposal.created'`,
       primaryOrganizationId,

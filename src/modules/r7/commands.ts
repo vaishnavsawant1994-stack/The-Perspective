@@ -164,7 +164,7 @@ async function perform(
   } satisfies Prisma.InputJsonObject;
   await tx.$queryRawUnsafe(
     `SELECT platform.append_r7_proposal_create_audit(
-      $1::uuid,$2::uuid,$3::uuid,$4::text,$5::text,$6::text,$7::jsonb,$8::text,$9::timestamptz
+      $1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text,$6::text,$7::jsonb,$8::text,$9::timestamptz
     )`,
     randomUUID(),
     ownerId,
