@@ -2962,6 +2962,12 @@ describe("R6 commercial deeper falsification", () => {
       created.value.id,
     );
     expect(afterRollback).toEqual(afterRace);
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE owner_organization_id=$1::uuid AND action='r7.proposal.edited'
+          AND redacted_diff->'proposalEdit'->>'proposalId'=$2::text`,
+      primaryOrganizationId, created.value.id,
+    )).toBe(1);
   });
 
   it("fails safely when an edit races a server-owned proposal freeze", async () => {
