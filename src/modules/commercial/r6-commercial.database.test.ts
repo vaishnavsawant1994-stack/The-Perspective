@@ -2967,6 +2967,126 @@ describe("R6 commercial deeper falsification", () => {
     expect(afterRollback).toEqual(afterRace);
   });
 
+  it("fails safely when an edit races a server-owned proposal freeze", async () => {
+    const company = mustDomainOk(await createCompany(
+      platform, { name: "R7 Proposal Edit Freeze Race " + crypto.randomUUID() }, database,
+    ));
+    const contact = mustDomainOk(await createContact(
+      platform, { companyId: company.id, title: "R7 Proposal Edit Freeze Race Contact" }, database,
+    ));
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "r7-proposal-edit-freeze-race-" + crypto.randomUUID(),
+    });
+    mustOk(await convertDealToClient(platform, {
+      dealId: deal.id,
+      expectedRowVersion: deal.rowVersion,
+      idempotencyKey: "r7-proposal-edit-freeze-convert-" + crypto.randomUUID(),
+    }, database));
+    const created = await createDraftProposal(platform, {
+      dealId: deal.id,
+      currency: "USD",
+      lines: [{ description: "Before freeze race", quantity: 2, unitAmountMinor: BigInt(900) }],
+      idempotencyKey: "r7-proposal-edit-freeze-create-" + crypto.randomUUID(),
+    }, database);
+    expect(created.kind).toBe("ok");
+    if (created.kind !== "ok") return;
+
+    const editInput = {
+      proposalId: created.value.id,
+      expectedVersionId: created.value.versionId,
+      expectedVersion: 1,
+      expectedRowVersion: 1,
+      currency: "USD",
+      lines: [{ description: "Concurrent edit", quantity: 3, unitAmountMinor: BigInt(1100) }],
+    } as const;
+
+    const freeze = async () => {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          await withCommercialTenantTransaction(platform, async (tx) => {
+            const rows = await tx.$queryRawUnsafe<Array<{ status: string; row_version: number }>>(
+              `SELECT status, row_version FROM commercial.proposals
+                WHERE id=$1::uuid AND owner_organization_id=$2::uuid FOR UPDATE`,
+              created.value.id, primaryOrganizationId,
+            );
+            const proposal = rows[0];
+            if (!proposal || proposal.status === "SENT") return;
+            if (proposal.status !== "DRAFT" && proposal.status !== "READY") {
+              throw new Error("unexpected proposal lifecycle state in freeze race");
+            }
+            const versionUpdated = await tx.$executeRawUnsafe(
+              `UPDATE commercial.proposal_versions
+                  SET status='SENT', immutable=TRUE, issued_at=NOW()
+                WHERE id=$1::uuid AND owner_organization_id=$2::uuid
+                  AND status IN ('DRAFT','READY') AND immutable=FALSE`,
+              created.value.versionId, primaryOrganizationId,
+            );
+            if (versionUpdated !== 1) throw new Error("proposal version did not freeze atomically");
+            const proposalUpdated = await tx.$executeRawUnsafe(
+              `UPDATE commercial.proposals
+                  SET status='SENT', row_version=row_version+1, updated_at=NOW()
+                WHERE id=$1::uuid AND owner_organization_id=$2::uuid
+                  AND row_version=$3::int AND status IN ('DRAFT','READY')`,
+              created.value.id, primaryOrganizationId, proposal.row_version,
+            );
+            if (proposalUpdated !== 1) throw new Error("proposal row did not freeze atomically");
+          }, database);
+          return;
+        } catch (cause) {
+          const error = cause as {
+            code?: unknown;
+            meta?: { driverAdapterError?: { cause?: { originalCode?: unknown } } };
+          };
+          const databaseCode = String(error.meta?.driverAdapterError?.cause?.originalCode ?? error.code ?? "");
+          if (attempt === 2 || (databaseCode !== "P2034" && databaseCode !== "40001")) throw cause;
+        }
+      }
+    };
+
+    const [edit] = await Promise.all([
+      editDraftProposal(platform, editInput, database),
+      freeze(),
+    ]);
+    const state = await database.$queryRawUnsafe<Array<{
+      status: string; row_version: number; version_status: string; immutable: boolean;
+      subtotal_minor: bigint; total_minor: bigint; description: string;
+      quantity: number; unit_amount_minor: bigint; line_total_minor: bigint;
+    }>>(
+      `SELECT proposal.status, proposal.row_version, version.status AS version_status,
+              version.immutable, version.subtotal_minor, version.total_minor,
+              line.description, line.quantity, line.unit_amount_minor, line.line_total_minor
+         FROM commercial.proposals AS proposal
+         JOIN commercial.proposal_versions AS version
+           ON version.proposal_id=proposal.id AND version.version=proposal.current_version
+         JOIN commercial.proposal_lines AS line ON line.proposal_version_id=version.id
+        WHERE proposal.id=$1::uuid AND proposal.owner_organization_id=$2::uuid`,
+      created.value.id, primaryOrganizationId,
+    );
+    const final = state[0];
+    if (!final) throw new Error("proposal disappeared during edit/freeze race");
+    expect(final).toMatchObject({ status: "SENT", version_status: "SENT", immutable: true });
+    expect(final.line_total_minor).toBe(final.unit_amount_minor * BigInt(final.quantity));
+    expect(final.subtotal_minor).toBe(final.line_total_minor);
+    expect(final.total_minor).toBe(final.subtotal_minor);
+
+    if (edit.kind === "ok") {
+      expect(final).toMatchObject({ row_version: 3, description: "Concurrent edit", quantity: 3 });
+    } else {
+      expect(["PROPOSAL_IMMUTABLE", "STALE_WRITE"]).toContain(edit.code);
+      expect(final).toMatchObject({ row_version: 2, description: "Before freeze race", quantity: 2 });
+    }
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE owner_organization_id=$1::uuid AND action='r7.proposal.edited'
+          AND redacted_diff->'proposalEdit'->>'proposalId'=$2::text`,
+      primaryOrganizationId, created.value.id,
+    )).toBe(edit.kind === "ok" ? 1 : 0);
+  });
+
   it("preserves the R6 authority ceiling after authorized R7 persistence is introduced", async () => {
     const rows = await database.$queryRawUnsafe<
       Array<{
