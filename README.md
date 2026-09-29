@@ -1,5 +1,17 @@
 # The Perspective
 
+<!-- repository-profile:start -->
+## Repository profile
+
+**Purpose:** Premium editorial publication and digital magazine platform, including public news and opinion experiences, issue discovery/reading, Personal Magazines, and a governed publisher-business foundation.
+
+**Core contents:** Next.js/TypeScript frontend, typed editorial content architecture, PostgreSQL/Prisma persistence, authentication/session and organization context foundations, tenant-isolation work, tests, scripts, and the V1 Master Completion Bible.
+
+**Current status:** The default-branch README records R1–R4 as the accepted engineering baseline. Later CRM, commercial, payments, editorial operations, distribution integrations, and production certification are governed releases and must be described from exact branch/checkpoint evidence rather than assumed complete.
+
+**Recommended next milestone:** Keep the Master Completion Bible and exact accepted checkpoint authoritative; update this profile only when a later release is formally qualified and accepted.
+<!-- repository-profile:end -->
+
 > **V1 program source of truth:** [The Perspective V1.0 Master Completion Bible](./docs/THE-PERSPECTIVE-V1-MASTER-COMPLETION-BIBLE.md)
 >
 > Accepted engineering baseline: R1–R4. R5 and later stages require separate authorization and checkpointed qualification.
