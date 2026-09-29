@@ -2652,9 +2652,15 @@ describe("R6 commercial deeper falsification", () => {
   });
 
   it("rejects idempotency-key reuse with a different request without duplicate evidence", async () => {
+    const idempotencyCompany = mustDomainOk(await createCompany(
+      platform, { name: "R7 Idempotency Company " + crypto.randomUUID() }, database,
+    ));
+    const idempotencyContact = mustDomainOk(await createContact(
+      platform, { companyId: idempotencyCompany.id, title: "R7 Idempotency Contact" }, database,
+    ));
     const deal = await createProposalPreparationDeal({
-      companyId: fixture.ownCompanyId,
-      contactId: fixture.ownContactId,
+      companyId: idempotencyCompany.id,
+      contactId: idempotencyContact.id,
       pipelineId: fixture.ownPipelineId,
       stages: fixture.ownStages,
       key: "r7-idempotency-mismatch-" + crypto.randomUUID(),
@@ -2693,9 +2699,15 @@ describe("R6 commercial deeper falsification", () => {
   });
 
   it("rolls back proposal, idempotency, and audit records when the audit actor cannot be verified", async () => {
+    const auditCompany = mustDomainOk(await createCompany(
+      platform, { name: "R7 Audit Rollback Company " + crypto.randomUUID() }, database,
+    ));
+    const auditContact = mustDomainOk(await createContact(
+      platform, { companyId: auditCompany.id, title: "R7 Audit Rollback Contact" }, database,
+    ));
     const deal = await createProposalPreparationDeal({
-      companyId: fixture.ownCompanyId,
-      contactId: fixture.ownContactId,
+      companyId: auditCompany.id,
+      contactId: auditContact.id,
       pipelineId: fixture.ownPipelineId,
       stages: fixture.ownStages,
       key: "r7-audit-rollback-" + crypto.randomUUID(),
