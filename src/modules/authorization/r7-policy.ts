@@ -119,9 +119,14 @@ export const R7_FIELD_POLICIES: Partial<
   proposal: {
     ...financeFieldPolicy(
       ["id", "status", "currency", "dealId", "currentVersion", "rowVersion"],
-      ["currency"],
+      [],
     ),
-    createOnlyFields: ["dealId", "description", "quantity", "unitAmountMinor"],
+    createOnlyFields: ["dealId", "currency", "description", "quantity", "unitAmountMinor"],
+    // Proposal line values are authorized only by the explicit edit command.
+    // Proposal Create remains governed by createOnlyFields above.
+    actionFields: {
+      edit: ["currency", "description", "quantity", "unitAmountMinor"],
+    },
   },
   "client-proposal": financeFieldPolicy(
     ["id", "status", "currentVersion"],

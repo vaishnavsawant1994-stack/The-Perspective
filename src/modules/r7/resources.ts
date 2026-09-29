@@ -36,7 +36,7 @@ function resourceContext(
 }
 
 export async function loadR7ProposalResource(
-  context: TenantScopedRequestContext,
+  context: CommercialContext,
   proposalId: string,
   database: PrismaClient = getPrismaClient(),
 ): Promise<AuthorizationResourceContext | null> {

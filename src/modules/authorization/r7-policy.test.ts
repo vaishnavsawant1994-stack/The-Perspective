@@ -97,6 +97,33 @@ function proposalResource(
 }
 
 describe("R7 authorization slice", () => {
+  it("allows Proposal Edit line fields only through the explicit edit action", () => {
+    const authorized = context([grant("proposal.edit")]);
+    const resource = proposalResource();
+    const edit = evaluateAuthorization(authorized, "proposal.edit", resource, {
+      action: "edit",
+      requestedFields: ["currency", "description", "quantity", "unitAmountMinor"],
+    });
+    expect(edit.decision).toBe("ALLOW");
+
+    const genericUpdate = evaluateAuthorization(authorized, "proposal.edit", resource, {
+      action: "update",
+      requestedFields: ["currency", "description", "quantity", "unitAmountMinor"],
+    });
+    expect(genericUpdate.decision).toBe("DENY");
+    const create = evaluateAuthorization(authorized, "proposal.edit", resource, {
+      action: "create",
+      requestedFields: ["currency", "description", "quantity", "unitAmountMinor"],
+    });
+    expect(create.decision).toBe("ALLOW");
+
+    const derivedValues = evaluateAuthorization(authorized, "proposal.edit", resource, {
+      action: "edit",
+      requestedFields: ["totalMinor", "status", "ownerOrganizationId", "lineId"],
+    });
+    expect(derivedValues.decision).toBe("DENY");
+  });
+
 type R7AuthorizationCase = {
   permissionKey: CanonicalPermissionKey;
   resourceType: "proposal" | "client-proposal" | "invoice" | "payment";
@@ -114,7 +141,7 @@ const ACTIVE_R7_CASES: readonly R7AuthorizationCase[] = [
   {
     permissionKey: "proposal.edit",
     resourceType: "proposal",
-    command: { action: "update", requestedFields: ["currency"] },
+    command: { action: "edit", requestedFields: ["currency", "description", "quantity", "unitAmountMinor"] },
   },
   {
     permissionKey: "proposal.send",

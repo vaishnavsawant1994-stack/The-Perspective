@@ -27,6 +27,7 @@ import {
 } from "./core";
 import { withCommercialTenantTransaction } from "./persistence";
 import { createDraftProposal } from "@/modules/r7/commands";
+import { editDraftProposal } from "@/modules/r7/proposal-edit";
 import type { CommercialResult, CreateDealPipelineInput } from "./types";
 
 const database = createPrismaClient();
@@ -2754,6 +2755,220 @@ describe("R6 commercial deeper falsification", () => {
     )).toBe(0);
   });
 
+  it("edits mutable proposal lines atomically and rejects stale, foreign, and frozen writes", async () => {
+    const company = mustDomainOk(await createCompany(
+      platform, { name: "R7 Proposal Edit " + crypto.randomUUID() }, database,
+    ));
+    const contact = mustDomainOk(await createContact(
+      platform, { companyId: company.id, title: "R7 Proposal Edit Contact" }, database,
+    ));
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "r7-proposal-edit-" + crypto.randomUUID(),
+    });
+    mustOk(await convertDealToClient(platform, {
+      dealId: deal.id,
+      expectedRowVersion: deal.rowVersion,
+      idempotencyKey: "r7-proposal-edit-convert-" + crypto.randomUUID(),
+    }, database));
+    const created = await createDraftProposal(platform, {
+      dealId: deal.id,
+      currency: "USD",
+      lines: [
+        { description: "Original first", quantity: 2, unitAmountMinor: BigInt(1000) },
+        { description: "Original second", quantity: 1, unitAmountMinor: BigInt(500) },
+      ],
+      idempotencyKey: "r7-proposal-edit-create-" + crypto.randomUUID(),
+    }, database);
+    expect(created.kind).toBe("ok");
+    if (created.kind !== "ok") return;
+
+    const editInput = {
+      proposalId: created.value.id,
+      expectedVersionId: created.value.versionId,
+      expectedVersion: 1,
+      expectedRowVersion: 1,
+      currency: "USD",
+      lines: [
+        { description: "Edited first", quantity: 3, unitAmountMinor: BigInt(2000) },
+        { description: "Edited second", quantity: 1, unitAmountMinor: BigInt(700) },
+      ],
+    } as const;
+    const edited = await editDraftProposal(platform, editInput, database);
+    expect(edited).toMatchObject({
+      kind: "ok",
+      value: { id: created.value.id, versionId: created.value.versionId, version: 1,
+        rowVersion: 2, status: "DRAFT", currency: "USD", totalMinor: "6700", lineCount: 2 },
+    });
+    const persisted = await database.$queryRawUnsafe<Array<{
+      proposal_status: string; row_version: number; version_status: string;
+      immutable: boolean; subtotal_minor: bigint; total_minor: bigint;
+      descriptions: string[]; positions: number[];
+    }>>(
+      `SELECT proposal.status AS proposal_status, proposal.row_version,
+              version.status AS version_status, version.immutable,
+              version.subtotal_minor, version.total_minor,
+              array_agg(line.description ORDER BY line.position) AS descriptions,
+              array_agg(line.position ORDER BY line.position) AS positions
+         FROM commercial.proposals AS proposal
+         JOIN commercial.proposal_versions AS version
+           ON version.proposal_id = proposal.id AND version.version = proposal.current_version
+         JOIN commercial.proposal_lines AS line
+           ON line.proposal_version_id = version.id
+        WHERE proposal.id = $1::uuid AND proposal.owner_organization_id = $2::uuid
+        GROUP BY proposal.status, proposal.row_version, version.status, version.immutable,
+                 version.subtotal_minor, version.total_minor`,
+      created.value.id, primaryOrganizationId,
+    );
+    expect(persisted[0]).toMatchObject({
+      proposal_status: "DRAFT", row_version: 2, version_status: "DRAFT", immutable: false,
+      subtotal_minor: BigInt(6700), total_minor: BigInt(6700),
+      descriptions: ["Edited first", "Edited second"], positions: [1, 2],
+    });
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE owner_organization_id=$1::uuid AND target_resource_id=(
+          SELECT resource_id FROM commercial.proposals WHERE id=$2::uuid
+        ) AND action='r7.proposal.edited'`,
+      primaryOrganizationId, created.value.id,
+    )).toBe(1);
+
+    const stale = await editDraftProposal(platform, {
+      ...editInput,
+      expectedRowVersion: 1,
+      lines: [{ description: "stale", quantity: 1, unitAmountMinor: BigInt(1) },
+        { description: "stale", quantity: 1, unitAmountMinor: BigInt(1) }],
+    }, database);
+    expect(stale).toEqual({ kind: "error", code: "STALE_WRITE" });
+    const foreignEdit = await editDraftProposal(foreign, editInput, database);
+    expect(foreignEdit).toEqual({ kind: "error", code: "NOT_FOUND" });
+    const foreignVersion = await editDraftProposal(platform, {
+      ...editInput,
+      expectedVersionId: crypto.randomUUID(),
+      expectedRowVersion: 2,
+    }, database);
+    expect(foreignVersion).toEqual({ kind: "error", code: "STALE_WRITE" });
+    const noStructureMutation = await editDraftProposal(platform, {
+      ...editInput,
+      expectedRowVersion: 2,
+      lines: [{ description: "only one line", quantity: 1, unitAmountMinor: BigInt(100) }],
+    }, database);
+    expect(noStructureMutation).toEqual({ kind: "error", code: "LINE_STRUCTURE_MISMATCH" });
+
+    await withCommercialTenantTransaction(platform, async (tx) => {
+      await tx.$executeRawUnsafe(
+        `UPDATE commercial.proposal_versions SET status='SENT', immutable=TRUE, issued_at=NOW()
+          WHERE id=$1::uuid AND owner_organization_id=$2::uuid`,
+        created.value.versionId, primaryOrganizationId,
+      );
+      await tx.$executeRawUnsafe(
+        `UPDATE commercial.proposals SET status='SENT' WHERE id=$1::uuid AND owner_organization_id=$2::uuid`,
+        created.value.id, primaryOrganizationId,
+      );
+    }, database);
+    const frozen = await editDraftProposal(platform, {
+      ...editInput, expectedRowVersion: 2,
+    }, database);
+    expect(frozen).toEqual({ kind: "error", code: "PROPOSAL_IMMUTABLE" });
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE owner_organization_id=$1::uuid AND action='r7.proposal.edited'
+          AND target_resource_id=(SELECT resource_id FROM commercial.proposals WHERE id=$2::uuid)`,
+      primaryOrganizationId, created.value.id,
+    )).toBe(1);
+  });
+
+  it("serializes competing edits and rolls back all state when audit rejects the actor", async () => {
+    const company = mustDomainOk(await createCompany(
+      platform, { name: "R7 Proposal Edit Race " + crypto.randomUUID() }, database,
+    ));
+    const contact = mustDomainOk(await createContact(
+      platform, { companyId: company.id, title: "R7 Proposal Edit Race Contact" }, database,
+    ));
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "r7-proposal-edit-race-" + crypto.randomUUID(),
+    });
+    mustOk(await convertDealToClient(platform, {
+      dealId: deal.id,
+      expectedRowVersion: deal.rowVersion,
+      idempotencyKey: "r7-proposal-edit-race-convert-" + crypto.randomUUID(),
+    }, database));
+    const created = await createDraftProposal(platform, {
+      dealId: deal.id,
+      currency: "USD",
+      lines: [{ description: "Race original", quantity: 1, unitAmountMinor: BigInt(1000) }],
+      idempotencyKey: "r7-proposal-edit-race-create-" + crypto.randomUUID(),
+    }, database);
+    expect(created.kind).toBe("ok");
+    if (created.kind !== "ok") return;
+
+    const input = {
+      proposalId: created.value.id, expectedVersionId: created.value.versionId,
+      expectedVersion: 1, expectedRowVersion: 1, currency: "USD",
+      lines: [{ description: "Race winner", quantity: 2, unitAmountMinor: BigInt(1200) }],
+    } as const;
+    const raced = await Promise.all([
+      editDraftProposal(platform, input, database),
+      editDraftProposal(platform, {
+        ...input,
+        lines: [{ description: "Race loser", quantity: 3, unitAmountMinor: BigInt(1100) }],
+      }, database),
+    ]);
+    expect(raced.filter((result) => result.kind === "ok")).toHaveLength(1);
+    expect(raced.filter((result) => result.kind === "error")).toHaveLength(1);
+    const afterRace = await database.$queryRawUnsafe<Array<{
+      row_version: number; total_minor: bigint; description: string;
+    }>>(
+      `SELECT proposal.row_version, version.total_minor, line.description
+         FROM commercial.proposals AS proposal
+         JOIN commercial.proposal_versions AS version
+           ON version.proposal_id=proposal.id AND version.version=proposal.current_version
+         JOIN commercial.proposal_lines AS line ON line.proposal_version_id=version.id
+        WHERE proposal.id=$1::uuid`,
+      created.value.id,
+    );
+    expect(afterRace[0]?.row_version).toBe(2);
+    expect(["Race winner", "Race loser"]).toContain(afterRace[0]?.description);
+    expect(afterRace[0]?.total_minor).toBe(afterRace[0]?.description === "Race winner" ? BigInt(2400) : BigInt(3300));
+    expect(await count(
+      `SELECT count(*)::bigint AS count FROM audit.audit_events
+        WHERE owner_organization_id=$1::uuid AND target_resource_id=(
+          SELECT resource_id FROM commercial.proposals WHERE id=$2::uuid
+        ) AND action='r7.proposal.edited'`,
+      primaryOrganizationId, created.value.id,
+    )).toBe(1);
+
+    const forgedActor = {
+      ...platform,
+      identity: { userId: seedIds.user.asteriaAdmin as UserId },
+    };
+    const rollback = await editDraftProposal(forgedActor, {
+      ...input,
+      expectedRowVersion: 2,
+      lines: [{ description: "Must rollback", quantity: 5, unitAmountMinor: BigInt(1500) }],
+    }, database);
+    expect(rollback).toEqual({ kind: "error", code: "TEAM_REQUIRED" });
+    const afterRollback = await database.$queryRawUnsafe<Array<{
+      row_version: number; total_minor: bigint; description: string;
+    }>>(
+      `SELECT proposal.row_version, version.total_minor, line.description
+         FROM commercial.proposals AS proposal
+         JOIN commercial.proposal_versions AS version
+           ON version.proposal_id=proposal.id AND version.version=proposal.current_version
+         JOIN commercial.proposal_lines AS line ON line.proposal_version_id=version.id
+        WHERE proposal.id=$1::uuid`,
+      created.value.id,
+    );
+    expect(afterRollback).toEqual(afterRace);
+  });
+
   it("preserves the R6 authority ceiling after authorized R7 persistence is introduced", async () => {
     const rows = await database.$queryRawUnsafe<
       Array<{
@@ -2784,4 +2999,3 @@ describe("R6 commercial deeper falsification", () => {
     });
   });
 });
-
