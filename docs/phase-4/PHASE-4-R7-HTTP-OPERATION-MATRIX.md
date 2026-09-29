@@ -15,6 +15,19 @@ This matrix is an implementation inventory, not a new permission grant. An opera
 - Dormant capabilities remain denied, regardless of table presence.
 - TEAM-owned mutations require same-origin validation, active authenticated TEAM membership, selected-organization consistency, trusted resource loading, field policy, lifecycle checks, row/version concurrency checks where applicable, durable audit, and a transaction that covers state plus evidence. Customer acceptance requires an active authenticated CLIENT membership bound server-side to the proposal's client account/organization; TEAM authority cannot substitute.
 
+## Owner-frozen Contract Signing Trust Boundary
+
+The Owner froze the provider-neutral signature boundary in `PHASE-4-R7-CONTRACT-SIGNING-TRUST-BOUNDARY-ADDENDUM.md`. ContractVersion is immutable; signature requests bind an exact version and content digest. Only server-owned reconciliation of verified, idempotent provider events correlated to the exact tenant, Contract, version, request, and required signer set may establish SIGNED. The signature adapter must be explicitly trusted and configured; production signing fails closed until a real provider adapter is selected/configured. Deterministic adapters are isolated to tests.
+
+At the operation-contract level, G0 `contract.manage` maps to existing R7 `contract.edit`, and G0 `contract.sign.request` maps to existing R7 `contract.send`; no duplicate permission keys are introduced. Provider reconciliation is server/provider-owned and has no browser command or human permission. These contract permissions remain dormant until implementation and hostile qualification. Existing R12 `client.contract.sign` remains dormant.
+
+| Operation | Owner and authority | Lifecycle / evidence | Current status |
+|---|---|---|---|
+| Contract preparation/version | TEAM human command; `contract.edit` (G0 alias `contract.manage`) | Explicit draft commands; immutable ContractVersion; exact-version and tenant/resource checks; audit and transaction | Not implemented |
+| Request signature | TEAM human request; `contract.send` (G0 alias `contract.sign.request`) | Explicit request against eligible immutable version and content digest; adapter required; idempotency/audit | Not implemented; no production adapter selected/configured |
+| Verify/reconcile completion | Provider event + server-owned reconciliation; no browser permission | Adapter verifies provider evidence; exact tenant/contract/version/request/signer correlation; all required signers complete; dedupe and immutable evidence before SIGNED | Not implemented |
+| Contract/version/signature status read | TEAM human read; `contract.view` | Tenant-scoped safe projection; signature evidence is server-derived | Not implemented |
+
 ## Owner-frozen Proposal Edit contract
 
 On 29 September 2026, the Owner froze Proposal Edit as an explicit TEAM command on the current mutable DRAFT or READY version only. Its command-specific editable fields are `currency`, line `description`, `quantity`, and `unitAmountMinor`. This does not broaden Proposal Create or make those fields generally mutable elsewhere. Edit must recalculate line/version totals server-side, preserve current lifecycle state, require exact/current version and optimistic concurrency, and commit business data plus required audit atomically. It rejects client-supplied totals, lifecycle, ownership, tenant, and authorization context. It does not add, remove, or reorder lines. Currency remains consistent with the canonical deal and version lines. All SENT, ACCEPTED, SUPERSEDED, and other non-mutable versions remain immutable; CLIENT authority gains no edit capability.
