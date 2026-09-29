@@ -324,6 +324,92 @@ function resource(
     });
   });
 
+  it("rejects resource-type laundering across R7 permissions", () => {
+    expect(
+      evaluateAuthorization(
+        context([grant("proposal.view")]),
+        "proposal.view",
+        resource("invoice"),
+        { action: "view", requestedFields: ["id"] },
+      ),
+    ).toMatchObject({
+      decision: "DENY",
+      reasonCode: "RESOURCE_DENIED",
+    });
+  });
+
+  it.each([
+    {
+      permissionKey: "payment.view" as const,
+      action: "reconcile",
+      requestedFields: undefined,
+    },
+    {
+      permissionKey: "payment.reconcile" as const,
+      action: "mark-paid",
+      requestedFields: undefined,
+    },
+    {
+      permissionKey: "payment.reconcile" as const,
+      action: "update",
+      requestedFields: ["status"],
+    },
+  ])(
+    "does not let $permissionKey declare provider-owned payment truth",
+    ({ permissionKey, action, requestedFields }) => {
+      expect(
+        evaluateAuthorization(
+          context([grant(permissionKey)]),
+          permissionKey,
+          resource("payment"),
+          {
+            action,
+            requestedFields,
+            workflowSatisfied: true,
+            reason: "Attempt to set payment status",
+            recentAuthenticationSatisfied: true,
+            mfaSatisfied: true,
+            financialEvidencePresent: true,
+            separationOfDutySatisfied: true,
+          },
+        ),
+      ).toMatchObject({
+        decision: "DENY",
+        reasonCode: "WORKFLOW_DENIED",
+      });
+    },
+  );
+
+  it("denies payment reconciliation when a critical obligation is missing", () => {
+    const valid = {
+      action: "reconcile",
+      workflowSatisfied: true,
+      reason: "Reconciled provider evidence",
+      recentAuthenticationSatisfied: true,
+      mfaSatisfied: true,
+      financialEvidencePresent: true,
+      separationOfDutySatisfied: true,
+    } satisfies AuthorizationCommandContext;
+    const incomplete = [
+      { ...valid, reason: "" },
+      { ...valid, recentAuthenticationSatisfied: false },
+      { ...valid, mfaSatisfied: false },
+      { ...valid, financialEvidencePresent: false },
+      { ...valid, separationOfDutySatisfied: false },
+    ];
+
+    for (const command of incomplete) {
+      expect(
+        evaluateAuthorization(
+          context([grant("payment.reconcile")]),
+          "payment.reconcile",
+          resource("payment"),
+          command,
+        ),
+      ).toMatchObject({ decision: "DENY" });
+    }
+  });
+
   it("denies mutation of server-owned invoice lifecycle and money fields", () => {
     expect(
       evaluateAuthorization(
