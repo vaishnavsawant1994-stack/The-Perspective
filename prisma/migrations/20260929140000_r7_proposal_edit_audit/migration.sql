@@ -78,7 +78,9 @@ BEGIN
     actor_user_id, actor_membership_id, action, request_id, correlation_id,
     after_hash, redacted_diff, idempotency_key, occurred_at
   ) VALUES (
-    p_event_id, current_owner, p_target_resource_id, 'USER'::audit."AuditActorType",
+    -- R7 proposal rows do not yet have a platform resource envelope. Keep
+    -- the canonical proposal/version IDs in redacted_diff below the target.
+    p_event_id, current_owner, NULL, 'USER'::audit."AuditActorType",
     p_actor_user_id, p_actor_membership_id, 'r7.proposal.edited',
     p_request_id, p_request_id, p_after_hash, p_redacted_diff,
     p_idempotency_key, p_occurred_at

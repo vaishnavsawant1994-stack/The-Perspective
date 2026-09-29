@@ -126,14 +126,6 @@ async function perform(
   const versionId = newCommercialId();
   const ownerId = context.tenant.organizationId;
   const now = new Date();
-  await tx.$queryRawUnsafe(
-    `SELECT platform.register_r7_proposal_resource(
-       $1::uuid,$2::uuid,$3::uuid,'Proposal'::text
-     )`,
-    resourceId,
-    deal.deal_id,
-    deal.client_account_id,
-  );
   await tx.$executeRawUnsafe(
     `INSERT INTO commercial.proposals
       (id,resource_id,owner_organization_id,deal_id,client_account_id,status,current_version,currency,row_version,created_by_membership_id,created_at,updated_at)

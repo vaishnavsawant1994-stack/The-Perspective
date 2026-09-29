@@ -2828,37 +2828,10 @@ describe("R6 commercial deeper falsification", () => {
       subtotal_minor: BigInt(6700), total_minor: BigInt(6700),
       descriptions: ["Edited first", "Edited second"], positions: [1, 2],
     });
-    const resource = await database.$queryRawUnsafe<Array<{
-      resource_type: string;
-      owner_organization_id: string;
-      client_organization_id: string;
-      canonical_client_organization_id: string;
-      visibility: string;
-      sensitivity: string;
-    }>>(
-      `SELECT resource.resource_type, resource.owner_organization_id,
-              resource.client_organization_id, account.client_organization_id AS canonical_client_organization_id,
-              resource.visibility::text, resource.sensitivity::text
-         FROM commercial.proposals AS proposal
-         JOIN platform.resources AS resource ON resource.id=proposal.resource_id
-         JOIN commercial.client_accounts AS account
-           ON account.id=proposal.client_account_id
-          AND account.owner_organization_id=proposal.owner_organization_id
-        WHERE proposal.id=$1::uuid`,
-      created.value.id,
-    );
-    expect(resource[0]).toMatchObject({
-      resource_type: "proposal",
-      owner_organization_id: primaryOrganizationId,
-      visibility: "INTERNAL",
-      sensitivity: "FINANCIAL",
-    });
-    expect(resource[0]?.client_organization_id).toBe(resource[0]?.canonical_client_organization_id);
     expect(await count(
       `SELECT count(*)::bigint AS count FROM audit.audit_events
-        WHERE owner_organization_id=$1::uuid AND target_resource_id=(
-          SELECT resource_id FROM commercial.proposals WHERE id=$2::uuid
-        ) AND action='r7.proposal.edited'`,
+        WHERE owner_organization_id=$1::uuid AND action='r7.proposal.edited'
+          AND redacted_diff->'proposalEdit'->>'proposalId'=$2::text`,
       primaryOrganizationId, created.value.id,
     )).toBe(1);
 
@@ -2902,7 +2875,7 @@ describe("R6 commercial deeper falsification", () => {
     expect(await count(
       `SELECT count(*)::bigint AS count FROM audit.audit_events
         WHERE owner_organization_id=$1::uuid AND action='r7.proposal.edited'
-          AND target_resource_id=(SELECT resource_id FROM commercial.proposals WHERE id=$2::uuid)`,
+          AND redacted_diff->'proposalEdit'->>'proposalId'=$2::text`,
       primaryOrganizationId, created.value.id,
     )).toBe(1);
   });
@@ -2965,9 +2938,8 @@ describe("R6 commercial deeper falsification", () => {
     expect(afterRace[0]?.total_minor).toBe(afterRace[0]?.description === "Race winner" ? BigInt(2400) : BigInt(3300));
     expect(await count(
       `SELECT count(*)::bigint AS count FROM audit.audit_events
-        WHERE owner_organization_id=$1::uuid AND target_resource_id=(
-          SELECT resource_id FROM commercial.proposals WHERE id=$2::uuid
-        ) AND action='r7.proposal.edited'`,
+        WHERE owner_organization_id=$1::uuid AND action='r7.proposal.edited'
+          AND redacted_diff->'proposalEdit'->>'proposalId'=$2::text`,
       primaryOrganizationId, created.value.id,
     )).toBe(1);
 
