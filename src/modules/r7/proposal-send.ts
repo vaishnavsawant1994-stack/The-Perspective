@@ -184,13 +184,13 @@ export async function sendProposal(
       );
       const proposal = rows[0];
       if (!proposal) throw new Failure("NOT_FOUND");
+      if (proposal.status !== "DRAFT" && proposal.status !== "READY") {
+        throw new Failure("TRANSITION_DENIED");
+      }
       if (proposal.row_version !== input.expectedRowVersion ||
           proposal.current_version !== input.expectedVersion ||
           proposal.proposal_version_id !== input.expectedVersionId ||
           proposal.version !== input.expectedVersion) throw new Failure("STALE_WRITE");
-      if (proposal.status !== "DRAFT" && proposal.status !== "READY") {
-        throw new Failure("TRANSITION_DENIED");
-      }
       if (proposal.version_status !== proposal.status || proposal.immutable) {
         throw new Failure("PROPOSAL_IMMUTABLE");
       }
