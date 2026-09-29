@@ -403,8 +403,10 @@ describe("R7 trusted resource loaders", () => {
       acceptProposal(customer, input, database),
     ]);
     expect(first.kind).toBe("ok");
-    expect(duplicate).toEqual(first);
-    if (first.kind !== "ok") return;
+    expect(duplicate.kind).toBe("ok");
+    if (first.kind !== "ok" || duplicate.kind !== "ok") return;
+    expect([first.value.replayed, duplicate.value.replayed].sort()).toEqual([false, true]);
+    expect({ ...duplicate.value, replayed: first.value.replayed }).toEqual(first.value);
     expect(first.value).toMatchObject({
       proposalId: customerProposalId,
       versionId: customerProposalVersionId,
