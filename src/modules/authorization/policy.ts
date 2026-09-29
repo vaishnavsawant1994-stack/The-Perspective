@@ -450,7 +450,8 @@ export function evaluateAuthorization(
     };
 
     if (
-      binding.workflowActions?.includes(command.action as never) &&
+      "workflowActions" in binding &&
+      binding.workflowActions.includes(command.action as never) &&
       command.workflowSatisfied !== true
     ) {
       return deny(permissionKey, "WORKFLOW_DENIED");
