@@ -116,10 +116,13 @@ function financeFieldPolicy(
 export const R7_FIELD_POLICIES: Partial<
   Record<R7AuthorizationResourceType, AuthorizationFieldPolicy>
 > = {
-  proposal: financeFieldPolicy(
-    ["id", "status", "currency", "dealId", "currentVersion", "rowVersion"],
-    ["currency"],
-  ),
+  proposal: {
+    ...financeFieldPolicy(
+      ["id", "status", "currency", "dealId", "currentVersion", "rowVersion"],
+      ["currency"],
+    ),
+    createOnlyFields: ["dealId", "description", "quantity", "unitAmountMinor"],
+  },
   "client-proposal": financeFieldPolicy(
     ["id", "status", "currentVersion"],
     [],

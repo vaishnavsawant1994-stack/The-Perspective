@@ -1,7 +1,8 @@
 import "server-only";
 
 import type { PrismaClient } from "@/generated/prisma/client";
-import type { AuthorizedRequestContext, TenantScopedRequestContext } from "@/modules/foundation/request-context";
+import type { AuthorizedRequestContext } from "@/modules/foundation/request-context";
+import type { CommercialContext } from "@/modules/commercial/persistence";
 import {
   withCommercialTenantTransaction,
 } from "@/modules/commercial/persistence";
@@ -245,4 +246,29 @@ export async function loadR7PaymentResource(
     database,
   );
   return row ? resourceContext(row, "payment") : null;
+}
+
+
+/** Server-built policy context for creating a new TEAM-owned R7 proposal. */
+export function buildProspectiveR7ProposalResource(
+  context: CommercialContext,
+): AuthorizationResourceContext | null {
+  if (
+    context.authentication !== "authenticated" ||
+    context.membership.surface !== "TEAM" ||
+    context.tenant.surface !== "TEAM" ||
+    context.membership.membershipId !== context.tenant.membershipId ||
+    context.membership.organizationId !== context.tenant.organizationId
+  ) {
+    return null;
+  }
+
+  return {
+    resourceType: "proposal",
+    ownerOrganizationId: context.tenant.organizationId,
+    visibility: "INTERNAL",
+    sensitivity: "FINANCIAL",
+    lifecycleState: "DRAFT",
+    version: 1,
+  };
 }

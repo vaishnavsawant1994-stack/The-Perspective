@@ -26,6 +26,7 @@ import {
   updateDealFields,
 } from "./core";
 import { withCommercialTenantTransaction } from "./persistence";
+import { createDraftProposal } from "@/modules/r7/commands";
 import type { CommercialResult, CreateDealPipelineInput } from "./types";
 
 const database = createPrismaClient();
@@ -2467,6 +2468,79 @@ describe("R6 commercial deeper falsification", () => {
 
     expect(stageSemanticMutationAllowed).toBe(false);
     expect(pipelineVersionMutationAllowed).toBe(false);
+  });
+
+  it("creates an audited R7 proposal draft only from a converted proposal-preparation deal", async () => {
+    const company = mustDomainOk(
+      await createCompany(platform, { name: "R7 proposal create " + crypto.randomUUID() }, database),
+    );
+    const contact = mustDomainOk(
+      await createContact(platform, { companyId: company.id, title: "R7 proposal contact" }, database),
+    );
+    const deal = await createProposalPreparationDeal({
+      companyId: company.id,
+      contactId: contact.id,
+      pipelineId: fixture.ownPipelineId,
+      stages: fixture.ownStages,
+      key: "r7-proposal-create-" + crypto.randomUUID(),
+    });
+    const account = mustOk(
+      await convertDealToClient(
+        platform,
+        {
+          dealId: deal.id,
+          expectedRowVersion: deal.rowVersion,
+          idempotencyKey: "r7-proposal-create-convert-" + crypto.randomUUID(),
+        },
+        database,
+      ),
+    );
+    const input = {
+      dealId: deal.id,
+      currency: "USD",
+      lines: [{ description: "Qualified draft line", quantity: 2, unitAmountMinor: BigInt(150000) }],
+      idempotencyKey: "r7-proposal-create-" + crypto.randomUUID(),
+    };
+    const created = await createDraftProposal(platform, input, database);
+    expect(created.kind).toBe("ok");
+    if (created.kind !== "ok") return;
+
+    const proposal = await database.$queryRawUnsafe<Array<{
+      owner_organization_id: string;
+      deal_id: string;
+      client_account_id: string;
+      created_by_membership_id: string;
+      total_minor: bigint;
+    }>>(
+      `SELECT proposal.owner_organization_id, proposal.deal_id,
+              proposal.client_account_id, proposal.created_by_membership_id,
+              version.total_minor
+         FROM commercial.proposals AS proposal
+         JOIN commercial.proposal_versions AS version
+           ON version.proposal_id=proposal.id AND version.version=1
+        WHERE proposal.id=$1::uuid`,
+      created.value.id,
+    );
+    expect(proposal[0]).toMatchObject({
+      owner_organization_id: primaryOrganizationId,
+      deal_id: deal.id,
+      client_account_id: account.id,
+      created_by_membership_id: primaryMembershipId,
+      total_minor: BigInt(300000),
+    });
+
+    const receiptKey = `r7:proposal-create:${primaryOrganizationId}:${input.idempotencyKey}`;
+    const auditCount = async () => database.$queryRawUnsafe<Array<{ count: bigint }>>(
+      `SELECT count(*)::bigint AS count FROM platform.audit_events
+        WHERE owner_organization_id=$1::uuid AND idempotency_key=$2::text
+          AND action='r7.proposal.created'`,
+      primaryOrganizationId,
+      receiptKey,
+    );
+    expect((await auditCount())[0]?.count).toBe(BigInt(1));
+    const replay = await createDraftProposal(platform, input, database);
+    expect(replay).toEqual(created);
+    expect((await auditCount())[0]?.count).toBe(BigInt(1));
   });
 
   it("preserves the R6 authority ceiling after authorized R7 persistence is introduced", async () => {
