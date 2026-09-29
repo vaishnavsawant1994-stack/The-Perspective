@@ -5,7 +5,7 @@ export const R7_ACTIVE_PERMISSION_KEYS = [
   "proposal.view",
   "proposal.edit",
   "proposal.send",
-  "proposal.approve",
+  "proposal.accept",
   "invoice.view",
   "invoice.edit",
   "invoice.issue",
@@ -50,10 +50,10 @@ export const R7_PERMISSION_BINDINGS = {
     actions: ["send"],
     workflowActions: ["send"],
   },
-  "proposal.approve": {
+  "proposal.accept": {
     resourceTypes: ["proposal", "proposal-version"],
-    actions: ["approve", "accept"],
-    workflowActions: ["approve", "accept"],
+    actions: ["accept"],
+    workflowActions: ["accept"],
   },
   "invoice.view": {
     resourceTypes: ["invoice"],

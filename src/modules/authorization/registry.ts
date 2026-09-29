@@ -1410,6 +1410,17 @@ export const PERMISSION_DEFINITIONS = [
     activationStage: "R6",
   },
   {
+    key: "proposal.accept",
+    surface: "TEAM",
+    risk: "HIGH",
+    assignability: "TEAM_ROLE",
+    permittedScopes: ["ORG", "DEPT", "ASN", "OWN"],
+    requiresFieldPolicy: true,
+    requiresWorkflowPolicy: true,
+    obligations: ["audit", "exact-version", "SoD"],
+    activationStage: "R7",
+  },
+  {
     key: "proposal.edit",
     surface: "TEAM",
     risk: "MEDIUM",

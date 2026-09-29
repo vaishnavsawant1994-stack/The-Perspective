@@ -90,11 +90,73 @@ function proposalResource(
 describe("R7 authorization slice", () => {
   it("activates only the frozen finance keys and keeps contracts dormant", () => {
     expect(R7_ACTIVE_PERMISSION_KEYS).toContain("proposal.view");
+    expect(R7_ACTIVE_PERMISSION_KEYS).toContain("proposal.accept");
+    expect(isR7ActivePermissionKey("proposal.approve")).toBe(false);
     expect(R7_ACTIVE_PERMISSION_KEYS).toContain("invoice.issue");
     expect(R7_ACTIVE_PERMISSION_KEYS).toContain("payment.reconcile");
     expect(isR7ActivePermissionKey("deal.view")).toBe(false);
     expect(isR7DormantPermissionKey("contract.view")).toBe(true);
     expect(R7_DORMANT_PERMISSION_KEYS).toContain("payment.refund");
+  });
+
+  it("allows only the frozen R7 proposal.accept command with version and SoD evidence", () => {
+    const decision = evaluateAuthorization(
+      context([grant("proposal.accept")]),
+      "proposal.accept",
+      proposalResource(),
+      {
+        action: "accept",
+        workflowSatisfied: true,
+        exactVersionMatches: true,
+        separationOfDutySatisfied: true,
+      },
+      { activeStages: new Set(["R5", "R6", "R7"]) },
+    );
+
+    expect(decision).toMatchObject({
+      decision: "ALLOW",
+      permissionKey: "proposal.accept",
+    });
+  });
+
+  it("does not let R6 proposal.approve authorize R7 acceptance", () => {
+    const decision = evaluateAuthorization(
+      context([grant("proposal.approve")]),
+      "proposal.approve",
+      proposalResource(),
+      {
+        action: "accept",
+        workflowSatisfied: true,
+        exactVersionMatches: true,
+        separationOfDutySatisfied: true,
+      },
+      { activeStages: new Set(["R5", "R6", "R7"]) },
+    );
+
+    expect(decision).toMatchObject({
+      decision: "DENY",
+      reasonCode: "WORKFLOW_DENIED",
+    });
+  });
+
+  it("fails closed for proposal.accept when R7 is not active", () => {
+    const decision = evaluateAuthorization(
+      context([grant("proposal.accept")]),
+      "proposal.accept",
+      proposalResource(),
+      {
+        action: "accept",
+        workflowSatisfied: true,
+        exactVersionMatches: true,
+        separationOfDutySatisfied: true,
+      },
+      { activeStages: new Set(["R5", "R6"]) },
+    );
+
+    expect(decision).toMatchObject({
+      decision: "DENY",
+      reasonCode: "WORKFLOW_DENIED",
+    });
   });
 
   it("does not treat physical finance tables as authority", () => {
