@@ -70,3 +70,34 @@ export function isProviderOwnedPaymentState(state: R7PaymentState) {
 export function invoiceIsMutable(state: R7InvoiceState) {
   return state === "DRAFT";
 }
+
+export const R7_CONTRACT_STATES = [
+  "DRAFT",
+  "READY_FOR_SIGNATURE",
+  "OUT_FOR_SIGNATURE",
+  "SIGNED",
+  "VOID",
+  "EXPIRED",
+] as const;
+
+export type R7ContractState = (typeof R7_CONTRACT_STATES)[number];
+
+const CONTRACT_EDGES: Record<R7ContractState, readonly R7ContractState[]> = {
+  DRAFT: ["READY_FOR_SIGNATURE"],
+  READY_FOR_SIGNATURE: ["OUT_FOR_SIGNATURE", "VOID"],
+  OUT_FOR_SIGNATURE: ["SIGNED", "VOID", "EXPIRED"],
+  SIGNED: [],
+  VOID: [],
+  EXPIRED: [],
+};
+
+export function canTransitionContract(
+  from: R7ContractState,
+  to: R7ContractState,
+) {
+  return CONTRACT_EDGES[from].includes(to);
+}
+
+export function isProviderOwnedContractState(state: R7ContractState) {
+  return state === "SIGNED";
+}

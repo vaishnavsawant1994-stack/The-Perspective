@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   canRewriteProposalVersion,
   canTransitionProposal,
+  canTransitionContract,
   invoiceIsMutable,
   isIssuedProposalState,
   isProviderOwnedPaymentState,
+  isProviderOwnedContractState,
 } from "./lifecycle";
 
 describe("R7 lifecycle", () => {
@@ -26,4 +28,16 @@ describe("R7 lifecycle", () => {
     expect(isProviderOwnedPaymentState("SUCCEEDED")).toBe(true);
     expect(isProviderOwnedPaymentState("CREATED")).toBe(false);
   });
+
+  it("allows SIGNED only as a provider-owned terminal Contract transition", () => {
+    expect(canTransitionContract("DRAFT", "READY_FOR_SIGNATURE")).toBe(true);
+    expect(canTransitionContract("READY_FOR_SIGNATURE", "OUT_FOR_SIGNATURE")).toBe(true);
+    expect(canTransitionContract("OUT_FOR_SIGNATURE", "SIGNED")).toBe(true);
+    expect(canTransitionContract("DRAFT", "SIGNED")).toBe(false);
+    expect(canTransitionContract("SIGNED", "DRAFT")).toBe(false);
+    expect(canTransitionContract("SIGNED", "VOID")).toBe(false);
+    expect(isProviderOwnedContractState("SIGNED")).toBe(true);
+    expect(isProviderOwnedContractState("OUT_FOR_SIGNATURE")).toBe(false);
+  });
+
 });
