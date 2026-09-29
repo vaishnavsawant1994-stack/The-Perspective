@@ -245,12 +245,24 @@ function resource(
       .filter((definition) => definition.activationStage === "R7")
       .map((definition) => definition.key)
       .sort();
+    const r6StampedR7Keys = R7_ACTIVE_PERMISSION_KEYS.filter(
+      (permissionKey) =>
+        PERMISSION_DEFINITIONS.find(
+          (definition) => definition.key === permissionKey,
+        )?.activationStage === "R6",
+    ).sort();
+    const expectedCompatibilityKeys = [
+      "proposal.edit",
+      "proposal.send",
+      "proposal.view",
+    ];
     const expectedActive = [...R7_ACTIVE_PERMISSION_KEYS].sort();
     const expectedDormant = [...R7_DORMANT_PERMISSION_KEYS].sort();
 
-    expect([...expectedActive, ...expectedDormant].sort()).toEqual(
-      registeredR7Keys,
-    );
+    expect(r6StampedR7Keys).toEqual(expectedCompatibilityKeys);
+    expect(
+      [...expectedActive, ...expectedDormant].sort(),
+    ).toEqual([...registeredR7Keys, ...expectedCompatibilityKeys].sort());
     expect(expectedDormant).toContain("commercial.exception.approve");
     expect(expectedDormant).toContain("package.manage");
     expect(expectedDormant).toContain("payment.refund");
