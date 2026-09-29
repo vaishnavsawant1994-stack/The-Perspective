@@ -67,7 +67,16 @@ const UUID =
 const SHA256 = /^[0-9a-f]{64}$/u;
 const MAX_EVENTS_PER_WEBHOOK = 100;
 
-function validEvent(event: NormalizedSignatureEvent): boolean {
+function validEvent(candidate: unknown): candidate is NormalizedSignatureEvent {
+  if (
+    typeof candidate !== "object" ||
+    candidate === null ||
+    Array.isArray(candidate)
+  ) {
+    return false;
+  }
+
+  const event = candidate as Record<string, unknown>;
   return (
     typeof event.providerEventId === "string" &&
     event.providerEventId.length > 0 &&
@@ -75,9 +84,12 @@ function validEvent(event: NormalizedSignatureEvent): boolean {
     typeof event.providerRequestId === "string" &&
     event.providerRequestId.length > 0 &&
     event.providerRequestId.length <= 500 &&
+    typeof event.contractVersionId === "string" &&
     UUID.test(event.contractVersionId) &&
+    typeof event.documentSha256 === "string" &&
     SHA256.test(event.documentSha256) &&
-    SIGNATURE_EVENT_TYPES.includes(event.eventType) &&
+    typeof event.eventType === "string" &&
+    SIGNATURE_EVENT_TYPES.some((type) => type === event.eventType) &&
     (event.signerKey === null ||
       (typeof event.signerKey === "string" &&
         event.signerKey.length > 0 &&
