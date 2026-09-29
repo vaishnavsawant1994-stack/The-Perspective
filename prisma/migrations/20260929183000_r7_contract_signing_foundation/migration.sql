@@ -167,7 +167,7 @@ CREATE OR REPLACE FUNCTION platform.guard_r7_contract_version_mutation()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = pg_catalog
-AS $
+AS $r7_contract_version$
 BEGIN
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'R7 ContractVersion content is immutable' USING ERRCODE = '55000';
@@ -220,7 +220,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$r7_contract_version$;
 
 CREATE TRIGGER contract_versions_lifecycle_guard
 BEFORE UPDATE OR DELETE ON commercial.contract_versions

@@ -68,6 +68,8 @@ describe("R7 schema/migration parity", () => {
     expect(contractMigration).toContain("signature_events_immutable");
     expect(contractMigration).toContain("contract_versions_lifecycle_guard");
     expect(contractMigration).toContain("guard_r7_contract_version_mutation");
+    expect(contractMigration).toContain("AS $r7_contract_version$");
+    expect(contractMigration).toContain("$r7_contract_version$;");
     expect(contractMigration).toContain("REVOKE ALL ON commercial.contracts");
     expect(contractMigration).not.toContain("CREATE TRIGGER contract_versions_immutable");
     expect(contractMigration).toContain("document_sha256");
