@@ -1,0 +1,53 @@
+# R7 Human / Server / Provider Operation Matrix
+
+Inventory baseline: authorization checkpoint `a515b732193491a822af9a7613e3f8520f3027b3`  
+Contract: owner-accepted G0 SHA `f720f22f2500a89ae48819c715eb0e72f21e532e`  
+Inventory date: 29 September 2026
+
+This matrix is an implementation inventory, not a new permission grant. An operation is not route-ready merely because its permission is active. The HTTP adapter may call only a qualified domain command and must construct resource authority from tenant-scoped server reads.
+
+## Frozen ownership rules
+
+- Browser/human requests may submit only authorized mutable input and explicit operation requests.
+- Server code owns totals, currency validation, lifecycle, versioning, immutable history, allocation, canonical payment/subscription/entitlement state, audit, and transaction boundaries.
+- Providers own external payment/signature event claims. The server verifies, durably records, correlates, deduplicates, validates, reconciles, and applies those claims.
+- Dormant capabilities remain denied, regardless of table presence.
+- Mutations require same-origin validation, active authenticated TEAM membership, selected-organization consistency, trusted resource loading, field policy, lifecycle checks, row/version concurrency checks where applicable, durable audit, and a transaction that covers state plus evidence.
+
+## Active authorization operations
+
+| Operation | Resource / permission | Owner and browser request | Lifecycle and allowed data | Version, SoD, audit, idempotency, transaction | Current implementation and qualification |
+|---|---|---|---|---|---|
+| Proposal list/detail | Proposal/version; `proposal.view` | Human may request list/detail. Server filters to selected organization and projects authorized fields. | Lifecycle is server-read. Current policy readable fields: proposal `id,status,currency,dealId`; version `id,status,currency,totalMinor`. Lines/acceptance evidence are not currently in the field policy. | Tenant-scoped query and field projection required; reads do not mutate. | Permission evaluator is qualified. No R7 query/resource-loader or HTTP route. Not route-ready. |
+| Proposal create/assemble | Proposal/version/lines; `proposal.edit` | Human may request a draft from a deal and supplied line descriptions, quantities, and unit prices. Server verifies the canonical deal/customer relationship and calculates money. | Only DRAFT/READY content is mutable. G0 requires integer minor units and currency. Browser cannot set totals, owner, resource ID, status, or version. | Server-generated IDs; version creation and line totals in one serializable tenant transaction; durable audit; retry/idempotency behavior required. | Pure assembler and `insertDraftProposal` exist. Insert path does not yet validate deal ownership/existence or persist allowed audit evidence; no trusted R7 resource loader. Not route-ready. |
+| Proposal edit | Proposal/version/lines; `proposal.edit` | Human may request edits only on the permitted mutable draft. Server recalculates totals and preserves historical versions. | SENT and later issued/accepted versions are immutable. Current policy mutable proposal field is `currency`; line-field policy is not defined. | Expected row/version required; edit-vs-send/accept race serialized; audit and rollback in the same transaction. | Pure immutability helper exists; no versioned edit command. Not route-ready. |
+| Proposal send | Proposal/version; `proposal.send` | Human may request send. Server owns readiness validation, version issue/immutability, timestamp, and outbound intent. | READY → SENT only; browser cannot assign status or issuedAt. | Expected version, lifecycle obligation, SoD as policy requires, transactional audit/outbox, idempotency required for retries. | Lifecycle edge and authorization obligation exist; no persistence/domain send command or route. Not route-ready. |
+| Proposal acceptance | Proposal/version/acceptance evidence; `proposal.accept` | Customer/human may invoke explicit accept. The browser requests acceptance; server owns the canonical transition and evidence. | SENT/VIEWED → ACCEPTED. Never a generic PATCH. `proposal.approve` is a distinct R6 review permission and cannot authorize this operation. | Expected version; separation-of-duty obligations; durable acceptance/audit evidence and atomic transition; duplicate requests must be idempotent. | Lifecycle edge and authorization policy exist; no acceptance persistence/domain command or route. Not route-ready. |
+| Invoice list/detail | Invoice; `invoice.view` | Human may request list/detail. Server tenant-filters and projects allowed fields. | Current readable fields: `id,status,currency,totalMinor,allocatedMinor`. | Tenant-scoped query and field projection; no mutation. | Authorization evaluator exists. No invoice query/resource loader or HTTP route. Not route-ready. |
+| Invoice draft edit/create | Invoice; `invoice.edit` | Human may request permitted draft fields. Server derives proposal/customer link and calculates totals. | DRAFT only. Current policy permits `currency` as a mutable field; totals/status/owner/resource IDs are server-owned. | Expected row version; immutable finalized financial data; audit and atomic write. | Invoice model exists; no invoice persistence/domain commands or invoice-line model. Not route-ready. |
+| Invoice issue/finalize | Invoice; `invoice.issue` | Human may request issue. Server validates relationships, totals, currency, and lifecycle and freezes financial truth. | DRAFT → FINALIZED. G0 names `invoice.finalize`; active policy maps the R7 issue/finalize operation to this explicit command. Browser cannot set status or finalizedAt. | Expected version, required workflow obligations, audit, atomic finalization, replay-safe request. | Authorization policy and pure money/lifecycle helpers exist; no domain issue command or route. Not route-ready. |
+| Invoice send | Invoice; `invoice.send` | Human may request delivery. Server owns delivery intent and evidence. | FINALIZED only; no financial mutation. | Expected version/status check; audit/outbox; idempotent retry. | Authorization policy exists; no domain send command or route. Not route-ready. |
+| Payment list/detail | Payment; `payment.view` | Human may request read-only status/details. Server projects authorized fields. | Current readable fields: `id,status,currency,amountMinor,provider`. | Tenant-scoped query and projection. | Payment model exists; no R7 query/resource loader or route. Not route-ready. |
+| Payment reconciliation | Payment/invoice/ledger; `payment.reconcile` | Authorized human may request reconciliation. Provider truth remains provider-owned; server verifies/reconciles and computes canonical state. | Browser cannot set `PAID`/SUCCEEDED or submit provider truth. | Canonical resource correlation; event dedupe; concurrency-safe allocation; immutable ledger/audit; replay-safe transaction. | Pure allocation helpers and tables exist. No provider-event model, reconciliation command, R7 resource loader, or route. Not route-ready. |
+
+## Dormant and provider/server-only operations
+
+| Capability / operation | Owner | Permission state | Current evidence / boundary |
+|---|---|---|---|
+| Contract view/edit/send and signature reconciliation | Human requests send; provider reports signature event; server verifies and applies state | `contract.view/edit/send` registered dormant; `contract.manage` and `contract.sign.request` absent from registry | Contract/version/signer/signature-event tables and domain are absent. Browser must never set SIGNED. |
+| Package/catalogue management | Authorized human requests catalogue changes; server versions snapshots | `package.manage` dormant; `catalogue.manage` absent from registry | Product table/insert helper exists, but no package model, versioned snapshot, catalogue command, or active management authority. |
+| Payment refund | Human may request only after separate authorized refund implementation; provider reports settlement; server records compensating evidence | `payment.refund` dormant | Refund domain, refund records/commands, and compensating-ledger behavior are absent. |
+| Subscription lifecycle | Server/provider reconciliation; human may request only frozen permitted actions | `subscription.view/manage` absent from registry | Subscription table exists; no qualified lifecycle/domain commands or active permission. |
+| Entitlement calculation/enforcement | Server-only derived access state | `entitlement.view` absent from registry | Entitlement table exists; no calculation/enforcement domain. A row is not authority. |
+| Payment provider events | Provider-owned claims; server verification and reconciliation | No browser permission | Durable provider-event schema and verified webhook adapter are absent. |
+| Signature provider events | Provider-owned claims; server verification and reconciliation | No browser permission | Contract/signature schema and verified webhook adapter are absent. |
+
+## Shared HTTP security architecture already available
+
+R6 provides reusable patterns: `resolveAuthorizedHttpRequest`, `requireSameOrigin`, strict Zod input schemas, `authorizeTrustedHttpOperation`, tenant-scoped R6 loaders, redacted problem responses, and slice/whole-surface route attack tests. R7 should reuse these shared R3–R5 authorization/authentication components and patterns; it must keep R7-specific routes under `/api/v1/r7`, with R7 resource loaders and R7 domain commands.
+
+## Route-readiness decision
+
+At this baseline, **no R7 business mutation is ready for an HTTP route**. Proposal draft insertion is partial and lacks relationship validation/audit; send, acceptance, invoice commands, payment reconciliation, R7 loaders, and allowed-transition audit evidence are absent. Creating routes before those commands exist would move business logic into handlers or expose unsafe persistence helpers.
+
+Next engineering work after this inventory is to build the shared R7 HTTP boundary and trusted resource loaders, while implementing each required domain command behind the handler boundary. Proposal routes may be added only after their commands and transaction/audit behavior have permanent tests. No R8 behavior is included.
