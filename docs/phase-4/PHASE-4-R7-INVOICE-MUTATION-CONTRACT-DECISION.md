@@ -1,41 +1,41 @@
-# R7 Invoice Mutation Contract — Owner Decision Required
+# R7 Invoice Mutation Contract — Owner Decision Recorded
 
-Status: NOT FROZEN — invoice mutations remain blocked
-Evidence baseline: 419846838df0214491b4b6d993a69a7bbf21fbd0
+Status: **SOURCE AUTHORITY FROZEN; DOMAIN CONTRACT DETAILS REMAIN TO BE IMPLEMENTED**  
+Owner decision recorded: 29 September 2026  
+Decision baseline: aa70e76941d9fe5f9893a2ccc02d35d905ff7e3c  
 Invoice read implementation: dd8ddae9d1018d8205c09aa00086fb52fb576302 (#87 SUCCESS); read checkpoint documentation HEAD 419846838df0214491b4b6d993a69a7bbf21fbd0 (#88 SUCCESS).
 
-This record captures repository evidence and the remaining authority decision. It does not activate permissions or authorize mutation implementation.
+This record is paired with PHASE-4-R7-G0-INVOICE-SOURCE-ADDENDUM.md. It records the selected source authority rule, not implementation qualification or permission activation beyond existing R7 policy.
 
-## Repository facts
+## Frozen source rule — Option 3
 
-- Frozen R7 G0 defines invoice lifecycle as DRAFT → FINALIZED → PARTIALLY_PAID → PAID, VOID, or CREDITED.
-- G0 requires integer minor-unit totals, currency, and immutable finalized invoices; corrections use CreditNote.
-- G0 lists invoice.view, invoice.manage, and invoice.finalize, and sketches POST /api/v1/r7/invoices/:id/finalize.
-- The active R7 authorization registry instead exposes invoice.view, invoice.edit, invoice.issue, and invoice.send.
-- The existing policy maps both issue and finalize actions to the single invoice.issue permission. Keep invoice.issue as the candidate canonical finalize command; do not create invoice.finalize without contract evidence.
-- The current persistence table stores client_account_id and optional proposal_id, but has no contract_id, subscription/billing source reference, or invoice-line table.
-- G0's workflow sketch is Proposal → Contract/Signature → Invoice, but it does not state whether an invoice must come from a signed contract, an accepted proposal, another billing source, or a permitted manual source.
-- G0 does not define invoice-line fields, draft line add/remove/reorder rules, source snapshot behavior, or exact version/concurrency semantics.
-- Existing invoice.edit policy allows create/update/edit actions and currently permits currency as a mutable field; this implementation policy does not replace a frozen business contract.
+An invoice must be created from the strongest available qualified commercial source for its transaction.
 
-## Already established
+- For normal contract-governed client engagements, a draft invoice MUST originate from an immutable SIGNED ContractVersion. The exact ContractVersion is the authoritative source and remains referenced immutably by the Invoice.
+- An immutable ACCEPTED ProposalVersion may be the direct source only for a transaction type whose frozen R7 rules explicitly permit invoicing without a signed contract. G0 currently names no such eligible transaction type, so direct proposal invoicing is presently closed and must fail closed.
+- The server determines the permitted source from the transaction type. A caller cannot choose a weaker source when a stronger contract source governs or both exist.
+- Source-less/manual TEAM invoice creation is not authorized in the normal R7 workflow.
+- Every invoice has exactly one authoritative source relationship. Source provenance is server-owned and immutable.
+- Invoice creation copies a financial snapshot from the exact source version. Later source changes cannot rewrite the invoice snapshot.
 
-- invoice.view remains read-only.
-- Finalized invoice financial truth is immutable; corrections use CreditNote.
-- invoice.issue is the sole registry permission corresponding to G0 finalization, with server-owned lifecycle transition.
-- All totals and canonical financial state must be server-derived.
-- Invoice list/detail HTTP remains qualified and must not be reopened without regression evidence.
-- No invoice create/edit/issue/send route may be added until the source, line, field, version, audit, and idempotency contract is frozen.
+## Frozen permission mapping
 
-## Owner decision required
+- G0 invoice.manage maps to the existing R7 invoice.edit permission for draft creation and permitted DRAFT-only edits. Do not add a second invoice-manage key.
+- G0 invoice.finalize maps to the existing R7 invoice.issue permission for the DRAFT → FINALIZED command. Do not add invoice.finalize.
+- invoice.send remains a separate delivery command after finalization.
+- invoice.view remains read-only. invoice.edit alone never grants issue or send authority.
 
-Freeze one source-creation rule:
+## Financial integrity rules
 
-1. invoices are created only from an accepted, exact ProposalVersion;
-2. invoices are created only from a signed, exact ContractVersion;
-3. invoices may be created from a frozen subset of proposal/contract/billing sources; or
-4. manual invoice creation is allowed under an explicitly bounded TEAM operation.
+- Currency is copied from the exact source version and cannot be supplied or changed by the caller.
+- Source line snapshots carry description, positive integer quantity, integer-minor-unit unit amount, and source position. The server calculates line totals and aggregate totals with checked integer arithmetic.
+- Discounts and per-line taxes are not supported unless a frozen R7 contract explicitly adds their semantics. Where the source has an aggregate tax snapshot, invoice creation copies it; the server does not accept a browser-supplied tax or total.
+- FINALIZED invoice financial values and source snapshots are immutable. Corrections use separately authorized accounting lifecycle operations such as CreditNote; they do not rewrite the issued snapshot.
+- DRAFT writes require optimistic row-version concurrency, tenant/resource authorization, field authorization, durable audit in the same transaction, and idempotency appropriate to the command.
+- No DRAFT invoice may change the authoritative source, source version, or source-derived financial snapshot. Any draft-only nonfinancial mutable fields must be explicitly allowlisted before a command exposes them.
 
-For the chosen source, specify the canonical foreign-key relationship and snapshot/version semantics. Also freeze the InvoiceLine structure and allowed draft line operations; whether draft creation uses the existing invoice.edit authority or a distinct permission; currency consistency; server-side total derivation; draft mutability; optimistic concurrency; issue idempotency; and atomic audit behavior.
+## Remaining implementation dependency
 
-Until this decision is recorded in the frozen contract, the safe state is to keep Invoice mutation implementation and HTTP exposure blocked. R7 remains incomplete and R8 remains locked.
+The frozen G0 defines Contract, ContractVersion, ContractSigner, and provider-owned SignatureEvent, but these persistence/domain entities are not implemented yet. The current invoice table has no contract-version reference or InvoiceLine table. ContractVersion persistence and verified SIGNED-state production are therefore prerequisites for the normal invoice draft command.
+
+No invoice mutation routes are authorized until the source schema, InvoiceLine persistence, draft commands, issue/send commands, audit/idempotency behavior, and hostile PostgreSQL qualification are complete.
