@@ -17,9 +17,11 @@ export const R7_ACTIVE_PERMISSION_KEYS = [
 export type R7ActivePermissionKey = (typeof R7_ACTIVE_PERMISSION_KEYS)[number];
 
 export const R7_DORMANT_PERMISSION_KEYS = [
-  "contract.view",
+  "commercial.exception.approve",
   "contract.edit",
   "contract.send",
+  "contract.view",
+  "package.manage",
   "payment.refund",
 ] as const satisfies readonly CanonicalPermissionKey[];
 
