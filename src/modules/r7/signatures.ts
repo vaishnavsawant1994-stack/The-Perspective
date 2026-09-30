@@ -25,6 +25,25 @@ export interface NormalizedSignatureEvent {
   readonly normalizedEvidence: Readonly<Record<string, unknown>>;
 }
 
+export interface OutboundSignatureRequest {
+  readonly contractId: string;
+  readonly contractVersionId: string;
+  readonly documentSha256: string;
+  readonly signerKeys: readonly string[];
+  readonly idempotencyKey: string;
+}
+
+export interface SignatureRequestSubmission {
+  readonly providerRequestId: string;
+}
+
+export class SignatureProviderAmbiguousError extends Error {
+  constructor() {
+    super("ambiguous signature provider outcome");
+    this.name = "SignatureProviderAmbiguousError";
+  }
+}
+
 export interface SignatureProviderAdapter {
   readonly provider: string;
   /**
@@ -35,6 +54,14 @@ export interface SignatureProviderAdapter {
   verifyAndNormalize(
     envelope: SignatureWebhookEnvelope,
   ): Promise<readonly NormalizedSignatureEvent[] | null>;
+  /**
+   * Submit one outbound envelope. Return null for a definite provider rejection.
+   * Throw SignatureProviderAmbiguousError when the outcome is unknown.
+   * Production composition must not register a test implementation.
+   */
+  submitSignatureRequest?(
+    request: OutboundSignatureRequest,
+  ): Promise<SignatureRequestSubmission | null>;
 }
 
 export type SignatureProviderAdapterResolver = (
@@ -43,6 +70,13 @@ export type SignatureProviderAdapterResolver = (
 
 export const resolveConfiguredSignatureProviderAdapter:
   SignatureProviderAdapterResolver = () => undefined;
+
+/** Production outbound signing trusts nobody until a real adapter is configured. */
+export function resolveOutboundSignatureProvider():
+  | SignatureProviderAdapter
+  | undefined {
+  return undefined;
+}
 
 const verifiedSignatureEvent = Symbol("VerifiedSignatureEvent");
 

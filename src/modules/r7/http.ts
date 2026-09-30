@@ -56,6 +56,7 @@ export function invalidR7Request() {
 export function r7CommandError(code: string) {
   const status =
     code === "NOT_FOUND" ? 404 :
+    code === "PROVIDER_UNAVAILABLE" || code === "PROVIDER_AMBIGUOUS" ? 503 :
     [
       "CONFLICT",
       "STALE_WRITE",
@@ -63,6 +64,9 @@ export function r7CommandError(code: string) {
       "TRANSITION_DENIED",
       "PROPOSAL_IMMUTABLE",
       "INVOICE_CLOSED",
+      "CORRELATION_DENIED",
+      "INELIGIBLE",
+      "PROVIDER_FAILED",
     ].includes(code) ? 409 :
     code === "TEAM_REQUIRED" || code === "CLIENT_REQUIRED" ? 403 : 400;
 

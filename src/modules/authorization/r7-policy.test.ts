@@ -126,7 +126,7 @@ describe("R7 authorization slice", () => {
 
 type R7AuthorizationCase = {
   permissionKey: CanonicalPermissionKey;
-  resourceType: "proposal" | "client-proposal" | "invoice" | "payment";
+  resourceType: "proposal" | "client-proposal" | "invoice" | "payment" | "contract";
   surface?: "TEAM" | "CLIENT";
   scope?: EffectiveAuthorizationGrant["scope"];
   command: AuthorizationCommandContext;
@@ -216,6 +216,15 @@ const ACTIVE_R7_CASES: readonly R7AuthorizationCase[] = [
       separationOfDutySatisfied: true,
     },
   },
+  {
+    permissionKey: "contract.send",
+    resourceType: "contract",
+    command: {
+      action: "send",
+      workflowSatisfied: true,
+      exactVersionMatches: true,
+    },
+  },
 ];
 
 function resource(
@@ -242,6 +251,9 @@ function resource(
     expect(R7_ACTIVE_PERMISSION_KEYS).toContain("payment.reconcile");
     expect(isR7ActivePermissionKey("deal.view")).toBe(false);
     expect(isR7DormantPermissionKey("contract.view")).toBe(true);
+    expect(isR7DormantPermissionKey("contract.edit")).toBe(true);
+    expect(isR7ActivePermissionKey("contract.send")).toBe(true);
+    expect(isR7DormantPermissionKey("contract.send")).toBe(false);
     expect(R7_DORMANT_PERMISSION_KEYS).toContain("payment.refund");
   });
 
@@ -301,7 +313,6 @@ function resource(
     expect(expectedDormant).toContain("payment.refund");
     expect(expectedDormant.filter((key) => key.startsWith("contract."))).toEqual([
       "contract.edit",
-      "contract.send",
       "contract.view",
     ]);
 

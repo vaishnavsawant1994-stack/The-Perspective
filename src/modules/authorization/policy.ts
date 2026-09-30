@@ -407,8 +407,9 @@ export function evaluateAuthorization(
   // Active R7 permissions are dispatched here even when the registry still
   // stamps proposal.* as R6. They must not enter the R6 binding path. Only
   // proposal.accept is CLIENT-owned; every other active R7 key remains TEAM-only.
-  // Stage-R7 keys outside the active slice (contract.*, payment.refund,
-  // package.manage, commercial.exception.approve) stay workflow-denied.
+  // Stage-R7 keys outside the active slice (contract.edit, contract.view,
+  // payment.refund, package.manage, commercial.exception.approve) stay
+  // workflow-denied. contract.send is active only for the qualified send command.
   if (
     isR7ActivePermissionKey(permissionKey) ||
     definition.activationStage === "R7"

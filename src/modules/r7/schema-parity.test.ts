@@ -31,6 +31,10 @@ describe("R7 schema/migration parity", () => {
     join(process.cwd(), "prisma/migrations/20260930132000_r7_signature_reconciliation/migration.sql"),
     "utf8",
   );
+  const signatureRequestMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20260930143000_r7_signature_request_open/migration.sql"),
+    "utf8",
+  );
 
   it("creates exactly the authorized finance tables", () => {
     for (const table of TABLES) {
@@ -85,6 +89,11 @@ describe("R7 schema/migration parity", () => {
     expect(reconciliationMigration).toContain("GRANT EXECUTE ON FUNCTION platform.reconcile_r7_signature_event");
     expect(reconciliationMigration).toContain("evidence conflict");
     expect(reconciliationMigration).not.toContain("3971bf1");
+    expect(signatureRequestMigration).toContain("platform.reserve_r7_signature_request");
+    expect(signatureRequestMigration).toContain("platform.complete_r7_signature_request");
+    expect(signatureRequestMigration).toContain("REVOKE ALL ON FUNCTION platform.reserve_r7_signature_request");
+    expect(signatureRequestMigration).toContain("GRANT EXECUTE ON FUNCTION platform.complete_r7_signature_request");
+    expect(signatureRequestMigration).not.toContain("status = 'SIGNED'");
   });
 
   it("adds only the owner-authorized immutable customer acceptance evidence model", () => {

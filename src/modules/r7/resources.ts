@@ -21,7 +21,7 @@ type R7ResourceRow = {
 
 function resourceContext(
   row: R7ResourceRow,
-  resourceType: "proposal" | "proposal-version" | "invoice" | "payment",
+  resourceType: "proposal" | "proposal-version" | "invoice" | "payment" | "contract",
 ): AuthorizationResourceContext {
   return {
     resourceId: row.resource_id ?? row.id,
@@ -57,6 +57,29 @@ export async function loadR7ProposalResource(
     database,
   );
   return row ? resourceContext(row, "proposal") : null;
+}
+
+export async function loadR7ContractResource(
+  context: CommercialContext,
+  contractId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<AuthorizationResourceContext | null> {
+  const row = await withCommercialTenantTransaction(
+    context,
+    async (transaction) => {
+      const rows = await transaction.$queryRawUnsafe<R7ResourceRow[]>(
+        `SELECT id, resource_id, owner_organization_id, status, row_version
+         FROM commercial.contracts
+         WHERE id = $1::uuid
+           AND owner_organization_id = $2::uuid`,
+        contractId,
+        context.tenant.organizationId,
+      );
+      return rows[0] ?? null;
+    },
+    database,
+  );
+  return row ? resourceContext(row, "contract") : null;
 }
 
 export interface ClientProposalAcceptanceResource {

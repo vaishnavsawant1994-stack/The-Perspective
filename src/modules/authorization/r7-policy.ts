@@ -12,6 +12,7 @@ export const R7_ACTIVE_PERMISSION_KEYS = [
   "invoice.send",
   "payment.view",
   "payment.reconcile",
+  "contract.send",
 ] as const satisfies readonly CanonicalPermissionKey[];
 
 export type R7ActivePermissionKey = (typeof R7_ACTIVE_PERMISSION_KEYS)[number];
@@ -19,7 +20,6 @@ export type R7ActivePermissionKey = (typeof R7_ACTIVE_PERMISSION_KEYS)[number];
 export const R7_DORMANT_PERMISSION_KEYS = [
   "commercial.exception.approve",
   "contract.edit",
-  "contract.send",
   "contract.view",
   "package.manage",
   "payment.refund",
@@ -31,7 +31,8 @@ export type R7AuthorizationResourceType =
   | "client-proposal"
   | "invoice"
   | "payment"
-  | "product";
+  | "product"
+  | "contract";
 
 export interface R7PermissionBinding {
   readonly resourceTypes: readonly R7AuthorizationResourceType[];
@@ -84,6 +85,11 @@ export const R7_PERMISSION_BINDINGS = {
     resourceTypes: ["payment"],
     actions: ["reconcile"],
     workflowActions: ["reconcile"],
+  },
+  "contract.send": {
+    resourceTypes: ["contract"],
+    actions: ["send"],
+    workflowActions: ["send"],
   },
 } as const satisfies Record<R7ActivePermissionKey, R7PermissionBinding>;
 
@@ -148,6 +154,23 @@ export const R7_FIELD_POLICIES: Partial<
     ["id", "key", "name", "currency", "unitAmountMinor"],
     ["name", "key", "currency"],
   ),
+  contract: {
+    readableFields: ["id", "status", "currentVersion", "rowVersion"],
+    mutableFields: [],
+    serverOwnedFields: [
+      ...SERVER_OWNED_FINANCE_FIELDS,
+      "documentSha256",
+      "signedAt",
+      "issuedAt",
+      "provider",
+      "providerRequestId",
+      "signerKey",
+    ],
+    createOnlyFields: [],
+    fieldGroups: {
+      identity: ["id"],
+    },
+  },
 };
 
 export function isR7ActivePermissionKey(
