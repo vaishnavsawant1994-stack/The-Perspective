@@ -94,6 +94,8 @@ function validEvent(candidate: unknown): candidate is NormalizedSignatureEvent {
       (typeof event.signerKey === "string" &&
         event.signerKey.length > 0 &&
         event.signerKey.length <= 500)) &&
+    (event.eventType !== "SIGNER_COMPLETED" ||
+      (typeof event.signerKey === "string" && event.signerKey.length > 0)) &&
     (event.providerOccurredAt === null ||
       (event.providerOccurredAt instanceof Date &&
         Number.isFinite(event.providerOccurredAt.getTime()))) &&
@@ -154,4 +156,17 @@ export async function verifySignatureWebhook(
       [verifiedSignatureEvent]: true as const,
     })),
   };
+}
+
+export function isVerifiedSignatureEvent(
+  value: unknown,
+): value is VerifiedSignatureEvent {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    verifiedSignatureEvent in value &&
+    (value as { [verifiedSignatureEvent]?: unknown })[verifiedSignatureEvent] ===
+      true
+  );
 }
