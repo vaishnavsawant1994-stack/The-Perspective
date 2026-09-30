@@ -92,9 +92,14 @@ async function verified(event: NormalizedSignatureEvent) {
   return result.events[0];
 }
 
-async function fixture(options: { status?: string; signers?: readonly string[] } = {}) {
+async function fixture(options: {
+  status?: string;
+  signers?: readonly string[];
+  optionalSigners?: readonly string[];
+} = {}) {
   const status = options.status ?? "READY_FOR_SIGNATURE";
   const signers = options.signers ?? ["signer-a", "signer-b"];
+  const optionalSigners = options.optionalSigners ?? [];
   const proposalId = crypto.randomUUID();
   const proposalVersionId = crypto.randomUUID();
   const contractId = crypto.randomUUID();
@@ -177,6 +182,14 @@ async function fixture(options: { status?: string; signers?: readonly string[] }
         crypto.randomUUID(), ownerId, contractId, contractVersionId, signerKey,
       );
     }
+    for (const signerKey of optionalSigners) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO commercial.contract_signers (
+           id, owner_organization_id, contract_id, contract_version_id, contract_version, signer_key, signer_kind, required
+         ) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 1, $5::text, 'CLIENT', false)`,
+        crypto.randomUUID(), ownerId, contractId, contractVersionId, signerKey,
+      );
+    }
   });
   return { contractId, contractVersionId };
 }
@@ -193,11 +206,25 @@ function input(graph: { contractId: string; contractVersionId: string }, idempot
 }
 
 async function stateOf(contractVersionId: string) {
-  const rows = await database.$queryRawUnsafe<Array<{ version_status: string; contract_status: string; signed_at: Date | null; issued_at: Date | null; requests: number }>>(
+  const rows = await database.$queryRawUnsafe<Array<{
+    version_status: string;
+    contract_status: string;
+    signed_at: Date | null;
+    issued_at: Date | null;
+    requests: number;
+    row_version: number;
+    request_status: string | null;
+    events: number;
+  }>>(
     `SELECT version.status AS version_status, contract.status AS contract_status,
-            version.signed_at, version.issued_at,
+            version.signed_at, version.issued_at, contract.row_version,
             (SELECT count(*)::int FROM commercial.signature_requests AS request
-              WHERE request.contract_version_id = version.id) AS requests
+              WHERE request.contract_version_id = version.id) AS requests,
+            (SELECT request.status FROM commercial.signature_requests AS request
+              WHERE request.contract_version_id = version.id) AS request_status,
+            (SELECT count(*)::int FROM commercial.signature_events AS event
+              JOIN commercial.signature_requests AS request ON request.id = event.signature_request_id
+              WHERE request.contract_version_id = version.id) AS events
        FROM commercial.contract_versions AS version
        JOIN commercial.contracts AS contract ON contract.id = version.contract_id
       WHERE version.id = $1::uuid`,
@@ -387,6 +414,359 @@ describe("R7 outbound signature request persistence", () => {
     expect(calls.length).toBe(1);
     expect((await stateOf(graph.contractVersionId))?.requests).toBe(1);
     expect((await stateOf(graph.contractVersionId))?.version_status).toBe("OUT_FOR_SIGNATURE");
+  });
+
+  it("does not sign a version that never reached a delivered envelope", async () => {
+    const ready = await fixture({ signers: ["signer-a"] });
+    const forged = await reconcileVerifiedSignatureEvent(owner, await verified({
+      providerRequestId: "guessed-envelope",
+      contractVersionId: ready.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+      providerEventId: "evt-unsent-" + ready.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-a",
+      normalizedEvidence: { signer: "signer-a" },
+    }), database);
+    expect(forged).toEqual({ kind: "error", code: "NOT_FOUND" });
+    expect(await reconcileVerifiedSignatureEvent(owner, {
+      provider: "test-provider",
+      providerRequestId: "guessed-envelope",
+      contractVersionId: ready.contractVersionId,
+      documentSha256: digest,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-a",
+    }, database)).toEqual({ kind: "error", code: "UNVERIFIED_EVENT" });
+    expect(await requestContractSignature(owner, input(ready, "closed-" + ready.contractId.slice(0, 8)), database)).toEqual({
+      kind: "error",
+      code: "PROVIDER_UNAVAILABLE",
+    });
+    expect((await stateOf(ready.contractVersionId))?.version_status).toBe("READY_FOR_SIGNATURE");
+    expect((await stateOf(ready.contractVersionId))?.requests).toBe(0);
+    expect((await stateOf(ready.contractVersionId))?.events).toBe(0);
+    expect((await stateOf(ready.contractVersionId))?.signed_at).toBeNull();
+
+    const failed = await fixture({ signers: ["signer-a"] });
+    const failCalls: OutboundSignatureRequest[] = [];
+    expect(await requestContractSignature(
+      owner,
+      input(failed, "nofail-" + failed.contractId.slice(0, 8)),
+      database,
+      trackingAdapter(failCalls, "fail"),
+    )).toEqual({ kind: "error", code: "PROVIDER_FAILED" });
+    expect(await reconcileVerifiedSignatureEvent(owner, await verified({
+      providerRequestId: providerId({
+        contractId: failed.contractId,
+        contractVersionId: failed.contractVersionId,
+        documentSha256: digest,
+        signerKeys: ["signer-a"],
+        idempotencyKey: "unused",
+      }),
+      contractVersionId: failed.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+      providerEventId: "evt-failed-" + failed.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-a",
+      normalizedEvidence: {},
+    }), database)).toEqual({ kind: "error", code: "NOT_FOUND" });
+    expect((await stateOf(failed.contractVersionId))?.request_status).toBe("FAILED");
+    expect((await stateOf(failed.contractVersionId))?.version_status).toBe("READY_FOR_SIGNATURE");
+    expect((await stateOf(failed.contractVersionId))?.events).toBe(0);
+
+    const ambiguous = await fixture({ signers: ["signer-a"] });
+    expect(await requestContractSignature(
+      owner,
+      input(ambiguous, "noamb-" + ambiguous.contractId.slice(0, 8)),
+      database,
+      trackingAdapter([], "ambiguous"),
+    )).toEqual({ kind: "error", code: "PROVIDER_AMBIGUOUS" });
+    expect(await reconcileVerifiedSignatureEvent(owner, await verified({
+      providerRequestId: "ambiguous-envelope",
+      contractVersionId: ambiguous.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+      providerEventId: "evt-ambiguous-" + ambiguous.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-a",
+      normalizedEvidence: {},
+    }), database)).toEqual({ kind: "error", code: "NOT_FOUND" });
+    const ambiguousState = await stateOf(ambiguous.contractVersionId);
+    expect(ambiguousState?.request_status).toBe("REQUESTED");
+    expect(ambiguousState?.version_status).toBe("READY_FOR_SIGNATURE");
+    expect(ambiguousState?.issued_at).toBeNull();
+    expect(ambiguousState?.signed_at).toBeNull();
+    expect(ambiguousState?.events).toBe(0);
+  });
+
+  it("signs only after a real send and every required signer, then refuses further authority", async () => {
+    const graph = await fixture({ optionalSigners: ["witness"] });
+    const calls: OutboundSignatureRequest[] = [];
+    const key = "life-" + graph.contractId.slice(0, 8);
+    const sent = await requestContractSignature(owner, input(graph, key), database, trackingAdapter(calls));
+    expect(sent.kind).toBe("ok");
+    if (sent.kind !== "ok") return;
+    const base = {
+      providerRequestId: sent.value.providerRequestId,
+      contractVersionId: graph.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+    };
+    const attacks = [
+      reconcileVerifiedSignatureEvent(owner, await verified({
+        ...base,
+        documentSha256: otherDigest,
+        providerEventId: "evt-digest-" + graph.contractId,
+        eventType: "SIGNER_COMPLETED",
+        signerKey: "signer-a",
+        normalizedEvidence: {},
+      }), database),
+      reconcileVerifiedSignatureEvent(owner, await verified({
+        ...base,
+        providerRequestId: "substituted-envelope",
+        providerEventId: "evt-envelope-" + graph.contractId,
+        eventType: "SIGNER_COMPLETED",
+        signerKey: "signer-a",
+        normalizedEvidence: {},
+      }), database),
+      reconcileVerifiedSignatureEvent(foreign, await verified({
+        ...base,
+        providerEventId: "evt-foreign-" + graph.contractId,
+        eventType: "SIGNER_COMPLETED",
+        signerKey: "signer-a",
+        normalizedEvidence: {},
+      }), database),
+      reconcileVerifiedSignatureEvent(owner, await verified({
+        ...base,
+        providerEventId: "evt-unknown-" + graph.contractId,
+        eventType: "SIGNER_COMPLETED",
+        signerKey: "intruder",
+        normalizedEvidence: {},
+      }), database),
+      verifySignatureWebhook("other-provider", {
+        headers: {},
+        rawBody: new TextEncoder().encode("{\"event\":\"signed\"}"),
+        receivedAt: epoch,
+      }, () => ({
+        provider: "other-provider",
+        verifyAndNormalize: async () => [{
+          ...base,
+          providerEventId: "evt-provider-" + graph.contractId,
+          eventType: "SIGNER_COMPLETED" as const,
+          signerKey: "signer-a",
+          normalizedEvidence: {},
+        }],
+      })).then((verifiedEvent) => {
+        if (verifiedEvent.kind !== "ok" || !verifiedEvent.events[0]) throw new Error("unverified");
+        return reconcileVerifiedSignatureEvent(owner, verifiedEvent.events[0], database);
+      }),
+    ];
+    expect((await Promise.all(attacks)).map((result) => result.kind === "error" ? result.code : result.kind)).toEqual([
+      "CORRELATION_DENIED",
+      "NOT_FOUND",
+      "NOT_FOUND",
+      "SIGNER_DENIED",
+      "NOT_FOUND",
+    ]);
+    expect((await stateOf(graph.contractVersionId))?.events).toBe(0);
+    expect((await stateOf(graph.contractVersionId))?.version_status).toBe("OUT_FOR_SIGNATURE");
+
+    const witness = await reconcileVerifiedSignatureEvent(owner, await verified({
+      ...base,
+      providerEventId: "evt-witness-" + graph.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "witness",
+      normalizedEvidence: { signer: "witness" },
+    }), database);
+    expect(witness).toMatchObject({ code: "SIGNER_RECORDED", contractStatus: "OUT_FOR_SIGNATURE" });
+    const first = await reconcileVerifiedSignatureEvent(owner, await verified({
+      ...base,
+      providerEventId: "evt-life-a-" + graph.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-a",
+      normalizedEvidence: { signer: "signer-a" },
+    }), database);
+    expect(first).toMatchObject({ code: "SIGNER_RECORDED" });
+    expect((await stateOf(graph.contractVersionId))?.signed_at).toBeNull();
+    const replay = await requestContractSignature(owner, input(graph, key), database, trackingAdapter(calls));
+    expect(replay).toMatchObject({ kind: "ok", value: { replayed: true, providerRequestId: sent.value.providerRequestId } });
+    expect(calls).toHaveLength(1);
+
+    const signed = await reconcileVerifiedSignatureEvent(owner, await verified({
+      ...base,
+      providerEventId: "evt-life-b-" + graph.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-b",
+      normalizedEvidence: { signer: "signer-b" },
+    }), database);
+    expect(signed).toMatchObject({ code: "SIGNED", contractStatus: "SIGNED" });
+    const replayedEvent = await reconcileVerifiedSignatureEvent(owner, await verified({
+      ...base,
+      providerEventId: "evt-life-b-" + graph.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-b",
+      normalizedEvidence: { signer: "signer-b" },
+    }), database);
+    expect(replayedEvent).toMatchObject({ kind: "ok", code: "REPLAY" });
+    const changed = await reconcileVerifiedSignatureEvent(owner, await verified({
+      ...base,
+      providerEventId: "evt-life-b-" + graph.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-b",
+      normalizedEvidence: { signer: "signer-b", changed: true },
+    }), database);
+    expect(changed).toEqual({ kind: "error", code: "EVIDENCE_CONFLICT" });
+    const ignored = await reconcileVerifiedSignatureEvent(owner, await verified({
+      ...base,
+      providerEventId: "evt-late-" + graph.contractId,
+      eventType: "REQUEST_VOIDED",
+      signerKey: null,
+      normalizedEvidence: {},
+    }), database);
+    expect(ignored).toMatchObject({ code: "IGNORED_TERMINAL", contractStatus: "SIGNED" });
+
+    const signedState = await stateOf(graph.contractVersionId);
+    expect(signedState?.version_status).toBe("SIGNED");
+    expect(signedState?.contract_status).toBe("SIGNED");
+    expect(signedState?.signed_at).toBeTruthy();
+    expect(signedState?.requests).toBe(1);
+    expect(signedState?.events).toBe(4);
+    const sameKey = await requestContractSignature(
+      owner,
+      input(graph, key),
+      database,
+      trackingAdapter(calls),
+    );
+    expect(sameKey).toEqual({ kind: "error", code: "INELIGIBLE" });
+    const again = await requestContractSignature(
+      owner,
+      { ...input(graph, "after-" + graph.contractId.slice(0, 8)), expectedRowVersion: signedState?.row_version ?? 0 },
+      database,
+      trackingAdapter(calls),
+    );
+    expect(again).toEqual({ kind: "error", code: "CONFLICT" });
+    expect(calls).toHaveLength(1);
+    expect((await stateOf(graph.contractVersionId))?.events).toBe(4);
+  });
+
+  it("voids or expires a delivered request and never promotes it to SIGNED", async () => {
+    const voided = await fixture({ signers: ["signer-a"] });
+    const voidCalls: OutboundSignatureRequest[] = [];
+    const voidedSend = await requestContractSignature(
+      owner,
+      input(voided, "void-" + voided.contractId.slice(0, 8)),
+      database,
+      trackingAdapter(voidCalls),
+    );
+    expect(voidedSend.kind).toBe("ok");
+    if (voidedSend.kind !== "ok") return;
+    expect(await reconcileVerifiedSignatureEvent(owner, await verified({
+      providerRequestId: voidedSend.value.providerRequestId,
+      contractVersionId: voided.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+      providerEventId: "evt-void-" + voided.contractId,
+      eventType: "REQUEST_VOIDED",
+      signerKey: null,
+      normalizedEvidence: {},
+    }), database)).toMatchObject({ code: "VOIDED", contractStatus: "VOID" });
+    expect(await reconcileVerifiedSignatureEvent(owner, await verified({
+      providerRequestId: voidedSend.value.providerRequestId,
+      contractVersionId: voided.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+      providerEventId: "evt-void-late-" + voided.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-a",
+      normalizedEvidence: {},
+    }), database)).toMatchObject({ code: "IGNORED_TERMINAL", contractStatus: "VOID" });
+    const voidState = await stateOf(voided.contractVersionId);
+    expect(voidState?.signed_at).toBeNull();
+    expect(voidState?.request_status).toBe("VOID");
+    expect(await requestContractSignature(
+      owner,
+      input(voided, "void-" + voided.contractId.slice(0, 8)),
+      database,
+      trackingAdapter(voidCalls),
+    )).toEqual({ kind: "error", code: "INELIGIBLE" });
+    expect(await requestContractSignature(
+      owner,
+      { ...input(voided, "void-again-" + voided.contractId.slice(0, 8)), expectedRowVersion: voidState?.row_version ?? 0 },
+      database,
+      trackingAdapter(voidCalls),
+    )).toEqual({ kind: "error", code: "CONFLICT" });
+    expect(voidCalls).toHaveLength(1);
+
+    const expired = await fixture({ signers: ["signer-a"] });
+    const expiredSend = await requestContractSignature(
+      owner,
+      input(expired, "expire-" + expired.contractId.slice(0, 8)),
+      database,
+      trackingAdapter([]),
+    );
+    expect(expiredSend.kind).toBe("ok");
+    if (expiredSend.kind !== "ok") return;
+    expect(await reconcileVerifiedSignatureEvent(owner, await verified({
+      providerRequestId: expiredSend.value.providerRequestId,
+      contractVersionId: expired.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+      providerEventId: "evt-expire-" + expired.contractId,
+      eventType: "REQUEST_EXPIRED",
+      signerKey: null,
+      normalizedEvidence: {},
+    }), database)).toMatchObject({ code: "EXPIRED", contractStatus: "EXPIRED" });
+    expect(await reconcileVerifiedSignatureEvent(owner, await verified({
+      providerRequestId: expiredSend.value.providerRequestId,
+      contractVersionId: expired.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+      providerEventId: "evt-expire-late-" + expired.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey: "signer-a",
+      normalizedEvidence: {},
+    }), database)).toMatchObject({ code: "IGNORED_TERMINAL", contractStatus: "EXPIRED" });
+    expect((await stateOf(expired.contractVersionId))?.signed_at).toBeNull();
+    expect((await stateOf(expired.contractVersionId))?.request_status).toBe("EXPIRED");
+    expect(await requestContractSignature(
+      owner,
+      input(expired, "expire-" + expired.contractId.slice(0, 8)),
+      database,
+      trackingAdapter([]),
+    )).toEqual({ kind: "error", code: "INELIGIBLE" });
+  });
+
+  it("signs once when both required signers complete concurrently after send", async () => {
+    const graph = await fixture();
+    const calls: OutboundSignatureRequest[] = [];
+    const sent = await requestContractSignature(
+      owner,
+      input(graph, "both-" + graph.contractId.slice(0, 8)),
+      database,
+      trackingAdapter(calls),
+    );
+    expect(sent.kind).toBe("ok");
+    if (sent.kind !== "ok") return;
+    const results = await Promise.all(["signer-a", "signer-b"].map(async (signerKey) => reconcileVerifiedSignatureEvent(owner, await verified({
+      providerRequestId: sent.value.providerRequestId,
+      contractVersionId: graph.contractVersionId,
+      documentSha256: digest,
+      providerOccurredAt: epoch,
+      providerEventId: "evt-both-" + signerKey + "-" + graph.contractId,
+      eventType: "SIGNER_COMPLETED",
+      signerKey,
+      normalizedEvidence: { signer: signerKey },
+    }), database)));
+    expect(results.map((result) => result.kind === "ok" ? result.code : result.code).sort()).toEqual([
+      "SIGNED",
+      "SIGNER_RECORDED",
+    ]);
+    expect(calls).toHaveLength(1);
+    const state = await stateOf(graph.contractVersionId);
+    expect(state?.version_status).toBe("SIGNED");
+    expect(state?.signed_at).toBeTruthy();
+    expect(state?.requests).toBe(1);
+    expect(state?.events).toBe(2);
   });
 });
 
