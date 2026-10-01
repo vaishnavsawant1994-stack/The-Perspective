@@ -757,7 +757,7 @@ export const PERMISSION_DEFINITIONS = [
     permittedScopes: ["ORG", "DEPT", "ASN", "OWN"],
     requiresFieldPolicy: true,
     requiresWorkflowPolicy: false,
-    obligations: [],
+    obligations: ["audit"],
     activationStage: "R8",
   },
   {
@@ -900,7 +900,7 @@ export const PERMISSION_DEFINITIONS = [
     permittedScopes: ["ORG", "DEPT", "ASN", "OWN"],
     requiresFieldPolicy: true,
     requiresWorkflowPolicy: false,
-    obligations: [],
+    obligations: ["audit"],
     activationStage: "R8",
   },
   {
@@ -1373,7 +1373,7 @@ export const PERMISSION_DEFINITIONS = [
     permittedScopes: ["ORG", "DEPT", "ASN", "OWN"],
     requiresFieldPolicy: true,
     requiresWorkflowPolicy: false,
-    obligations: [],
+    obligations: ["audit"],
     activationStage: "R8",
   },
   {
@@ -1516,7 +1516,7 @@ export const PERMISSION_DEFINITIONS = [
     permittedScopes: ["ORG", "DEPT", "ASN", "OWN"],
     requiresFieldPolicy: true,
     requiresWorkflowPolicy: false,
-    obligations: [],
+    obligations: ["audit"],
     activationStage: "R8",
   },
   {
@@ -1725,7 +1725,7 @@ export const PERMISSION_DEFINITIONS = [
     permittedScopes: ["ORG", "DEPT", "ASN", "OWN"],
     requiresFieldPolicy: true,
     requiresWorkflowPolicy: false,
-    obligations: [],
+    obligations: ["audit"],
     activationStage: "R8",
   },
   {

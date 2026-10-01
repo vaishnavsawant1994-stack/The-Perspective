@@ -22,6 +22,11 @@ import {
   getR7PermissionBinding,
   isR7ActivePermissionKey,
 } from "./r7-policy";
+import {
+  getR8FieldPolicy,
+  getR8PermissionBinding,
+  isR8ActivePermissionKey,
+} from "./r8-policy";
 import type {
   AuthorizationCommandContext,
   AuthorizationDecision,
@@ -32,7 +37,7 @@ import type {
   SensitivityLevel,
 } from "./types";
 
-const DEFAULT_ACTIVE_STAGES = new Set(["R5", "R6", "R7"]);
+const DEFAULT_ACTIVE_STAGES = new Set(["R5", "R6", "R7", "R8"]);
 const READ_ACTIONS = new Set([
   "read",
   "view",
@@ -472,6 +477,63 @@ export function evaluateAuthorization(
     ) {
       return deny(permissionKey, "WORKFLOW_DENIED");
     }
+  } else if (definition.activationStage === "R8") {
+    if (!activeStages.has("R8") || !isR8ActivePermissionKey(permissionKey)) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
+
+    const clientDecision = permissionKey === "approval.client.decide";
+    if (
+      clientDecision
+        ? definition.surface !== "CLIENT" ||
+          definition.assignability !== "CLIENT_ROLE" ||
+          context.membership.surface !== "CLIENT" ||
+          context.tenant.surface !== "CLIENT"
+        : definition.surface !== "TEAM" ||
+          definition.assignability !== "TEAM_ROLE" ||
+          context.membership.surface !== "TEAM" ||
+          context.tenant.surface !== "TEAM"
+    ) {
+      return deny(permissionKey, "POLICY_INVALID");
+    }
+
+    if (
+      context.membership.membershipId !== context.tenant.membershipId ||
+      context.membership.organizationId !== context.tenant.organizationId ||
+      context.membership.surface !== context.tenant.surface
+    ) {
+      return deny(permissionKey, "POLICY_INVALID");
+    }
+
+    const binding = getR8PermissionBinding(permissionKey);
+    if (!(binding.actions as readonly string[]).includes(command.action)) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
+
+    if (
+      !resource ||
+      !(binding.resourceTypes as readonly string[]).includes(resource.resourceType)
+    ) {
+      return deny(permissionKey, "RESOURCE_DENIED");
+    }
+
+    const trustedFieldPolicy = getR8FieldPolicy(resource.resourceType);
+    if (!trustedFieldPolicy) {
+      return deny(permissionKey, "FIELD_DENIED");
+    }
+
+    policyCommand = {
+      ...command,
+      fieldPolicy: trustedFieldPolicy,
+    };
+
+    if (
+      "workflowActions" in binding &&
+      binding.workflowActions.includes(command.action as never) &&
+      command.workflowSatisfied !== true
+    ) {
+      return deny(permissionKey, "WORKFLOW_DENIED");
+    }
   } else if (definition.activationStage === "R6") {
     if (!isR6ActivePermissionKey(permissionKey)) {
       return deny(permissionKey, "WORKFLOW_DENIED");
@@ -547,7 +609,8 @@ export function evaluateAuthorization(
 
   if (
     (definition.activationStage === "R6" ||
-      definition.activationStage === "R7") &&
+      definition.activationStage === "R7" ||
+      definition.activationStage === "R8") &&
     grants.some((grant) => !definition.permittedScopes.includes(grant.scope))
   ) {
     return deny(permissionKey, "POLICY_INVALID");
