@@ -43,6 +43,10 @@ describe("R7 schema/migration parity", () => {
     join(process.cwd(), "prisma/migrations/20261001120000_r7_invoice_draft_issue/migration.sql"),
     "utf8",
   );
+  const paymentMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20261001143000_r7_payment_reconciliation/migration.sql"),
+    "utf8",
+  );
 
   it("creates exactly the authorized finance tables", () => {
     for (const table of TABLES) {
@@ -118,6 +122,12 @@ describe("R7 schema/migration parity", () => {
     expect(invoiceDraftMigration).not.toContain("p_proposal");
     expect(models).toContain('@@map("invoice_lines")');
     expect(Prisma.ModelName.CommercialInvoiceLine).toBe("CommercialInvoiceLine");
+    expect(paymentMigration).toContain("platform.reconcile_r7_payment_event");
+    expect(paymentMigration).toContain("OVER_ALLOCATION");
+    expect(paymentMigration).toContain("R7 payment provider truth is server-owned");
+    expect(paymentMigration).toContain("REVOKE INSERT ON commercial.ledger_entries FROM perspective_runtime");
+    expect(paymentMigration).toContain("GRANT EXECUTE ON FUNCTION platform.reconcile_r7_payment_event");
+    expect(models).toContain("event_hash");
   });
 
   it("adds only the owner-authorized immutable customer acceptance evidence model", () => {

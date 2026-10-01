@@ -154,6 +154,8 @@ model CommercialPayment {
   status              String   @default("CREATED")
   currency            String   @db.Char(3)
   amountMinor         BigInt   @map("amount_minor")
+  eventHash           String?  @map("event_hash") @db.Char(64)
+  auditEventId        String?  @map("audit_event_id") @db.Uuid
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
 
