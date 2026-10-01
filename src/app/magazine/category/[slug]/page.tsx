@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MagazineCategoryPage } from "@/components/magazine/category/magazine-category-page";
 import { MagazineCategoryRedesign } from "@/components/magazine/category/magazine-category-redesign";
+import { PublishedEditionBand } from "@/components/magazine/published/published-projection";
 import { siteConfig } from "@/config/site";
 import { createMagazineCategoryStructuredData } from "@/lib/magazine-structured-data";
 import { getMagazineCategories, getMagazineCategoryBySlug, getMagazineCategoryContent, validateMagazineCategoryData } from "@/lib/magazine-categories";
+import { publicSlug, publishedCatalogue } from "@/modules/r9/projection";
 
 type MagazineCategoryRouteProps = {
   params: Promise<{ slug: string }>;
@@ -35,6 +37,8 @@ export async function generateMetadata({ params }: MagazineCategoryRouteProps): 
   };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function MagazineCategoryRoute({ params }: MagazineCategoryRouteProps) {
   const { slug } = await params;
   const category = getMagazineCategoryBySlug(slug);
@@ -44,9 +48,11 @@ export default async function MagazineCategoryRoute({ params }: MagazineCategory
   if (validationErrors.length > 0) throw new Error(`Invalid Magazine Category data:\n${validationErrors.join("\n")}`);
   const content = getMagazineCategoryContent(category);
   const structuredData = createMagazineCategoryStructuredData(category, content.matchingIssues);
+  const published = (await publishedCatalogue()).filter((issue) => publicSlug(issue.theme) === slug || publicSlug(issue.season) === slug);
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <PublishedEditionBand heading="Published editions in this section" issues={published} />
     <MagazineCategoryRedesign content={content} />
     <MagazineCategoryPage content={content} />
   </>;

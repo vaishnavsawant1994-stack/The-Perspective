@@ -2,14 +2,28 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AuthorProfilePage } from "@/components/author/author-profile-page";
 import { AuthorProfileDetailRedesign } from "@/components/author/author-profile-detail-redesign";
+import { PublishedAuthorView } from "@/components/magazine/published/published-projection";
 import { siteConfig } from "@/config/site";
 import { getAuthorProfileBySlug, getPublicAuthors } from "@/data/mock/author-profiles";
+import { publicSlug, publishedCatalogue, type PublishedArticleCard } from "@/modules/r9/projection";
 
 type AuthorPageProps = { params: Promise<{ slug: string }> };
 
 const profileDescription = (name: string, biography: string) => `Read essays, reporting and analysis from ${name}. ${biography}`;
 
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+
+async function publishedByAuthor(slug: string) {
+  const issues = await publishedCatalogue();
+  const articles: PublishedArticleCard[] = [];
+  for (const issue of issues) {
+    for (const article of issue.articles) {
+      if (article.author && publicSlug(article.author) === slug) articles.push(article);
+    }
+  }
+  return articles;
+}
 
 export function generateStaticParams() {
   return getPublicAuthors().map((author) => ({ slug: author.slug }));
@@ -18,7 +32,18 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: AuthorPageProps): Promise<Metadata> {
   const { slug } = await params;
   const profile = getAuthorProfileBySlug(slug);
-  if (!profile) notFound();
+  const published = await publishedByAuthor(slug);
+  if (!profile && published.length === 0) notFound();
+  if (!profile) {
+    const name = published[0]?.author ?? slug;
+    const description = `Published stories by ${name}.`;
+    return {
+      title: name,
+      description,
+      alternates: { canonical: `/author/${slug}` },
+      openGraph: { title: `${name} | ${siteConfig.name}`, description, type: "profile", url: `/author/${slug}`, siteName: siteConfig.name },
+    };
+  }
 
   const { author } = profile;
   const description = profileDescription(author.name, author.biography);
@@ -55,7 +80,9 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
 export default async function AuthorPage({ params }: AuthorPageProps) {
   const { slug } = await params;
   const profile = getAuthorProfileBySlug(slug);
-  if (!profile) notFound();
+  const published = await publishedByAuthor(slug);
+  if (!profile && published.length === 0) notFound();
+  if (!profile) return <PublishedAuthorView articles={published} name={published[0]?.author ?? slug} />;
 
   const { author } = profile;
   const canonicalUrl = `${siteConfig.url}/author/${author.slug}`;
@@ -79,6 +106,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    {published.length > 0 ? <PublishedAuthorView articles={published} name={author.name} /> : null}
     <AuthorProfileDetailRedesign profile={profile} />
     <AuthorProfilePage profile={profile} />
   </>;

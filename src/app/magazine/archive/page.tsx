@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { MagazineArchivePage } from "@/components/magazine/archive/magazine-archive-page";
 import { MagazineArchiveRedesign } from "@/components/magazine/archive/magazine-archive-redesign";
+import { PublishedEditionBand } from "@/components/magazine/published/published-projection";
 import { siteConfig } from "@/config/site";
 import { getLatestMagazineIssue } from "@/data/mock/magazines";
 import { filterMagazineIssues, getFeaturedArchiveIssue, getMagazineArchiveCounts, getMagazineArchiveThemes, getMagazineArchiveYears, getMagazineIssues, getPremiumMagazineIssues, getReaderAvailableIssues, parseMagazineArchiveFilter, parseMagazineArchiveQuery, parseMagazineArchiveYear, resolveMagazineArchiveIssues, validateMagazineArchiveData } from "@/lib/magazine-archive";
 import { createMagazineArchiveStructuredData } from "@/lib/magazine-structured-data";
+import { publishedCatalogue } from "@/modules/r9/projection";
 import { readSearchParameter } from "@/lib/search-query";
 
 type MagazineArchivePageProps = {
@@ -31,6 +33,8 @@ export async function generateMetadata({ searchParams }: MagazineArchivePageProp
   };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function MagazineArchiveRoute({ searchParams }: MagazineArchivePageProps) {
   const parameters = await searchParams;
   const state = {
@@ -51,10 +55,12 @@ export default async function MagazineArchiveRoute({ searchParams }: MagazineArc
   const resolvedIssues = resolveMagazineArchiveIssues(filteredIssues);
   const resolvedFeatured = resolveMagazineArchiveIssues([issues[0]])[0];
   if (!resolvedFeatured) throw new Error("Magazine Archive requires a featured issue.");
+  const published = await publishedCatalogue();
   const structuredData = createMagazineArchiveStructuredData(issues);
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <PublishedEditionBand heading="Published and archived editions" issues={published} />
     <MagazineArchiveRedesign counts={getMagazineArchiveCounts(issues)} displayedIssues={resolvedIssues} featuredIssue={resolvedFeatured} sort={sort} state={state} years={getMagazineArchiveYears(issues)} />
     <MagazineArchivePage
       counts={getMagazineArchiveCounts(issues)}

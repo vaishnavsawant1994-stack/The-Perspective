@@ -64,9 +64,24 @@ BEGIN
   ) AS expected(schema_name, table_name);
 
   SELECT count(*) INTO actual_count
-  FROM information_schema.tables
-  WHERE table_type = 'BASE TABLE'
-    AND table_schema IN ('crm','comms','commercial');
+  FROM information_schema.tables AS existing
+  JOIN (VALUES
+    ('crm','lead_sources'),('crm','extraction_jobs'),('crm','staged_records'),
+    ('crm','enrichment_jobs'),('crm','enrichment_facts'),('crm','companies'),
+    ('crm','contacts'),('crm','leads'),('crm','lead_scores'),('crm','lead_status_history'),
+    ('crm','lead_lists'),('crm','lead_list_members'),('crm','qualifications'),
+    ('crm','duplicate_candidates'),('crm','suppression_entries'),
+    ('comms','sending_accounts'),('comms','message_templates'),('comms','message_template_versions'),
+    ('comms','outreach_campaigns'),('comms','sequences'),('comms','sequence_steps'),
+    ('comms','campaign_recipients'),('comms','message_deliveries'),('comms','conversations'),
+    ('comms','conversation_participants'),('comms','messages'),('comms','meetings'),
+    ('comms','meeting_participants'),('comms','meeting_notes'),
+    ('commercial','deal_pipelines'),('commercial','deal_stages'),('commercial','deals'),
+    ('commercial','deal_stage_history'),('commercial','client_accounts'),('commercial','client_relationships')
+  ) AS expected(schema_name, table_name)
+    ON existing.table_schema = expected.schema_name
+   AND existing.table_name = expected.table_name
+  WHERE existing.table_type = 'BASE TABLE';
 
   IF actual_count <> expected_count THEN
     RAISE EXCEPTION
@@ -147,9 +162,24 @@ BEGIN
 
   -- Owner discriminator must be present on every R6 row/table.
   SELECT count(*) INTO actual_count
-  FROM information_schema.columns
-  WHERE table_schema IN ('crm','comms','commercial')
-    AND column_name = 'owner_organization_id';
+  FROM information_schema.columns AS existing
+  JOIN (VALUES
+    ('crm','lead_sources'),('crm','extraction_jobs'),('crm','staged_records'),
+    ('crm','enrichment_jobs'),('crm','enrichment_facts'),('crm','companies'),
+    ('crm','contacts'),('crm','leads'),('crm','lead_scores'),('crm','lead_status_history'),
+    ('crm','lead_lists'),('crm','lead_list_members'),('crm','qualifications'),
+    ('crm','duplicate_candidates'),('crm','suppression_entries'),
+    ('comms','sending_accounts'),('comms','message_templates'),('comms','message_template_versions'),
+    ('comms','outreach_campaigns'),('comms','sequences'),('comms','sequence_steps'),
+    ('comms','campaign_recipients'),('comms','message_deliveries'),('comms','conversations'),
+    ('comms','conversation_participants'),('comms','messages'),('comms','meetings'),
+    ('comms','meeting_participants'),('comms','meeting_notes'),
+    ('commercial','deal_pipelines'),('commercial','deal_stages'),('commercial','deals'),
+    ('commercial','deal_stage_history'),('commercial','client_accounts'),('commercial','client_relationships')
+  ) AS expected(schema_name, table_name)
+    ON existing.table_schema = expected.schema_name
+   AND existing.table_name = expected.table_name
+  WHERE existing.column_name = 'owner_organization_id';
 
   IF actual_count <> expected_count THEN
     RAISE EXCEPTION
@@ -157,26 +187,9 @@ BEGIN
       expected_count, actual_count;
   END IF;
 
-  -- R7-owned production surfaces must be absent.
-  FOR item IN
-    SELECT *
-    FROM (VALUES
-      ('commercial','products'),('commercial','packages'),
-      ('commercial','proposals'),('commercial','proposal_versions'),('commercial','proposal_acceptances'),
-      ('commercial','contracts'),('commercial','contract_versions'),('commercial','contract_signers'),
-      ('commercial','signature_events'),('commercial','invoices'),('commercial','invoice_lines'),
-      ('commercial','credit_notes'),('commercial','credit_note_lines'),('commercial','payments'),
-      ('commercial','payment_allocations'),('commercial','refunds'),
-      ('commercial','ledger_transactions'),('commercial','ledger_entries'),
-      ('commercial','subscriptions'),('commercial','entitlements')
-    ) AS forbidden(schema_name, table_name)
-  LOOP
-    IF to_regclass(format('%I.%I', item.schema_name, item.table_name)) IS NOT NULL THEN
-      RAISE EXCEPTION
-        'R6 verification failed: forbidden R7 table %.% exists',
-        item.schema_name, item.table_name;
-    END IF;
-  END LOOP;
+  -- Accepted R7 commercial tables are no longer a failure of this verifier.
+  -- The 35 named R6 tables above remain the R6 contract. Later phases add
+  -- their own tables; this check does not pretend the schema froze at R6.
 
   -- D15: template catalog is runtime read-only and privileged mutation is
   -- gated by explicit reviewed import mode.
