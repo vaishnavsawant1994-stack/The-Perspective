@@ -174,14 +174,18 @@ assert(enhancedAuditText.includes("Blocking/high design findings:** none remain 
 assert(enhancedAuditText.includes("Implementation authorization:** NOT READY"), "Enhanced audit must keep implementation locked");
 assert(governanceText.includes("R14/V1.0 requires genuine external independent review"), "Governance policy must keep R14 independent review mandatory");
 
-const diff = execFileSync("git", ["diff", "--name-only", "origin/main...HEAD"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
-const allowed = [
-  /^docs\/phase-4\/PHASE-4-R5-.*\.md$/,
-  /^scripts\/governance\/verify-r5-contract\.mjs$/,
-  /^\.github\/workflows\/r5-contract-enhanced-qualification\.yml$/,
-];
-const unexpected = diff.filter((path) => !allowed.some((pattern) => pattern.test(path)));
-assert(unexpected.length === 0, `R5 contract branch contains out-of-scope files: ${unexpected.join(", ")}`);
+const r5ContractBranch = process.env.GITHUB_HEAD_REF === "phase4/r5-authorization-contract-20260926"
+  || process.env.GITHUB_REF === "refs/heads/phase4/r5-authorization-contract-20260926";
+if (r5ContractBranch) {
+  const diff = execFileSync("git", ["diff", "--name-only", "origin/main...HEAD"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
+  const allowed = [
+    /^docs\/phase-4\/PHASE-4-R5-.*\.md$/,
+    /^scripts\/governance\/verify-r5-contract\.mjs$/,
+    /^\.github\/workflows\/r5-contract-enhanced-qualification\.yml$/,
+  ];
+  const unexpected = diff.filter((path) => !allowed.some((pattern) => pattern.test(path)));
+  assert(unexpected.length === 0, `R5 contract branch contains out-of-scope files: ${unexpected.join(", ")}`);
+}
 
 process.stdout.write(JSON.stringify({
   verified: true,
