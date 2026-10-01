@@ -33,7 +33,7 @@ export async function POST(
   try {
     const subject = await loadR7InvoiceCommandSubject(resolved.context, invoiceId);
     if (!subject) {
-      console.error("invoice.issue 404 subject");
+      console.error("invoice.issue gate", { gate: "subject" });
       return authorizationProblem(404, "AUTHZ_NOT_FOUND");
     }
     const now = new Date();
@@ -58,7 +58,9 @@ export async function POST(
       concealResource: true,
     });
     if (authorization.kind === "response") {
-      console.error("invoice.issue 404 auth", authorization.decision.reasonCode, {
+      console.error("invoice.issue gate", {
+        gate: "auth",
+        reason: authorization.decision?.reasonCode,
         version: subject.resource.version,
         expected: input.expectedRowVersion,
         evidence: subject.financialEvidencePresent,
@@ -77,7 +79,7 @@ export async function POST(
       idempotencyKey,
     });
     if (result.kind === "error") {
-      if (result.code === "NOT_FOUND") console.error("invoice.issue 404 domain");
+      console.error("invoice.issue gate", { gate: "domain", code: result.code, expected: input.expectedRowVersion });
       return result.code === "NOT_FOUND"
         ? authorizationProblem(404, "AUTHZ_NOT_FOUND")
         : r7CommandError(result.code);
