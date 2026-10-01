@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { PersonalMagazineCollectionPage } from "@/components/personal-magazine/personal-magazine-collection-page";
 import { PersonalMagazinesRedesign } from "@/components/personal-magazine/personal-magazines-redesign";
 import { PersonalMagazineDiscoveryRedesign } from "@/components/personal-magazine/personal-magazine-discovery-redesign";
+import { PublishedShelfIndex } from "@/components/magazine/published/published-projection";
 import { siteConfig } from "@/config/site";
 import { getFeaturedPersonalMagazines, getSelectedPersonalMagazineStories, validatePersonalMagazineListing } from "@/lib/personal-magazine-listing";
 import { createPersonalMagazineListingStructuredData } from "@/lib/personal-magazine-listing-structured-data";
 import { getResolvedPersonalMagazineSummaries, searchPersonalMagazines, validatePersonalMagazineData } from "@/lib/personal-magazines";
 import { getSearchDisplayQuery, normalizeSearchQuery, readSearchParameter } from "@/lib/search-query";
+import { publishedShelves } from "@/modules/r9/projection";
 
 type PersonalMagazinePageProps = {
   searchParams: Promise<{ q?: string | string[] }>;
@@ -28,6 +30,8 @@ export async function generateMetadata({ searchParams }: PersonalMagazinePagePro
   };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function PersonalMagazinesRoute({ searchParams }: PersonalMagazinePageProps) {
   const parameters = await searchParams;
   const rawQuery = readSearchParameter(parameters.q);
@@ -38,9 +42,11 @@ export default async function PersonalMagazinesRoute({ searchParams }: PersonalM
   const validationErrors = [...validatePersonalMagazineData(), ...validatePersonalMagazineListing()];
   if (validationErrors.length > 0) throw new Error(`Invalid Personal Magazine collection data:\n${validationErrors.join("\n")}`);
   const structuredData = createPersonalMagazineListingStructuredData(allEditions, description);
+  const shelves = await publishedShelves();
 
   return <>
     <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+    <PublishedShelfIndex shelves={shelves} />
     <PersonalMagazineDiscoveryRedesign editions={allEditions} />
     <PersonalMagazinesRedesign editions={allEditions} />
     <PersonalMagazineCollectionPage featured={featured} query={query} results={results} selectedStories={getSelectedPersonalMagazineStories()} totalCount={allEditions.length} />
