@@ -24,6 +24,14 @@ export class CommercialTenantBoundaryError extends Error {
   }
 }
 
+export class ClientAcceptanceBoundaryError extends Error {
+  readonly code = "CLIENT_REQUIRED";
+
+  constructor() {
+    super("R7 proposal acceptance requires an authenticated selected CLIENT membership.");
+  }
+}
+
 export function newCommercialId() {
   return randomUUID();
 }
@@ -44,6 +52,42 @@ export async function withCommercialTenantTransaction<T>(
         SELECT
           set_config('app.organization_id', ${context.tenant.organizationId}, true),
           set_config('app.client_organization_id', '', true)
+      `;
+      return operation(transaction);
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+}
+
+/**
+ * Runs only the customer-owned acceptance command under the selected CLIENT
+ * database context. The SECURITY DEFINER acceptance function revalidates the
+ * membership and proposal relationship while holding the transaction locks.
+ */
+export async function withClientAcceptanceTransaction<T>(
+  context: AuthorizedRequestContext,
+  ownerOrganizationId: string,
+  operation: (transaction: CommercialTransaction) => Promise<T>,
+  database: PrismaClient = getPrismaClient(),
+) {
+  if (
+    context.authentication !== "authenticated" ||
+    context.tenant.surface !== "CLIENT" ||
+    context.membership.surface !== "CLIENT" ||
+    context.membership.membershipId !== context.tenant.membershipId ||
+    context.membership.organizationId !== context.tenant.organizationId ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(ownerOrganizationId)
+  ) {
+    throw new ClientAcceptanceBoundaryError();
+  }
+
+  return database.$transaction(
+    async (transaction) => {
+      await transaction.$executeRawUnsafe(`SET LOCAL ROLE ${RUNTIME_ROLE}`);
+      await transaction.$queryRaw`
+        SELECT
+          set_config('app.organization_id', ${ownerOrganizationId}, true),
+          set_config('app.client_organization_id', ${context.tenant.organizationId}, true)
       `;
       return operation(transaction);
     },

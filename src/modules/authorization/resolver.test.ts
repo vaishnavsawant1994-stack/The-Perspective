@@ -349,3 +349,87 @@ describe("R5 effective authority resolution", () => {
     ]);
   });
 });
+
+describe("R7 permission membership resolution", () => {
+  const input = {
+    userAccountId: "user-1",
+    membershipId: "membership-1",
+    organizationId: "org-1",
+    surface: "TEAM" as const,
+  };
+
+  function r7State(overrides: Partial<PersistedAuthorityState> = {}) {
+    const membershipRole = baseState().membershipRoles[0];
+    return baseState({
+      membershipRoles: [
+        {
+          ...membershipRole,
+          scope: "ORG",
+          role: {
+            ...membershipRole.role,
+            rolePermissions: [
+              {
+                effect: "ALLOW",
+                constraints: {},
+                permission: { key: "invoice.issue" },
+              },
+            ],
+          },
+        },
+      ],
+      ...overrides,
+    });
+  }
+
+  it("resolves an R7 permission only for an active membership and current role grant", () => {
+    const active = resolveAuthorityFromState(input, r7State(), now);
+    expect(active.kind).toBe("resolved");
+    if (active.kind !== "resolved") throw new Error("Expected resolved authority");
+    expect([...active.authority.permissionKeys]).toEqual(["invoice.issue"]);
+
+    for (const membershipStatus of ["INACTIVE", "REVOKED"]) {
+      expect(
+        resolveAuthorityFromState(
+          input,
+          r7State({ membershipStatus }),
+          now,
+        ),
+      ).toMatchObject({
+        kind: "denied",
+        reasonCode: "MEMBERSHIP_INACTIVE",
+      });
+    }
+
+    const expiredRole = baseState().membershipRoles[0];
+    const expired = resolveAuthorityFromState(
+      input,
+      r7State({
+        membershipRoles: [
+          {
+            ...expiredRole,
+            scope: "ORG",
+            validUntil: new Date("2026-09-27T04:00:00.000Z"),
+            role: {
+              ...expiredRole.role,
+              rolePermissions: [
+                {
+                  effect: "ALLOW",
+                  constraints: {},
+                  permission: { key: "invoice.issue" },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+      now,
+    );
+    expect(expired.kind).toBe("resolved");
+    if (expired.kind !== "resolved") throw new Error("Expected resolved authority");
+    expect([...expired.authority.permissionKeys]).toEqual([]);
+    expect(expired.authority.grantPaths).toEqual([]);
+    expect(expired.authority.issues).toEqual([
+      expect.objectContaining({ code: "GRANT_NOT_ACTIVE" }),
+    ]);
+  });
+});

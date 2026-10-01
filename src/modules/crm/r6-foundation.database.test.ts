@@ -78,7 +78,7 @@ afterAll(async () => {
 });
 
 describe("R6 PostgreSQL CRM/commercial foundation", () => {
-  it("preserves the restricted R4 runtime role and excludes R7 tables", async () => {
+  it("preserves the restricted runtime role across the authorized R7 persistence boundary", async () => {
     const role = await client.query<{
       rolcanlogin: boolean;
       rolsuper: boolean;
@@ -115,21 +115,24 @@ describe("R6 PostgreSQL CRM/commercial foundation", () => {
     const excluded = await client.query<{
       proposals: string | null;
       contracts: string | null;
+      contractRuntimeSelect: boolean;
       invoices: string | null;
       payments: string | null;
     }>(`
       SELECT
         to_regclass('commercial.proposals')::text AS proposals,
         to_regclass('commercial.contracts')::text AS contracts,
+        has_table_privilege('perspective_runtime', 'commercial.contracts', 'SELECT') AS "contractRuntimeSelect",
         to_regclass('commercial.invoices')::text AS invoices,
         to_regclass('commercial.payments')::text AS payments
     `);
 
     expect(excluded.rows[0]).toEqual({
-      proposals: null,
-      contracts: null,
-      invoices: null,
-      payments: null,
+      proposals: "commercial.proposals",
+      contracts: "commercial.contracts",
+      contractRuntimeSelect: false,
+      invoices: "commercial.invoices",
+      payments: "commercial.payments",
     });
   });
 

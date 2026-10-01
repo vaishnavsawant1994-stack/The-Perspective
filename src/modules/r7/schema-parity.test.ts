@@ -1,0 +1,160 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+import { Prisma } from "@/generated/prisma/client";
+
+const TABLES = [
+  "products",
+  "proposals",
+  "proposal_versions",
+  "proposal_lines",
+  "invoices",
+  "payments",
+  "ledger_entries",
+  "subscriptions",
+  "entitlements",
+] as const;
+
+describe("R7 schema/migration parity", () => {
+  const migration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20260928213000_r7_finance_foundation/migration.sql"),
+    "utf8",
+  );
+  const models = readFileSync(join(process.cwd(), "prisma/r7-models.prisma"), "utf8");
+  const contractMigration = readFileSync(join(process.cwd(), "prisma/migrations/20260929183000_r7_contract_signing_foundation/migration.sql"), "utf8");
+  const acceptanceMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20260929170000_r7_proposal_acceptance/migration.sql"),
+    "utf8",
+  );
+  const reconciliationMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20260930132000_r7_signature_reconciliation/migration.sql"),
+    "utf8",
+  );
+  const signatureRequestMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20260930143000_r7_signature_request_open/migration.sql"),
+    "utf8",
+  );
+  const terminalRetryMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20260930160000_r7_signature_request_terminal_retry/migration.sql"),
+    "utf8",
+  );
+  const invoiceDraftMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20261001120000_r7_invoice_draft_issue/migration.sql"),
+    "utf8",
+  );
+  const paymentMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20261001143000_r7_payment_reconciliation/migration.sql"),
+    "utf8",
+  );
+
+  it("creates exactly the authorized finance tables", () => {
+    for (const table of TABLES) {
+      expect(migration).toContain(`\"commercial\".\"${table}\"`);
+      expect(models).toContain(`@@map("${table}")`);
+    }
+    expect(migration).not.toContain("editorial_works");
+    for (const table of ["contracts", "contract_versions", "contract_signers", "signature_requests", "signature_events"]) {
+      expect(contractMigration).toContain(`commercial.${table}`);
+      expect(models).toContain(`@@map("${table}")`);
+    }
+    expect(models).not.toContain("EditorialWork");
+    expect(models).not.toContain("CommercialPackage");
+  });
+
+  it("exposes authorized models on the generated Prisma client", () => {
+    expect(Prisma.ModelName.CommercialProduct).toBe("CommercialProduct");
+    expect(Prisma.ModelName.CommercialProposal).toBe("CommercialProposal");
+    expect(Prisma.ModelName.CommercialProposalVersion).toBe(
+      "CommercialProposalVersion",
+    );
+    expect(Prisma.ModelName.CommercialProposalLine).toBe("CommercialProposalLine");
+    expect(Prisma.ModelName.CommercialProposalAcceptanceEvidence).toBe("CommercialProposalAcceptanceEvidence");
+    expect(Prisma.ModelName.CommercialInvoice).toBe("CommercialInvoice");
+    expect(Prisma.ModelName.CommercialPayment).toBe("CommercialPayment");
+    expect(Prisma.ModelName.CommercialLedgerEntry).toBe("CommercialLedgerEntry");
+    expect(Prisma.ModelName.CommercialSubscription).toBe(
+      "CommercialSubscription",
+    );
+    expect(Prisma.ModelName.CommercialEntitlement).toBe("CommercialEntitlement");
+    expect(Prisma.ModelName.CommercialContract).toBe("CommercialContract");
+    expect(Prisma.ModelName.CommercialContractVersion).toBe("CommercialContractVersion");
+    expect(Prisma.ModelName.CommercialContractSigner).toBe("CommercialContractSigner");
+    expect(Prisma.ModelName.CommercialSignatureRequest).toBe("CommercialSignatureRequest");
+    expect(Prisma.ModelName.CommercialSignatureEvent).toBe("CommercialSignatureEvent");
+    expect(contractMigration).toContain("ENABLE ROW LEVEL SECURITY");
+    expect(contractMigration).toContain("FORCE ROW LEVEL SECURITY");
+    expect(contractMigration).toContain("signature_events_provider_event");
+    expect(contractMigration).toContain("signature_events_immutable");
+    expect(contractMigration).toContain("contract_versions_lifecycle_guard");
+    expect(contractMigration).toContain("guard_r7_contract_version_mutation");
+    expect(contractMigration).toContain("AS $r7_contract_version$");
+    expect(contractMigration).toContain("$r7_contract_version$;");
+    expect(contractMigration).toContain("REVOKE ALL ON commercial.contracts");
+    expect(contractMigration).not.toContain("CREATE TRIGGER contract_versions_immutable");
+    expect(contractMigration).toContain("document_sha256");
+    expect(contractMigration).toContain("contract_versions_immutable");
+    expect(contractMigration).toContain("signed_at evidence is immutable");
+    expect("CommercialPackage" in Prisma.ModelName).toBe(false);
+    expect(reconciliationMigration).toContain("platform.reconcile_r7_signature_event");
+    expect(reconciliationMigration).toContain("REVOKE ALL ON FUNCTION platform.reconcile_r7_signature_event");
+    expect(reconciliationMigration).toContain("GRANT EXECUTE ON FUNCTION platform.reconcile_r7_signature_event");
+    expect(reconciliationMigration).toContain("evidence conflict");
+    expect(reconciliationMigration).not.toContain("3971bf1");
+    expect(signatureRequestMigration).toContain("platform.reserve_r7_signature_request");
+    expect(signatureRequestMigration).toContain("platform.complete_r7_signature_request");
+    expect(signatureRequestMigration).toContain("REVOKE ALL ON FUNCTION platform.reserve_r7_signature_request");
+    expect(signatureRequestMigration).toContain("GRANT EXECUTE ON FUNCTION platform.complete_r7_signature_request");
+    expect(signatureRequestMigration).not.toContain("status = 'SIGNED'");
+    expect(terminalRetryMigration).toContain("not an ambiguous delivery");
+    expect(terminalRetryMigration).toContain("IF v_existing_status = 'REQUESTED' THEN");
+    expect(terminalRetryMigration).toContain("'code', 'INELIGIBLE'");
+    expect(terminalRetryMigration).not.toContain("status = 'SIGNED'");
+    expect(terminalRetryMigration).toContain("GRANT EXECUTE ON FUNCTION platform.reserve_r7_signature_request");
+    expect(invoiceDraftMigration).toContain("platform.create_r7_invoice_draft");
+    expect(invoiceDraftMigration).toContain("platform.issue_r7_invoice");
+    expect(invoiceDraftMigration).toContain("CREATE TABLE commercial.invoice_lines");
+    expect(invoiceDraftMigration).toContain("REVOKE INSERT, UPDATE ON commercial.invoices FROM perspective_runtime");
+    expect(invoiceDraftMigration).toContain("GRANT EXECUTE ON FUNCTION platform.issue_r7_invoice");
+    expect(invoiceDraftMigration).toContain("There is no invoice.finalize key");
+    expect(invoiceDraftMigration).not.toContain("p_total");
+    expect(invoiceDraftMigration).not.toContain("p_currency");
+    expect(invoiceDraftMigration).not.toContain("p_proposal");
+    expect(models).toContain('@@map("invoice_lines")');
+    expect(Prisma.ModelName.CommercialInvoiceLine).toBe("CommercialInvoiceLine");
+    expect(paymentMigration).toContain("platform.reconcile_r7_payment_event");
+    expect(paymentMigration).toContain("OVER_ALLOCATION");
+    expect(paymentMigration).toContain("R7 payment provider truth is server-owned");
+    expect(paymentMigration).toContain("REVOKE INSERT ON commercial.ledger_entries FROM perspective_runtime");
+    expect(paymentMigration).toContain("GRANT EXECUTE ON FUNCTION platform.reconcile_r7_payment_event");
+    expect(models).toContain("event_hash");
+    const invoiceSendMigration = readFileSync(
+      join(process.cwd(), "prisma/migrations/20261001153000_r7_invoice_send/migration.sql"),
+      "utf8",
+    );
+    expect(invoiceSendMigration).toContain("platform.send_r7_invoice");
+    expect(invoiceSendMigration).toContain("r7.invoice.send.requested");
+    expect(invoiceSendMigration).toContain("GRANT EXECUTE ON FUNCTION platform.send_r7_invoice");
+    expect(invoiceSendMigration).not.toContain("allocated_minor =");
+  });
+
+  it("adds only the owner-authorized immutable customer acceptance evidence model", () => {
+    expect(acceptanceMigration).toContain("CREATE TABLE commercial.proposal_acceptances");
+    expect(acceptanceMigration).toContain("ENABLE ROW LEVEL SECURITY");
+    expect(acceptanceMigration).toContain("FORCE ROW LEVEL SECURITY");
+    expect(acceptanceMigration).toContain("CREATE OR REPLACE FUNCTION platform.complete_r7_proposal_acceptance");
+    expect(acceptanceMigration).toContain("proposal_acceptances_immutable");
+    expect(models).toContain('@@map("proposal_acceptances")');
+    expect(acceptanceMigration).not.toContain("commercial.contracts");
+    expect(acceptanceMigration).not.toContain("commercial.packages");
+  });
+
+  it("keeps money as integer minor units and explicit currency", () => {
+    expect(models).toContain("unitAmountMinor     BigInt");
+    expect(models).toContain("totalMinor          BigInt");
+    expect(models).toContain("@db.Char(3)");
+    expect(models).not.toContain("Float");
+    expect(migration).toContain("unit_amount_minor\" BIGINT");
+    expect(migration).toContain("ENABLE ROW LEVEL SECURITY");
+  });
+});

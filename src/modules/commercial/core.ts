@@ -534,7 +534,7 @@ export async function createDeal(
   );
   if (
     first.kind === "error" &&
-    first.code === "CONFLICT" &&
+    (first.code === "CONFLICT" || first.code === "STALE_WRITE") &&
     input.sourceLeadId
   ) {
     return run(
