@@ -32,7 +32,10 @@ export async function POST(
 
   try {
     const subject = await loadR7InvoiceCommandSubject(resolved.context, invoiceId);
-    if (!subject) return authorizationProblem(404, "AUTHZ_NOT_FOUND");
+    if (!subject) {
+      console.error("invoice.issue 404 subject");
+      return authorizationProblem(404, "AUTHZ_NOT_FOUND");
+    }
     const now = new Date();
     const exactVersionMatches = subject.resource.version === input.expectedRowVersion;
     const lifecycleCanIssue = subject.resource.lifecycleState === "DRAFT";
@@ -54,7 +57,16 @@ export async function POST(
       },
       concealResource: true,
     });
-    if (authorization.kind === "response") return authorization.response;
+    if (authorization.kind === "response") {
+      console.error("invoice.issue 404 auth", authorization.decision.reasonCode, {
+        version: subject.resource.version,
+        expected: input.expectedRowVersion,
+        evidence: subject.financialEvidencePresent,
+        separationOfDuty: subject.separationOfDutySatisfied,
+        lifecycle: subject.resource.lifecycleState,
+      });
+      return authorization.response;
+    }
     if (!subject.financialEvidencePresent) return r7CommandError("INELIGIBLE");
     if (!lifecycleCanIssue) return r7CommandError("TRANSITION_DENIED");
     if (!exactVersionMatches) return r7CommandError("STALE_WRITE");
@@ -65,6 +77,7 @@ export async function POST(
       idempotencyKey,
     });
     if (result.kind === "error") {
+      if (result.code === "NOT_FOUND") console.error("invoice.issue 404 domain");
       return result.code === "NOT_FOUND"
         ? authorizationProblem(404, "AUTHZ_NOT_FOUND")
         : r7CommandError(result.code);
