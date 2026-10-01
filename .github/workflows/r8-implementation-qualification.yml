@@ -1,0 +1,143 @@
+name: R8 Implementation Qualification
+
+on:
+  push:
+    branches:
+      - phase4/r8-g0-editorial-production-freeze-20261001
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r8-implementation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: perspective
+          POSTGRES_PASSWORD: perspective
+          POSTGRES_DB: perspective_r8
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U perspective -d perspective_r8"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://perspective:perspective@localhost:5432/perspective_r8
+      SHADOW_DATABASE_URL: postgresql://perspective:perspective@localhost:5432/perspective_r8_shadow
+      PERSPECTIVE_AUTH_BOUNDARY_MODE: sessions
+      PERSPECTIVE_PUBLIC_APP_ORIGIN: http://localhost:3100
+      PERSPECTIVE_AUTH_DATA_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      PERSPECTIVE_AUTH_KEY_VERSION: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate and generate Prisma
+        run: |
+          npm run db:validate
+          npm run db:generate
+
+      - name: Create isolated shadow database
+        run: psql postgresql://perspective:perspective@localhost:5432/postgres -c "CREATE DATABASE perspective_r8_shadow"
+
+      - name: Apply R2-R8 migrations
+        run: |
+          npm run db:migrate:deploy
+          npm run db:migrate:status
+          npm run db:drift
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Seed deterministic inherited fixtures
+        env:
+          PERSPECTIVE_ALLOW_DEMO_SEED: "true"
+        run: |
+          npm run db:seed
+          npm run db:seed:assert
+
+      - name: Run R8 production live test
+        run: |
+          set +e
+          npx vitest run --reporter=verbose --config vitest.database.config.mts src/modules/r8/r8-production.database.test.ts > /tmp/r8-production-vitest.log 2>&1
+          TEST_EXIT=$?
+          echo "===== VITEST ISOLATED R8 OUTPUT ====="
+          cat /tmp/r8-production-vitest.log
+          exit "$TEST_EXIT"
+
+      - name: Run live PostgreSQL tests
+        run: |
+          set +e
+          npx vitest run --reporter=verbose --config vitest.database.config.mts > /tmp/r8-full-db-vitest.log 2>&1
+          TEST_EXIT=$?
+          echo "===== VITEST FULL DB OUTPUT ====="
+          cat /tmp/r8-full-db-vitest.log
+          exit "$TEST_EXIT"
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: |
+          set +e
+          npm run typecheck > /tmp/r8-typecheck.log 2>&1
+          TEST_EXIT=$?
+          echo "===== TYPECHECK OUTPUT ====="
+          cat /tmp/r8-typecheck.log
+          exit "$TEST_EXIT"
+
+      - name: Production build
+        run: npm run build
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r8-qualify-logs-${{ github.sha }}
+          path: |
+            /tmp/r8-production-vitest.log
+            /tmp/r8-full-db-vitest.log
+            /tmp/r8-typecheck.log
+          if-no-files-found: warn
+
+      - name: Print first TypeScript failure
+        if: failure()
+        run: |
+          echo "===== FIRST TSC FAILURE ====="
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("/tmp/r8-typecheck.log")
+          if not p.exists():
+              print("missing /tmp/r8-typecheck.log")
+              raise SystemExit(0)
+          text = p.read_text(errors="replace")
+          idx = text.find("error TS")
+          if idx < 0:
+              print(text[-4000:])
+          else:
+              print(text[max(0, idx - 200): idx + 2500])
+          PY
