@@ -295,3 +295,126 @@ export function buildProspectiveR7ProposalResource(
     version: 1,
   };
 }
+
+/** Server-built policy context for creating a TEAM invoice. The caller does not supply the owner. */
+export function buildProspectiveR7InvoiceResource(
+  context: CommercialContext,
+): AuthorizationResourceContext | null {
+  if (
+    context.authentication !== "authenticated" ||
+    context.membership.surface !== "TEAM" ||
+    context.tenant.surface !== "TEAM" ||
+    context.membership.membershipId !== context.tenant.membershipId ||
+    context.membership.organizationId !== context.tenant.organizationId
+  ) {
+    return null;
+  }
+
+  return {
+    resourceType: "invoice",
+    ownerOrganizationId: context.tenant.organizationId,
+    visibility: "INTERNAL",
+    sensitivity: "FINANCIAL",
+    lifecycleState: "DRAFT",
+    version: 1,
+  };
+}
+
+export interface R7InvoiceCommandSubject {
+  readonly resource: AuthorizationResourceContext;
+  readonly financialEvidencePresent: boolean;
+  readonly separationOfDutySatisfied: boolean;
+}
+
+type InvoiceCommandRow = R7ResourceRow & {
+  readonly currency: string;
+  readonly subtotal_minor: bigint | number | string | null;
+  readonly tax_minor: bigint | number | string | null;
+  readonly total_minor: bigint | number | string;
+  readonly source_contract_version_id: string | null;
+  readonly line_count: number | bigint | string;
+};
+
+function minor(value: bigint | number | string | null | undefined) {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number" && Number.isSafeInteger(value)) return BigInt(value);
+  if (typeof value === "string" && /^-?\d+$/u.test(value)) return BigInt(value);
+  return null;
+}
+
+/**
+ * Financial evidence is the stored signed-source snapshot, never a caller total.
+ * The qualified invoice has no creator membership, and proposal_id stays null.
+ * Separation of duty is the selected TEAM membership of that owner. The caller
+ * cannot supply the flag, and contract rows stay unreadable to perspective_runtime.
+ */
+export function invoiceCommandFacts(
+  context: CommercialContext,
+  row: InvoiceCommandRow,
+): Pick<R7InvoiceCommandSubject, "financialEvidencePresent" | "separationOfDutySatisfied"> | null {
+  const subtotal = minor(row.subtotal_minor);
+  const tax = minor(row.tax_minor);
+  const total = minor(row.total_minor);
+  const lineCount = minor(row.line_count);
+  const currency = row.currency.trim();
+  const financialEvidencePresent = Boolean(
+    row.source_contract_version_id
+    && /^[A-Z]{3}$/u.test(currency)
+    && subtotal !== null
+    && tax !== null
+    && total !== null
+    && lineCount !== null
+    && lineCount >= BigInt(1)
+    && total === subtotal + tax,
+  );
+  if (
+    context.authentication !== "authenticated"
+    || context.membership.surface !== "TEAM"
+    || context.tenant.surface !== "TEAM"
+    || context.membership.membershipId !== context.tenant.membershipId
+    || context.membership.organizationId !== context.tenant.organizationId
+    || context.tenant.organizationId !== row.owner_organization_id
+  ) {
+    return null;
+  }
+  return { financialEvidencePresent, separationOfDutySatisfied: true };
+}
+
+export async function loadR7InvoiceCommandSubject(
+  context: CommercialContext,
+  invoiceId: string,
+  database: PrismaClient = getPrismaClient(),
+): Promise<R7InvoiceCommandSubject | null> {
+  const row = await withCommercialTenantTransaction(
+    context,
+    async (transaction) => {
+      const rows = await transaction.$queryRawUnsafe<InvoiceCommandRow[]>(
+        `SELECT invoice.id, invoice.resource_id, invoice.owner_organization_id,
+                invoice.status, invoice.row_version, invoice.currency,
+                invoice.subtotal_minor, invoice.tax_minor, invoice.total_minor,
+                invoice.source_contract_version_id,
+                (SELECT count(*)::int FROM commercial.invoice_lines AS line
+                  WHERE line.invoice_id = invoice.id
+                    AND line.owner_organization_id = invoice.owner_organization_id) AS line_count
+           FROM commercial.invoices AS invoice
+          WHERE invoice.id = $1::uuid
+            AND invoice.owner_organization_id = $2::uuid
+            AND invoice.archived_at IS NULL`,
+        invoiceId,
+        context.tenant.organizationId,
+      );
+      return rows[0] ?? null;
+    },
+    database,
+  );
+  if (!row || !Number.isSafeInteger(Number(row.row_version))) return null;
+  const facts = invoiceCommandFacts(context, row);
+  if (!facts) return null;
+  return {
+    resource: resourceContext(
+      { ...row, row_version: Number(row.row_version) },
+      "invoice",
+    ),
+    ...facts,
+  };
+}

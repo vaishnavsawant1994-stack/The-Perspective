@@ -264,6 +264,46 @@ function resource(
     expect(currencyEdit.decision).toBe("DENY");
   });
 
+  it("lets invoice creation name only the contract-version correlation", () => {
+    const correlation = ["contractId", "expectedContractVersionId", "expectedContractVersion"];
+    expect(
+      evaluateAuthorization(
+        context([grant("invoice.edit")]),
+        "invoice.edit",
+        resource("invoice"),
+        { action: "create", requestedFields: correlation },
+      ).decision,
+    ).toBe("ALLOW");
+
+    for (const field of [
+      "currency",
+      "subtotalMinor",
+      "taxMinor",
+      "totalMinor",
+      "status",
+      "sourceContractVersionId",
+      "ownerOrganizationId",
+    ]) {
+      expect(
+        evaluateAuthorization(
+          context([grant("invoice.edit")]),
+          "invoice.edit",
+          resource("invoice"),
+          { action: "create", requestedFields: [field] },
+        ),
+      ).toMatchObject({ decision: "DENY", reasonCode: "FIELD_DENIED" });
+    }
+
+    expect(
+      evaluateAuthorization(
+        context([grant("invoice.edit")]),
+        "invoice.edit",
+        resource("invoice"),
+        { action: "update", requestedFields: ["contractId"] },
+      ),
+    ).toMatchObject({ decision: "DENY", reasonCode: "FIELD_DENIED" });
+  });
+
   it.each(ACTIVE_R7_CASES)(
     "evaluates active R7 permission $permissionKey end to end and denies without its grant",
     ({ permissionKey, resourceType, command, surface, scope }) => {

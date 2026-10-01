@@ -154,6 +154,13 @@ export const R7_FIELD_POLICIES: Partial<
       "taxMinor",
       "sourceContractVersionId",
     ],
+    // Draft creation may name only the contract-version correlation. The domain
+    // resolves source, currency, lines, and totals. No invoice field is mutable.
+    createOnlyFields: [
+      "contractId",
+      "expectedContractVersionId",
+      "expectedContractVersion",
+    ],
   },
   payment: financeFieldPolicy(
     ["id", "status", "currency", "amountMinor", "provider"],

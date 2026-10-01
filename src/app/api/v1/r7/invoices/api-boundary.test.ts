@@ -9,21 +9,39 @@ function routeFiles(directory: string): string[] {
     return entry.isDirectory()
       ? routeFiles(path)
       : entry.name === "route.ts"
-        ? [relative(invoiceApiRoot, path).replaceAll("\\\\", "/")]
+        ? [relative(invoiceApiRoot, path).replaceAll("\\", "/")]
         : [];
   }).sort();
 }
 
 describe("R7 Invoice API boundary", () => {
-  it("exposes only tenant-scoped reads until mutation contracts are implemented", () => {
-    expect(routeFiles(invoiceApiRoot)).toEqual(["[invoiceId]/route.ts", "route.ts"]);
+  it("exposes qualified reads plus draft create and invoice.issue only", () => {
+    expect(routeFiles(invoiceApiRoot)).toEqual([
+      "[invoiceId]/issue/route.ts",
+      "[invoiceId]/route.ts",
+      "route.ts",
+    ]);
     const collection = readFileSync(join(invoiceApiRoot, "route.ts"), "utf8");
     const detail = readFileSync(join(invoiceApiRoot, "[invoiceId]/route.ts"), "utf8");
-    for (const route of [collection, detail]) {
-      expect(route).toMatch(/export async function GET/u);
-      expect(route).not.toMatch(/export async function (POST|PATCH|PUT|DELETE)/u);
-      expect(route).toContain("resolveR7TeamRequest");
-      expect(route).toContain("AuthorizedInvoice");
+    const issue = readFileSync(join(invoiceApiRoot, "[invoiceId]/issue/route.ts"), "utf8");
+    expect(collection).toMatch(/export async function GET/u);
+    expect(collection).toMatch(/export async function POST/u);
+    expect(collection).not.toMatch(/export async function (PATCH|PUT|DELETE)/u);
+    expect(collection).toContain("createInvoiceDraft");
+    expect(collection).toContain("invoice.edit");
+    expect(collection).not.toContain("issueInvoice");
+    expect(detail).toMatch(/export async function GET/u);
+    expect(detail).not.toMatch(/export async function (POST|PATCH|PUT|DELETE)/u);
+    expect(issue).toMatch(/export async function POST/u);
+    expect(issue).not.toMatch(/export async function (GET|PATCH|PUT|DELETE)/u);
+    expect(issue).toContain("issueInvoice");
+    expect(issue).toContain('permissionKey: "invoice.issue"');
+    expect(issue).toContain('action: "issue"');
+    expect(issue).not.toMatch(/action:\s*"finalize"/u);
+    expect(issue).not.toContain("invoice.send");
+    for (const route of [collection, detail, issue]) {
+      expect(route).not.toContain("addInvoiceLine");
+      expect(route).not.toContain("payment.");
     }
   });
 });
