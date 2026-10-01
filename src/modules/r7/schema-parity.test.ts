@@ -128,6 +128,14 @@ describe("R7 schema/migration parity", () => {
     expect(paymentMigration).toContain("REVOKE INSERT ON commercial.ledger_entries FROM perspective_runtime");
     expect(paymentMigration).toContain("GRANT EXECUTE ON FUNCTION platform.reconcile_r7_payment_event");
     expect(models).toContain("event_hash");
+    const invoiceSendMigration = readFileSync(
+      join(process.cwd(), "prisma/migrations/20261001153000_r7_invoice_send/migration.sql"),
+      "utf8",
+    );
+    expect(invoiceSendMigration).toContain("platform.send_r7_invoice");
+    expect(invoiceSendMigration).toContain("r7.invoice.send.requested");
+    expect(invoiceSendMigration).toContain("GRANT EXECUTE ON FUNCTION platform.send_r7_invoice");
+    expect(invoiceSendMigration).not.toContain("allocated_minor =");
   });
 
   it("adds only the owner-authorized immutable customer acceptance evidence model", () => {

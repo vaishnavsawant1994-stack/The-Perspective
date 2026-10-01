@@ -363,3 +363,107 @@ export async function getAuthorizedInvoice(
   );
   return row ? authorizedInvoiceSummary(context, row, "view") : null;
 }
+
+type PaymentRow = {
+  readonly id: string;
+  readonly owner_organization_id: string;
+  readonly status: string;
+  readonly currency: string;
+  readonly amount_minor: bigint;
+  readonly provider: string;
+  readonly updated_at: Date;
+};
+
+const PAYMENT_READ_FIELDS = ["id", "status", "currency", "amountMinor", "provider"] as const;
+
+function paymentSummary(
+  context: AuthorizedRequestContext,
+  row: PaymentRow,
+  action: "list" | "view",
+) {
+  const currency = row.currency.trim();
+  const evidence = /^[A-Z]{3}$/u.test(currency) && row.amount_minor >= BigInt(0);
+  const aligned = context.membership.organizationId === row.owner_organization_id
+    && context.membership.membershipId === context.tenant.membershipId;
+  const decision = evaluateAuthorization(
+    context,
+    "payment.view",
+    {
+      resourceId: row.id,
+      resourceType: "payment",
+      ownerOrganizationId: row.owner_organization_id,
+      clientOrganizationId: null,
+      visibility: "INTERNAL",
+      sensitivity: "FINANCIAL",
+      lifecycleState: row.status,
+      version: row.updated_at.toISOString(),
+    },
+    {
+      action,
+      requestedFields: [...PAYMENT_READ_FIELDS],
+      workflowSatisfied: evidence,
+      financialEvidencePresent: evidence,
+      separationOfDutySatisfied: aligned,
+    },
+  );
+  if (decision.decision !== "ALLOW") return null;
+  return project({
+    id: row.id,
+    status: row.status,
+    currency,
+    amountMinor: row.amount_minor.toString(),
+    provider: row.provider,
+  }, decision.readableFields ?? []);
+}
+
+export async function listAuthorizedPayments(
+  context: AuthorizedRequestContext,
+  limit: number,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const rows = await withCommercialTenantTransaction(
+    context,
+    async (transaction) => transaction.$queryRawUnsafe<PaymentRow[]>(
+      `SELECT id, owner_organization_id, status, currency, amount_minor, provider, updated_at
+         FROM commercial.payments
+        WHERE owner_organization_id = $1::uuid
+        ORDER BY created_at DESC, id ASC
+        LIMIT $2::int`,
+      context.tenant.organizationId,
+      limit,
+    ),
+    database,
+  );
+  return rows.flatMap((row) => {
+    const summary = paymentSummary(context, row, "list");
+    return summary ? [summary] : [];
+  });
+}
+
+export async function getAuthorizedPayment(
+  context: AuthorizedRequestContext,
+  paymentId: string,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const row = await withCommercialTenantTransaction(
+    context,
+    async (transaction) => {
+      const rows = await transaction.$queryRawUnsafe<PaymentRow[]>(
+        `SELECT payment.id, payment.owner_organization_id, payment.status,
+                payment.currency, payment.amount_minor, payment.provider, payment.updated_at
+           FROM commercial.payments AS payment
+           LEFT JOIN commercial.invoices AS invoice
+             ON invoice.id = payment.invoice_id
+            AND invoice.owner_organization_id = payment.owner_organization_id
+          WHERE payment.id = $1::uuid
+            AND payment.owner_organization_id = $2::uuid
+            AND (payment.invoice_id IS NULL OR invoice.id IS NOT NULL)`,
+        paymentId,
+        context.tenant.organizationId,
+      );
+      return rows[0] ?? null;
+    },
+    database,
+  );
+  return row ? paymentSummary(context, row, "view") : null;
+}
