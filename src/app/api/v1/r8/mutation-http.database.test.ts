@@ -24,6 +24,7 @@ const epoch = new Date("2026-10-01T12:00:00.000Z");
 const ownerId = crypto.randomUUID();
 const foreignOrgId = crypto.randomUUID();
 const clientOrgId = crypto.randomUUID();
+const clientAccountId = crypto.randomUUID();
 
 type Actor = { userId: string; membershipId: string; token: string };
 
@@ -125,21 +126,7 @@ async function actor(
 async function acceptedProposal(actorUserId: string, actorMembershipId: string) {
   const proposalId = crypto.randomUUID();
   const proposalVersionId = crypto.randomUUID();
-  const clientAccountId = crypto.randomUUID();
-  const resourceId = crypto.randomUUID();
   await database.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe(
-      `INSERT INTO platform.resources (
-         id, resource_type, title, owner_organization_id, client_organization_id, visibility, sensitivity
-       ) VALUES ($1::uuid, 'client-account', 'R8 HTTP client', $2::uuid, $3::uuid, 'INTERNAL', 'CONFIDENTIAL')`,
-      resourceId, ownerId, clientOrgId,
-    );
-    await tx.$executeRawUnsafe(
-      `INSERT INTO commercial.client_accounts (
-         id, resource_id, owner_organization_id, client_organization_id, visibility, sensitivity, updated_at
-       ) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'INTERNAL', 'CONFIDENTIAL', $5::timestamptz)`,
-      clientAccountId, resourceId, ownerId, clientOrgId, epoch,
-    );
     await tx.$executeRawUnsafe(
       `INSERT INTO commercial.proposals (
          id, resource_id, owner_organization_id, deal_id, client_account_id, status, current_version, currency
@@ -208,6 +195,21 @@ describe("R8 HTTP boundary against PostgreSQL", () => {
     foreign = await actor(foreignOrgId, teamKeys);
     client = await actor(clientOrgId, ["approval.client.decide"], { surface: "CLIENT" });
     expired = await actor(ownerId, teamKeys, { issuedAt: new Date(Date.now() - 2 * 60 * 60 * 1000) });
+    await database.$transaction(async (tx) => {
+      const resourceId = crypto.randomUUID();
+      await tx.$executeRawUnsafe(
+        `INSERT INTO platform.resources (
+           id, resource_type, title, owner_organization_id, client_organization_id, visibility, sensitivity
+         ) VALUES ($1::uuid, 'client-account', 'R8 HTTP client', $2::uuid, $3::uuid, 'INTERNAL', 'CONFIDENTIAL')`,
+        resourceId, ownerId, clientOrgId,
+      );
+      await tx.$executeRawUnsafe(
+        `INSERT INTO commercial.client_accounts (
+           id, resource_id, owner_organization_id, client_organization_id, visibility, sensitivity, updated_at
+         ) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'INTERNAL', 'CONFIDENTIAL', $5::timestamptz)`,
+        clientAccountId, resourceId, ownerId, clientOrgId, epoch,
+      );
+    });
   });
 
   afterAll(async () => {
