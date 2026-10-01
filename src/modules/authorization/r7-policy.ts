@@ -142,10 +142,19 @@ export const R7_FIELD_POLICIES: Partial<
     ["id", "status", "currency", "totalMinor", "subtotalMinor", "taxMinor", "version", "description", "quantity", "unitAmountMinor", "lineTotalMinor", "position"],
     [],
   ),
-  invoice: financeFieldPolicy(
-    ["id", "status", "currency", "totalMinor", "allocatedMinor"],
-    ["currency"],
-  ),
+  invoice: {
+    ...financeFieldPolicy(
+      ["id", "status", "currency", "totalMinor", "allocatedMinor"],
+      [],
+    ),
+    serverOwnedFields: [
+      ...SERVER_OWNED_FINANCE_FIELDS,
+      "currency",
+      "subtotalMinor",
+      "taxMinor",
+      "sourceContractVersionId",
+    ],
+  },
   payment: financeFieldPolicy(
     ["id", "status", "currency", "amountMinor", "provider"],
     [],

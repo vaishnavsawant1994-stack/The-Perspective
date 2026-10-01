@@ -172,7 +172,7 @@ const ACTIVE_R7_CASES: readonly R7AuthorizationCase[] = [
   {
     permissionKey: "invoice.edit",
     resourceType: "invoice",
-    command: { action: "update", requestedFields: ["currency"] },
+    command: { action: "create" },
   },
   {
     permissionKey: "invoice.issue",
@@ -255,6 +255,13 @@ function resource(
     expect(isR7ActivePermissionKey("contract.send")).toBe(true);
     expect(isR7DormantPermissionKey("contract.send")).toBe(false);
     expect(R7_DORMANT_PERMISSION_KEYS).toContain("payment.refund");
+    const currencyEdit = evaluateAuthorization(
+      context([grant("invoice.edit")]),
+      "invoice.edit",
+      resource("invoice"),
+      { action: "update", requestedFields: ["currency", "totalMinor"] },
+    );
+    expect(currencyEdit.decision).toBe("DENY");
   });
 
   it.each(ACTIVE_R7_CASES)(

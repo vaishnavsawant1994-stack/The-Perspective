@@ -203,6 +203,22 @@ beforeAll(async () => {
     ],
   });
 
+  await database.$transaction(async (transaction) => {
+    await transaction.$queryRaw`
+      SELECT set_config('app.organization_id', ${primaryOrganizationId}, true)
+    `;
+    await transaction.$executeRawUnsafe(
+      `INSERT INTO commercial.invoices
+       (id, resource_id, owner_organization_id, client_account_id, status,
+        currency, total_minor)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'DRAFT', 'USD', 100)`,
+      invoiceId,
+      invoiceResourceId,
+      primaryOrganizationId,
+      crypto.randomUUID(),
+    );
+  });
+
   await withCommercialTenantTransaction(primary, async (transaction) => {
     await transaction.$executeRawUnsafe(
       `INSERT INTO commercial.proposals
@@ -221,16 +237,6 @@ beforeAll(async () => {
       proposalVersionId,
       primaryOrganizationId,
       proposalId,
-    );
-    await transaction.$executeRawUnsafe(
-      `INSERT INTO commercial.invoices
-       (id, resource_id, owner_organization_id, client_account_id, status,
-        currency, total_minor)
-       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'DRAFT', 'USD', 100)`,
-      invoiceId,
-      invoiceResourceId,
-      primaryOrganizationId,
-      crypto.randomUUID(),
     );
     await transaction.$executeRawUnsafe(
       `INSERT INTO commercial.payments

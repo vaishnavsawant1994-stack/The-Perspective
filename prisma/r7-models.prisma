@@ -100,24 +100,48 @@ model CommercialProposalAcceptanceEvidence {
 }
 
 model CommercialInvoice {
-  id                  String    @id @db.Uuid
-  resourceId          String    @unique @map("resource_id") @db.Uuid
-  ownerOrganizationId String    @map("owner_organization_id") @db.Uuid
-  clientAccountId     String    @map("client_account_id") @db.Uuid
-  proposalId          String?   @map("proposal_id") @db.Uuid
-  status              String    @default("DRAFT")
-  currency            String    @db.Char(3)
-  totalMinor          BigInt    @map("total_minor")
-  allocatedMinor      BigInt    @default(0) @map("allocated_minor")
-  finalizedAt         DateTime? @map("finalized_at") @db.Timestamptz(6)
-  rowVersion          Int       @default(1) @map("row_version")
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
-  archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
+  id                      String    @id @db.Uuid
+  resourceId              String    @unique @map("resource_id") @db.Uuid
+  ownerOrganizationId     String    @map("owner_organization_id") @db.Uuid
+  clientAccountId         String    @map("client_account_id") @db.Uuid
+  proposalId              String?   @map("proposal_id") @db.Uuid
+  sourceContractId        String?   @map("source_contract_id") @db.Uuid
+  sourceContractVersionId String?   @map("source_contract_version_id") @db.Uuid
+  sourceContractVersion   Int?      @map("source_contract_version")
+  status                  String    @default("DRAFT")
+  currency                String    @db.Char(3)
+  subtotalMinor           BigInt?   @map("subtotal_minor")
+  taxMinor                BigInt?   @map("tax_minor")
+  totalMinor              BigInt    @map("total_minor")
+  allocatedMinor          BigInt    @default(0) @map("allocated_minor")
+  idempotencyKey          String?   @map("idempotency_key")
+  requestHash             String?   @map("request_hash") @db.Char(64)
+  issueIdempotencyKey     String?   @map("issue_idempotency_key")
+  issueRequestHash        String?   @map("issue_request_hash") @db.Char(64)
+  finalizedAt             DateTime? @map("finalized_at") @db.Timestamptz(6)
+  rowVersion              Int       @default(1) @map("row_version")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  archivedAt              DateTime? @map("archived_at") @db.Timestamptz(6)
 
   @@unique([id, ownerOrganizationId], map: "invoices_id_owner_org_key")
   @@index([ownerOrganizationId, clientAccountId, status, archivedAt], map: "invoices_owner_client")
   @@map("invoices")
+  @@schema("commercial")
+}
+
+model CommercialInvoiceLine {
+  id                  String @id @db.Uuid
+  ownerOrganizationId String @map("owner_organization_id") @db.Uuid
+  invoiceId           String @map("invoice_id") @db.Uuid
+  position            Int
+  description         String
+  quantity            Int
+  unitAmountMinor     BigInt @map("unit_amount_minor")
+  lineTotalMinor      BigInt @map("line_total_minor")
+
+  @@unique([invoiceId, position], map: "invoice_lines_position")
+  @@map("invoice_lines")
   @@schema("commercial")
 }
 

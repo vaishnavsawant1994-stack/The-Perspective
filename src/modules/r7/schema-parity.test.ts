@@ -39,6 +39,10 @@ describe("R7 schema/migration parity", () => {
     join(process.cwd(), "prisma/migrations/20260930160000_r7_signature_request_terminal_retry/migration.sql"),
     "utf8",
   );
+  const invoiceDraftMigration = readFileSync(
+    join(process.cwd(), "prisma/migrations/20261001120000_r7_invoice_draft_issue/migration.sql"),
+    "utf8",
+  );
 
   it("creates exactly the authorized finance tables", () => {
     for (const table of TABLES) {
@@ -103,6 +107,17 @@ describe("R7 schema/migration parity", () => {
     expect(terminalRetryMigration).toContain("'code', 'INELIGIBLE'");
     expect(terminalRetryMigration).not.toContain("status = 'SIGNED'");
     expect(terminalRetryMigration).toContain("GRANT EXECUTE ON FUNCTION platform.reserve_r7_signature_request");
+    expect(invoiceDraftMigration).toContain("platform.create_r7_invoice_draft");
+    expect(invoiceDraftMigration).toContain("platform.issue_r7_invoice");
+    expect(invoiceDraftMigration).toContain("CREATE TABLE commercial.invoice_lines");
+    expect(invoiceDraftMigration).toContain("REVOKE INSERT, UPDATE ON commercial.invoices FROM perspective_runtime");
+    expect(invoiceDraftMigration).toContain("GRANT EXECUTE ON FUNCTION platform.issue_r7_invoice");
+    expect(invoiceDraftMigration).toContain("There is no invoice.finalize key");
+    expect(invoiceDraftMigration).not.toContain("p_total");
+    expect(invoiceDraftMigration).not.toContain("p_currency");
+    expect(invoiceDraftMigration).not.toContain("p_proposal");
+    expect(models).toContain('@@map("invoice_lines")');
+    expect(Prisma.ModelName.CommercialInvoiceLine).toBe("CommercialInvoiceLine");
   });
 
   it("adds only the owner-authorized immutable customer acceptance evidence model", () => {
