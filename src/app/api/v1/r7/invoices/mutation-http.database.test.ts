@@ -19,7 +19,7 @@ import { POST as issueInvoiceHttp } from "./[invoiceId]/issue/route";
 import { POST as createInvoiceHttp } from "./route";
 
 const database = createPrismaClient();
-const origin = "https://invoice.example.test";
+const origin = process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN ?? "https://invoice.example.test";
 const epoch = new Date("2026-10-01T12:00:00.000Z");
 const ownerId = crypto.randomUUID();
 const foreignOrgId = crypto.randomUUID();
@@ -100,6 +100,7 @@ async function actor(organizationId: string, permissions: readonly string[], opt
     });
   }
   const token = createOpaqueToken();
+  const issuedAt = options?.issuedAt ?? new Date();
   await database.session.create({
     data: {
       id: crypto.randomUUID(),
@@ -108,9 +109,9 @@ async function actor(organizationId: string, permissions: readonly string[], opt
       tokenHash: hashOpaqueToken(token),
       surface: AuthSurface.TEAM,
       authenticationMethod: "password",
-      mfaVerifiedAt: options?.mfa === false ? null : new Date(),
-      issuedAt: options?.issuedAt ?? new Date(),
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      mfaVerifiedAt: options?.mfa === false ? null : issuedAt,
+      issuedAt,
+      expiresAt: new Date(issuedAt.getTime() + 60 * 60 * 1000),
     },
   });
   return { userId, membershipId, token };
@@ -236,12 +237,18 @@ describe("R7 invoice mutation HTTP against PostgreSQL", () => {
   let foreign: Actor;
   let unselected: Actor;
   let staleSession: Actor;
+  const previousEnvironment = {
+    mode: process.env.PERSPECTIVE_AUTH_BOUNDARY_MODE,
+    origin: process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN,
+    key: process.env.PERSPECTIVE_AUTH_DATA_KEY,
+    version: process.env.PERSPECTIVE_AUTH_KEY_VERSION,
+  };
 
   beforeAll(async () => {
-    process.env.PERSPECTIVE_AUTH_BOUNDARY_MODE = "sessions";
-    process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN = origin;
-    process.env.PERSPECTIVE_AUTH_DATA_KEY = Buffer.alloc(32, 9).toString("base64");
-    process.env.PERSPECTIVE_AUTH_KEY_VERSION = "1";
+    process.env.PERSPECTIVE_AUTH_BOUNDARY_MODE ??= "sessions";
+    process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN ??= origin;
+    process.env.PERSPECTIVE_AUTH_DATA_KEY ??= Buffer.alloc(32, 9).toString("base64");
+    process.env.PERSPECTIVE_AUTH_KEY_VERSION ??= "1";
     await organization(ownerId, "PLATFORM", "r7invhttp");
     await organization(foreignOrgId, "PLATFORM", "r7invforeign");
     await organization(clientOrganizationId, "CLIENT", "r7invclient");
@@ -255,6 +262,15 @@ describe("R7 invoice mutation HTTP against PostgreSQL", () => {
   });
 
   afterAll(async () => {
+    for (const [name, value] of [
+      ["PERSPECTIVE_AUTH_BOUNDARY_MODE", previousEnvironment.mode],
+      ["PERSPECTIVE_PUBLIC_APP_ORIGIN", previousEnvironment.origin],
+      ["PERSPECTIVE_AUTH_DATA_KEY", previousEnvironment.key],
+      ["PERSPECTIVE_AUTH_KEY_VERSION", previousEnvironment.version],
+    ] as const) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
     await database.$disconnect();
   });
 
