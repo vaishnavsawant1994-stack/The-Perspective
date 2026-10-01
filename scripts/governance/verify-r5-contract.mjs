@@ -176,6 +176,8 @@ assert(governanceText.includes("R14/V1.0 requires genuine external independent r
 
 const r5ContractBranch = process.env.GITHUB_HEAD_REF === "phase4/r5-authorization-contract-20260926"
   || process.env.GITHUB_REF === "refs/heads/phase4/r5-authorization-contract-20260926";
+let changedFiles = 0;
+let unexpectedFiles = 0;
 if (r5ContractBranch) {
   const diff = execFileSync("git", ["diff", "--name-only", "origin/main...HEAD"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
   const allowed = [
@@ -185,6 +187,8 @@ if (r5ContractBranch) {
   ];
   const unexpected = diff.filter((path) => !allowed.some((pattern) => pattern.test(path)));
   assert(unexpected.length === 0, `R5 contract branch contains out-of-scope files: ${unexpected.join(", ")}`);
+  changedFiles = diff.length;
+  unexpectedFiles = unexpected.length;
 }
 
 process.stdout.write(JSON.stringify({
@@ -195,6 +199,6 @@ process.stdout.write(JSON.stringify({
   clientCapabilityPermissionCount: clientPermissions.length,
   selfServicePermissionCount: selfPermissions.length,
   threatCaseCount: threatIds.length,
-  changedFiles: diff.length,
-  unexpectedFiles: unexpected.length,
+  changedFiles,
+  unexpectedFiles,
 }, null, 2) + "\n");
