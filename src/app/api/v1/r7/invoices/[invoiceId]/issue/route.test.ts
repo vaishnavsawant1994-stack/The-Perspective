@@ -74,7 +74,11 @@ beforeEach(() => {
   });
   mocks.resolve.mockResolvedValue({
     kind: "authorized",
-    context: { authentication: "authenticated", session: { issuedAt: new Date() } },
+    context: {
+      authentication: "authenticated",
+      session: { issuedAt: new Date() },
+      tenant: { organizationId: "00000000-0000-4000-8000-000000000410" },
+    },
   });
   mocks.subject.mockResolvedValue({
     resource,
@@ -180,6 +184,29 @@ describe("R7 invoice.issue HTTP boundary", () => {
     expect(result.status).toBe(409);
     await expect(result.json()).resolves.toEqual({ code: "R7_COMMAND_REJECTED", internalCode: "STALE_WRITE" });
     expect(mocks.issue).not.toHaveBeenCalled();
+  });
+
+  it("replays a committed issue key even after the draft lifecycle has ended", async () => {
+    const organizationId = "00000000-0000-4000-8000-000000000410";
+    mocks.subject.mockResolvedValueOnce({
+      resource: { ...resource, lifecycleState: "FINALIZED", version: 2 },
+      financialEvidencePresent: true,
+      separationOfDutySatisfied: true,
+      issueIdempotencyKey: `r7:invoice-issue:${organizationId}:invoice-issue-01`,
+    });
+    mocks.issue.mockResolvedValueOnce({
+      kind: "ok",
+      value: { invoiceId, status: "FINALIZED", totalMinor: "100", rowVersion: 2, replayed: true },
+    });
+    const result = await POST(request(), route);
+    expect(result.status).toBe(200);
+    expect(mocks.authorize).toHaveBeenCalledWith(expect.objectContaining({
+      command: expect.objectContaining({ workflowSatisfied: true, exactVersionMatches: false }),
+    }));
+    expect(mocks.issue).toHaveBeenCalledWith(
+      expect.anything(),
+      { invoiceId, expectedRowVersion: 1, idempotencyKey: "invoice-issue-01" },
+    );
   });
 
   it("rejects finalized financial mutation even if authorization was bypassed", async () => {

@@ -32,13 +32,13 @@ export async function POST(
 
   try {
     const subject = await loadR7InvoiceCommandSubject(resolved.context, invoiceId);
-    if (!subject) {
-      console.error("invoice.issue gate", { gate: "subject" });
-      return authorizationProblem(404, "AUTHZ_NOT_FOUND");
-    }
+    if (!subject) return authorizationProblem(404, "AUTHZ_NOT_FOUND");
     const now = new Date();
     const exactVersionMatches = subject.resource.version === input.expectedRowVersion;
     const lifecycleCanIssue = subject.resource.lifecycleState === "DRAFT";
+    const organizationId = resolved.context.tenant?.organizationId;
+    const sameIssueKey = typeof organizationId === "string"
+      && subject.issueIdempotencyKey === `r7:invoice-issue:${organizationId.toLowerCase()}:${idempotencyKey}`;
     const authorization = await authorizeTrustedHttpOperation({
       context: resolved.context,
       permissionKey: "invoice.issue",
@@ -46,7 +46,7 @@ export async function POST(
       command: {
         action: "issue",
         requestedFields: [],
-        workflowSatisfied: lifecycleCanIssue,
+        workflowSatisfied: lifecycleCanIssue || sameIssueKey,
         exactVersionMatches,
         optimisticConcurrencySatisfied: exactVersionMatches,
         reason: input.reason,
@@ -57,21 +57,12 @@ export async function POST(
       },
       concealResource: true,
     });
-    if (authorization.kind === "response") {
-      console.error("invoice.issue gate", {
-        gate: "auth",
-        reason: authorization.decision?.reasonCode,
-        version: subject.resource.version,
-        expected: input.expectedRowVersion,
-        evidence: subject.financialEvidencePresent,
-        separationOfDuty: subject.separationOfDutySatisfied,
-        lifecycle: subject.resource.lifecycleState,
-      });
-      return authorization.response;
+    if (authorization.kind === "response") return authorization.response;
+    if (!sameIssueKey) {
+      if (!subject.financialEvidencePresent) return r7CommandError("INELIGIBLE");
+      if (!lifecycleCanIssue) return r7CommandError("TRANSITION_DENIED");
+      if (!exactVersionMatches) return r7CommandError("STALE_WRITE");
     }
-    if (!subject.financialEvidencePresent) return r7CommandError("INELIGIBLE");
-    if (!lifecycleCanIssue) return r7CommandError("TRANSITION_DENIED");
-    if (!exactVersionMatches) return r7CommandError("STALE_WRITE");
 
     const result = await issueInvoice(resolved.context, {
       invoiceId,
@@ -79,7 +70,6 @@ export async function POST(
       idempotencyKey,
     });
     if (result.kind === "error") {
-      console.error("invoice.issue gate", { gate: "domain", code: result.code, expected: input.expectedRowVersion });
       return result.code === "NOT_FOUND"
         ? authorizationProblem(404, "AUTHZ_NOT_FOUND")
         : r7CommandError(result.code);

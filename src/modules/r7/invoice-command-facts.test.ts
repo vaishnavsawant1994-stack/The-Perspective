@@ -47,6 +47,7 @@ const row = {
   tax_minor: BigInt(5),
   total_minor: BigInt(105),
   source_contract_version_id: "00000000-0000-4000-8000-000000000505",
+  issue_idempotency_key: null,
   line_count: 1,
 };
 

@@ -324,6 +324,8 @@ export interface R7InvoiceCommandSubject {
   readonly resource: AuthorizationResourceContext;
   readonly financialEvidencePresent: boolean;
   readonly separationOfDutySatisfied: boolean;
+  /** Full domain issue key once invoice.issue has committed. Null on a draft. */
+  readonly issueIdempotencyKey: string | null;
 }
 
 type InvoiceCommandRow = R7ResourceRow & {
@@ -332,6 +334,7 @@ type InvoiceCommandRow = R7ResourceRow & {
   readonly tax_minor: bigint | number | string | null;
   readonly total_minor: bigint | number | string;
   readonly source_contract_version_id: string | null;
+  readonly issue_idempotency_key: string | null;
   readonly line_count: number | bigint | string;
 };
 
@@ -392,7 +395,7 @@ export async function loadR7InvoiceCommandSubject(
         `SELECT invoice.id, invoice.resource_id, invoice.owner_organization_id,
                 invoice.status, invoice.row_version, invoice.currency,
                 invoice.subtotal_minor, invoice.tax_minor, invoice.total_minor,
-                invoice.source_contract_version_id,
+                invoice.source_contract_version_id, invoice.issue_idempotency_key,
                 (SELECT count(*)::int FROM commercial.invoice_lines AS line
                   WHERE line.invoice_id = invoice.id
                     AND line.owner_organization_id = invoice.owner_organization_id) AS line_count
@@ -416,5 +419,6 @@ export async function loadR7InvoiceCommandSubject(
       "invoice",
     ),
     ...facts,
+    issueIdempotencyKey: row.issue_idempotency_key,
   };
 }
