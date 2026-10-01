@@ -23,7 +23,6 @@ const origin = process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN ?? "https://invoice.exa
 const epoch = new Date("2026-10-01T12:00:00.000Z");
 const ownerId = crypto.randomUUID();
 const foreignOrgId = crypto.randomUUID();
-const clientOrganizationId = crypto.randomUUID();
 
 type Actor = { userId: string; membershipId: string; token: string };
 
@@ -125,7 +124,9 @@ async function graph(createdByMembershipId: string, options?: { versionStatus?: 
   const contractId = crypto.randomUUID();
   const contractVersionId = crypto.randomUUID();
   const clientAccountId = crypto.randomUUID();
+  const clientOrganizationId = crypto.randomUUID();
   const createdAudit = crypto.randomUUID();
+  await organization(clientOrganizationId, "CLIENT", "r7invclient");
   await database.$transaction(async (tx) => {
     const resourceId = crypto.randomUUID();
     await tx.$executeRawUnsafe(
@@ -251,7 +252,6 @@ describe("R7 invoice mutation HTTP against PostgreSQL", () => {
     process.env.PERSPECTIVE_AUTH_KEY_VERSION ??= "1";
     await organization(ownerId, "PLATFORM", "r7invhttp");
     await organization(foreignOrgId, "PLATFORM", "r7invforeign");
-    await organization(clientOrganizationId, "CLIENT", "r7invclient");
     const permissions = ["invoice.view", "invoice.edit", "invoice.issue"] as const;
     finance = await actor(ownerId, permissions);
     editor = await actor(ownerId, ["invoice.edit"]);
