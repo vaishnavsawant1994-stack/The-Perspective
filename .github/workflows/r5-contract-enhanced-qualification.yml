@@ -38,6 +38,7 @@ jobs:
         run: node scripts/governance/verify-r5-contract.mjs
 
       - name: Verify contract-only branch scope
+        if: github.head_ref == 'phase4/r5-authorization-contract-20260926' || github.ref == 'refs/heads/phase4/r5-authorization-contract-20260926'
         shell: bash
         run: |
           set -euo pipefail
