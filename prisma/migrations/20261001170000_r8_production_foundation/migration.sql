@@ -563,6 +563,7 @@ SET search_path = pg_catalog, production, platform, audit, commercial, iam
 AS $$
 DECLARE
   v_owner uuid;
+  v_actor_user uuid;
   v_now timestamptz;
   v_existing_hash text;
   v_existing_state text;
@@ -1306,11 +1307,14 @@ BEGIN
     p_receipt_id, v_owner, 'production.' || p_command, p_idempotency_key, p_request_hash,
     'COMPLETED', 200, p_request_hash, v_now, v_now, v_now + interval '1 day'
   );
+  SELECT membership.user_account_id INTO v_actor_user
+    FROM iam.organization_memberships AS membership
+   WHERE membership.id = p_actor_membership_id;
   INSERT INTO audit.audit_events (
-    id, owner_organization_id, actor_type, actor_membership_id, action, request_id,
+    id, owner_organization_id, actor_type, actor_user_id, actor_membership_id, action, request_id,
     correlation_id, after_hash, redacted_diff, idempotency_key, occurred_at
   ) VALUES (
-    p_audit_id, v_owner, 'USER', p_actor_membership_id, 'r8.' || p_command,
+    p_audit_id, v_owner, 'USER', v_actor_user, p_actor_membership_id, 'r8.' || p_command,
     left(p_request_id, 200), p_idempotency_key, p_request_hash, v_result, p_idempotency_key, v_now
   );
   RETURN jsonb_build_object('kind', 'ok', 'code', 'CREATED') || v_result;
