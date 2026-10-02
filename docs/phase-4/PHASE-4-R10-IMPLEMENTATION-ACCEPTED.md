@@ -2,9 +2,9 @@
 
 PROJECT: The Perspective
 RELEASE: Phase 4 / R10
-STATUS: **OWNER ACCEPTED. NOT MERGED.**
+STATUS: **OWNER ACCEPTED AND MERGED**
 DATE: 2 October 2026
-R11: **LOCKED. G0 PLANNING IS NOT OPEN UNTIL THIS ACCEPTANCE IS MERGED.**
+R11: **G0 PLANNING UNLOCKED. IMPLEMENTATION NOT AUTHORIZED.**
 
 ## Decision
 
@@ -33,6 +33,6 @@ Podcast production, video production through prepare, event operations including
 
 ## Merge
 
-Not merged. This file is the pre-merge acceptance. The permanent merged note is written only after pull request #17 is merged with a merge commit.
+Merged. Pull request #17, merge commit `289abd9f4258464fc294407e37d4e9f88cb68f01`, pre-merge head `a88e11c870522914f599eb5b6b7f7e2e8741b06b`. The permanent merged note is `docs/phase-4/PHASE-4-R10-ACCEPTED-MERGED.md`.
 
-R11 G0 planning opens only after that merge is recorded. R11 implementation is not authorized by this file.
+R11 may enter G0 planning. R11 implementation is not authorized by this file.

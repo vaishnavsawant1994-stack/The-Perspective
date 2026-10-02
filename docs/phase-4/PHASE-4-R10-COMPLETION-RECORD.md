@@ -1,6 +1,6 @@
 # P4-R10-C1 — Media, events, and site distribution qualification
 
-STATUS: **P4-R10-C1 — ACCEPTED. NOT MERGED.**
+STATUS: **P4-R10-C1 — ACCEPTED AND MERGED.**
 
 DATE: 2 October 2026
 
@@ -22,6 +22,8 @@ This record does not rewrite the G0 contract. The product behavior it accepts is
 | Qualification head | `9e1e1c94cc3fbc05100a357e4419da422fe8b79f` |
 | Pull request | #17 |
 | Owner acceptance of this checkpoint | `docs/phase-4/PHASE-4-R10-IMPLEMENTATION-ACCEPTED.md` |
+| Acceptance head merged by pull request #17 | `a88e11c870522914f599eb5b6b7f7e2e8741b06b` |
+| Closure merge | Pull request #17, `289abd9f4258464fc294407e37d4e9f88cb68f01` |
 
 `af2e96b` and `9e1e1c9` repair the qualification harness. They do not change the frozen command contract.
 
@@ -68,4 +70,25 @@ The frozen command surface is `/api/v1/r10`. The four desks can create a draft a
 
 ## Merge
 
-Not merged. Acceptance of `9e1e1c9` does not by itself move `main`. Merge waits until the documentation commit that cites this record is itself green on the inherited workflows, and then uses a merge commit. R11 may enter G0 planning only after that merge is recorded. R11 implementation is not authorized by this file.
+Pull request #17 was merged with a merge commit on 2 October 2026: `289abd9f4258464fc294407e37d4e9f88cb68f01`. It was not squashed. First parent `024e4ae7d3b317fa86fbedc865bf7a44884f5b98`. Second parent `a88e11c870522914f599eb5b6b7f7e2e8741b06b`.
+
+`a88e11c` contains no product-code change after `9e1e1c9`. The twelve workflows were green again on that documentation head before the merge. Those runs authorized the merge. They do not replace the product table above.
+
+| Workflow on `a88e11c` | Result | Run |
+|---|---|---|
+| R3 Review Qualification | success | [37062061098](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061098) |
+| R3 Browser Qualification | success | [37062061060](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061060) |
+| R4 Tenancy Qualification | success | [37062061539](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061539) |
+| R4 Browser Qualification | success | [37062061032](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061032) |
+| R5 Contract Enhanced Qualification | success | [37062061033](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061033) |
+| R5 Implementation Qualification | success | [37062060937](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062060937) |
+| R5 Browser Qualification | success | [37062061011](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061011) |
+| R6 Implementation Qualification | success | [37062060999](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062060999) |
+| R7 Implementation Qualification | success | [37062061038](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061038) |
+| R8 Implementation Qualification | success | [37062061002](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061002) |
+| R9 Implementation Qualification | success | [37062061013](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061013) |
+| R10 Implementation Qualification | success | [37062061009](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37062061009) |
+
+The permanent merged note is `docs/phase-4/PHASE-4-R10-ACCEPTED-MERGED.md`.
+
+R11 may enter G0 planning. The unlock is `docs/phase-4/PHASE-4-R11-G0-PLANNING-UNLOCK.md`. R11 implementation is not authorized. V1.0 is not certified.
