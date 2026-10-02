@@ -2,7 +2,7 @@
 
 STATUS: **LOCAL DATABASE QUALIFICATION ONLY — NOT HOSTED**
 
-This note records what was actually executed before the merge. It is not an owner acceptance of a deployed exact head. The later merge is [PHASE-4-R9-MERGED.md](./PHASE-4-R9-MERGED.md).
+This note records what was actually executed before the merge. It is not an owner acceptance of a deployed exact head. The later merge is [PHASE-4-R9-MERGED.md](./PHASE-4-R9-MERGED.md). Hosted exact-head evidence is [PHASE-4-R9-COMPLETION-RECORD.md](./PHASE-4-R9-COMPLETION-RECORD.md). Do not read this local note as that gate.
 
 ## What ran
 

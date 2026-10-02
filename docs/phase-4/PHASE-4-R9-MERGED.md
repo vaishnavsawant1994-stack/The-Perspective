@@ -15,12 +15,12 @@ STATUS: **MERGED TO `main`.** This is not a hosted production certification, not
 
 ## What a later worker should read first
 
-1. This file, for where the work stopped.
+1. [PHASE-4-R9-COMPLETION-RECORD.md](./PHASE-4-R9-COMPLETION-RECORD.md), for the later closure qualification. This file only records the #13 merge.
 2. [PHASE-4-R9-G0-FREEZE.md](./PHASE-4-R9-G0-FREEZE.md), the contract that was implemented.
 3. [PHASE-4-R9-DOMAIN-AND-WORKFLOW.md](./PHASE-4-R9-DOMAIN-AND-WORKFLOW.md), [PHASE-4-R9-API-OPERATION-MATRIX.md](./PHASE-4-R9-API-OPERATION-MATRIX.md), [PHASE-4-R9-DATABASE-CONTRACT.md](./PHASE-4-R9-DATABASE-CONTRACT.md), and [PHASE-4-R9-SECURITY-AND-QUALIFICATION.md](./PHASE-4-R9-SECURITY-AND-QUALIFICATION.md).
 4. The code: `src/modules/r9`, `src/app/api/v1/r9`, `src/app/api/v1/internal/r9/worker/publish-due`, and `prisma/migrations/20261001190000_r9_publishing_foundation`.
 
-[PHASE-4-R9-IMPLEMENTATION-AUTHORIZATION.md](./PHASE-4-R9-IMPLEMENTATION-AUTHORIZATION.md) is the authority to build. It was written before the merge and still says "not merged" as of that moment. [PHASE-4-R9-LOCAL-QUALIFICATION.md](./PHASE-4-R9-LOCAL-QUALIFICATION.md) is the local database evidence, also written before the merge. This file is the current repository state.
+[PHASE-4-R9-IMPLEMENTATION-AUTHORIZATION.md](./PHASE-4-R9-IMPLEMENTATION-AUTHORIZATION.md) is the authority to build. It was written before the merge and still says "not merged" as of that moment. [PHASE-4-R9-LOCAL-QUALIFICATION.md](./PHASE-4-R9-LOCAL-QUALIFICATION.md) is the local database evidence, also written before the merge. This file is the record of pull request #13. It is not the later closure acceptance.
 
 ## What was built
 
