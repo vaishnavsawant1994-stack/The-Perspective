@@ -34,6 +34,7 @@ try {
     const response = await page.goto(new URL(desk.path, baseUrl).toString(), { waitUntil: "domcontentloaded" });
     assert.equal(response?.status(), 200, desk.path);
     await page.getByRole("heading", { name: desk.heading }).waitFor();
+    await page.getByRole("status").filter({ hasText: "Opening this desk does not grant authority." }).waitFor();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(overflow <= 1, `${desk.path} overflowed by ${overflow}px on mobile`);
     const field = page.locator(`#${desk.field}`);

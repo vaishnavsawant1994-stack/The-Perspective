@@ -1,7 +1,12 @@
-import { createPrismaClient } from "../../src/modules/persistence/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../../src/generated/prisma/client";
 import { createOpaqueToken, hashOpaqueToken } from "../../src/modules/authentication/crypto/tokens";
 
-const database = createPrismaClient();
+if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
+
+const database = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 const now = new Date();
 const organizationId = crypto.randomUUID();
 const userId = crypto.randomUUID();
