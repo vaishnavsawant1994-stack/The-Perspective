@@ -65,7 +65,19 @@ export async function generateMetadata({ params }: MagazineReaderPageProps): Pro
 export default async function MagazineReaderPage({ params, searchParams }: MagazineReaderPageProps) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const published = await publishedIssue(slug);
-  if (published) return <PublishedIssueReader issue={published} />;
+  if (published) {
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: published.title,
+      description: published.cover.dek || published.theme,
+      mainEntityOfPage: `/magazine/read/${published.slug}`,
+    };
+    return <>
+      <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} type="application/ld+json" />
+      <PublishedIssueReader issue={published} />
+    </>;
+  }
   const reader = getMagazineReaderBySlug(slug);
   if (!reader) notFound();
 
