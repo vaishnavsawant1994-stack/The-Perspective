@@ -56,9 +56,13 @@ Local evidence, recorded before the merge: PostgreSQL 16.4, migration applied on
 
 ## What this merge does not mean
 
-- No hosted deployment of `7cd3806` was verified.
-- No exact-head production server was checked.
+These statements describe pull request #13 only. They are not deleted by later qualification.
+
+- No hosted deployment of `7cd3806` was verified as this merge.
+- No exact-head production server outside GitHub Actions was checked for this merge.
 - V1.0 is not certified.
 - R10 has not been authorized and has not been started.
+
+Later qualification of the post-merge repository is recorded in [PHASE-4-R9-COMPLETION-RECORD.md](./PHASE-4-R9-COMPLETION-RECORD.md). That file does not change what #13 itself proved.
 
 Do not treat the browser preview that existed outside this repository as part of R9. It was not pushed. Do not treat local Postgres data files as part of the product. The schema is the migration above.
