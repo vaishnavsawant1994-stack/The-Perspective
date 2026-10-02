@@ -11,7 +11,7 @@
 **Production certification:** NOT READY  
 **Design 154:** NOT AUTHORIZED
 
-> **Current-state supersession, 2 October 2026:** The header lines above are the 26 September 2026 control snapshot. They are not the current engineering checkpoint. The newest accepted checkpoint is P4-R10-C1 in `docs/phase-4/PHASE-4-R10-COMPLETION-RECORD.md`, merged by pull request #17 at `289abd9f4258464fc294407e37d4e9f88cb68f01`. R1–R9 remain accepted. R11 G0 planning is unlocked in `docs/phase-4/PHASE-4-R11-G0-PLANNING-UNLOCK.md`. R11 implementation is not authorized. V1.0 production certification is still not claimed. Design 154 remains unauthorized.
+> **Current-state supersession, 2 October 2026:** The header lines above are the 26 September 2026 control snapshot. They are not the current engineering checkpoint. The newest accepted checkpoint is P4-R11-C1 in `docs/phase-4/PHASE-4-R11-COMPLETION-RECORD.md`, merged by pull request #19 at `9c4a11a06def1c9f4a87f1fb21be1cc3640395d8`. R1–R10 remain accepted. R12 G0 planning is unlocked in `docs/phase-4/PHASE-4-R12-G0-PLANNING-UNLOCK.md`. R12 implementation is not authorized. V1.0 production certification is still not claimed. Design 154 remains unauthorized.
 
 ---
 

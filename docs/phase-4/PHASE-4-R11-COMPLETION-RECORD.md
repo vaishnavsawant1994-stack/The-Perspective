@@ -1,6 +1,6 @@
 # P4-R11-C1 — Growth, SEO, analytics, and automation qualification
 
-STATUS: **P4-R11-C1 — ACCEPTED. NOT MERGED.**
+STATUS: **P4-R11-C1 — ACCEPTED AND MERGED.**
 
 DATE: 2 October 2026
 
@@ -19,6 +19,8 @@ The product behavior this record accepts is `dcf754b3965ae4032f63bfd20d60ed1573a
 | Qualification head | `dcf754b3965ae4032f63bfd20d60ed1573a63e80` |
 | Pull request | #19 |
 | Owner acceptance | `docs/phase-4/PHASE-4-R11-IMPLEMENTATION-ACCEPTED.md` |
+| Acceptance head | `ee2b4bc8d2f9ede86cda767cebc3848bc9e09bf2` |
+| Closure merge | Pull request #19, `9c4a11a06def1c9f4a87f1fb21be1cc3640395d8` |
 
 ## What passed on `dcf754b3965ae4032f63bfd20d60ed1573a63e80`
 
@@ -54,4 +56,8 @@ Robots rules that do not advertise `/app/`, `/api/`, or `/client/`. Public metad
 
 ## Merge
 
-Not merged. Merge waits until the documentation commit that cites this record is green, and then uses a merge commit. R12 may enter G0 planning only after that merge is recorded. R12 implementation is not authorized.
+Pull request #19 was merged with a merge commit on 2 October 2026: `9c4a11a06def1c9f4a87f1fb21be1cc3640395d8`. It was not squashed. First parent `65f43283d50903335fabbc0853e1f6c617774042`. Second parent `ee2b4bc8d2f9ede86cda767cebc3848bc9e09bf2`.
+
+`ee2b4bc` contains no product-code change after `dcf754b`. The inherited workflows were green again on that documentation head before the merge, including [R11 Implementation Qualification](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37066939892). The product qualification remains the `dcf754b` table above. The permanent merged note is `docs/phase-4/PHASE-4-R11-ACCEPTED-MERGED.md`.
+
+R12 may enter G0 planning. The unlock is `docs/phase-4/PHASE-4-R12-G0-PLANNING-UNLOCK.md`. R12 implementation is not authorized. V1.0 is not certified.
