@@ -11,7 +11,7 @@
 **Production certification:** NOT READY  
 **Design 154:** NOT AUTHORIZED
 
-> **Current-state supersession, 2 October 2026:** The header lines above are the 26 September 2026 control snapshot. They are not the current engineering checkpoint. The newest accepted checkpoint is P4-R9-C1 in `docs/phase-4/PHASE-4-R9-COMPLETION-RECORD.md`, accepted and not yet merged. R1–R8 remain accepted. R10 is locked and not started. V1.0 production certification is still not claimed. Design 154 remains unauthorized.
+> **Current-state supersession, 2 October 2026:** The header lines above are the 26 September 2026 control snapshot. They are not the current engineering checkpoint. The newest accepted checkpoint is P4-R9-C1 in `docs/phase-4/PHASE-4-R9-COMPLETION-RECORD.md`, merged by pull request #15 at `a54c0fb5c7ac02be6c5c6225af5529456369c291`. R1–R8 remain accepted. R10 is locked and not started. V1.0 production certification is still not claimed. Design 154 remains unauthorized.
 
 ---
 

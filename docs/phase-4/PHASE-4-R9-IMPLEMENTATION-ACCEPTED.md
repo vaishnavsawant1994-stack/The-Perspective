@@ -2,7 +2,7 @@
 
 PROJECT: The Perspective
 RELEASE: Phase 4 / R9
-STATUS: **OWNER ACCEPTED — NOT MERGED**
+STATUS: **OWNER ACCEPTED AND MERGED**
 DATE: 2 October 2026
 R10: **LOCKED. NOT STARTED.**
 
@@ -23,7 +23,7 @@ The owner directed the R1–R9 closure after the qualified publishing surface wa
 - Planning contract: `docs/phase-4/PHASE-4-R9-G0-FREEZE.md`
 - Implementation grant: `docs/phase-4/PHASE-4-R9-IMPLEMENTATION-AUTHORIZATION.md`
 
-This acceptance file advances HEAD. The qualified behavior remains `6c294c0`, evidenced by `0eac350`. Do not merge this package until this acceptance commit’s own exact-head qualification succeeds.
+This acceptance file was merged by pull request #15 at `a54c0fb5c7ac02be6c5c6225af5529456369c291`. The qualified behavior remains `6c294c0`, evidenced by `0eac350`, and the pre-merge acceptance head is `3dafe22`. The runs that authorized that merge are in `docs/phase-4/PHASE-4-R9-COMPLETION-RECORD.md`.
 
 ## Accepted surface
 
@@ -37,6 +37,6 @@ Publishing ledger, issues, assembly, placements, cover and design state, prepara
 
 ## Merge
 
-Merge this branch into `main` with a merge commit, the same method as R8 pull request #12 and R9 pull request #13, only after this acceptance SHA is exact-head qualified. Do not squash. Do not merge pull request #14.
+Merged. Pull request #15, merge commit `a54c0fb5c7ac02be6c5c6225af5529456369c291`, pre-merge head `3dafe22c8bb1be6546205079623200160c352a12`. The permanent merged note is `docs/phase-4/PHASE-4-R9-ACCEPTED-MERGED.md`.
 
-R10 may enter G0 planning only after that merge commit exists. R10 implementation is not authorized by this file.
+R10 may enter G0 planning. R10 implementation is not authorized by this file.

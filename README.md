@@ -7,16 +7,16 @@
 
 **Core contents:** Next.js/TypeScript frontend, typed editorial content architecture, PostgreSQL/Prisma persistence, authentication/session and organization context foundations, tenant-isolation work, tests, scripts, and the V1 Master Completion Bible.
 
-**Current status:** R1–R8 were accepted on earlier merges. R9 publishing and magazine was implemented and merged in pull request #13 (`7cd38065610f7bac0d91c93eb75feff69b20e865`). Exact-head qualification of `0eac350c0dca690357c4e43b6e03be64d8d4c251` is recorded as P4-R9-C1 accepted and not yet merged, in `docs/phase-4/PHASE-4-R9-COMPLETION-RECORD.md`. R10 is locked and not started. V1.0 is not certified.
+**Current status:** R1–R8 were accepted on earlier merges. R9 publishing and magazine was implemented in pull request #13 and closure-merged in pull request #15 (`a54c0fb5c7ac02be6c5c6225af5529456369c291`). P4-R9-C1 is accepted in `docs/phase-4/PHASE-4-R9-COMPLETION-RECORD.md`. R10 is locked and not started. V1.0 is not certified.
 
 **Recommended next milestone:** Keep the Master Completion Bible and exact accepted checkpoint authoritative; update this profile only when a later release is formally qualified and accepted.
 <!-- repository-profile:end -->
 
 > **V1 program source of truth:** [The Perspective V1.0 Master Completion Bible](./docs/THE-PERSPECTIVE-V1-MASTER-COMPLETION-BIBLE.md)
 >
-> Accepted engineering baseline: R1–R8, plus R9 as accepted in `docs/phase-4/PHASE-4-R9-COMPLETION-RECORD.md` and not yet merged. R10 remains locked. V1.0 is not certified.
+> Accepted engineering baseline: R1–R9. R9 closure merge: `a54c0fb5c7ac02be6c5c6225af5529456369c291`. R10 remains locked. V1.0 is not certified.
 
-The production foundation for a premium editorial publication, structured digital reader, Personal Magazine platform, Client Portal, Team Workspace, and shared business platform. Accepted R1–R8 engineering work covers the route/security foundation, PostgreSQL/Prisma persistence, authentication and sessions, organization context, tenant isolation, authorization, CRM, communications, commercial work through payments and reconciliation, and editorial production. R9 adds the publishing and magazine engine described by its G0 contract and qualified in `docs/phase-4/PHASE-4-R9-COMPLETION-RECORD.md`. That acceptance is not yet merged. R10 distribution is not started. V1.0 production certification remains a later gate.
+The production foundation for a premium editorial publication, structured digital reader, Personal Magazine platform, Client Portal, Team Workspace, and shared business platform. Accepted R1–R8 engineering work covers the route/security foundation, PostgreSQL/Prisma persistence, authentication and sessions, organization context, tenant isolation, authorization, CRM, communications, commercial work through payments and reconciliation, and editorial production. R9 adds the publishing and magazine engine described by its G0 contract and accepted in `docs/phase-4/PHASE-4-R9-COMPLETION-RECORD.md`. R10 distribution is not started. V1.0 production certification remains a later gate.
 
 ## Requirements
 

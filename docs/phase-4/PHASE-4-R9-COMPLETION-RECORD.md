@@ -1,12 +1,12 @@
 # P4-R9-C1 — Publishing and magazine qualification
 
-STATUS: **P4-R9-C1 — ACCEPTED. NOT YET MERGED.**
+STATUS: **P4-R9-C1 — ACCEPTED AND MERGED.**
 
 DATE: 2 October 2026
 
 OWNER ACCEPTANCE: the owner’s R1–R9 closure directive, after the exact-head gates in this file passed. This is not V1.0 certification and it does not start R10.
 
-This file records evidence that already exists. It does not rewrite the G0 contract. The product behavior being accepted is the runtime head below. The evidence head is the docs-only child of that runtime head. This acceptance text advances HEAD again. Do not merge pull request #15 until the workflows on this acceptance commit are green. If they fail, this status is not a merge authorization.
+The merge below is the closure merge. It does not rewrite the G0 contract.
 
 ## Authority
 
@@ -18,9 +18,31 @@ This file records evidence that already exists. It does not rewrite the G0 contr
 | R9 implementation merge | Pull request #13, `7cd38065610f7bac0d91c93eb75feff69b20e865` |
 | Runtime qualification head | `6c294c016c93163720bb8c20e11c31bedf3e4175` |
 | Evidence head (docs-only child of the runtime head) | `0eac350c0dca690357c4e43b6e03be64d8d4c251` |
+| Acceptance head merged by pull request #15 | `3dafe22c8bb1be6546205079623200160c352a12` |
+| Closure merge | Pull request #15, `a54c0fb5c7ac02be6c5c6225af5529456369c291` |
 | Closure pull request | #15, base `7cd38065610f7bac0d91c93eb75feff69b20e865` |
 
-The #13 merge put the implementation on `main`. It was not, by itself, the R1–R9 qualification. `0eac350` contains no product-code change after `6c294c0`. Its workflows are the exact-head gate for that runtime.
+The #13 merge put the implementation on `main`. It was not, by itself, the R1–R9 qualification. `0eac350` contains no product-code change after `6c294c0`. `3dafe22` contains no product-code change after `0eac350`. Pull request #15 merged `3dafe22` into `main` as `a54c0fb5c7ac02be6c5c6225af5529456369c291`. First parent `7cd38065610f7bac0d91c93eb75feff69b20e865`. Second parent `3dafe22c8bb1be6546205079623200160c352a12`.
+
+## What passed on `3dafe22` before that merge
+
+GitHub Actions, `ubuntu-latest`, PostgreSQL 16 service image (`postgres:16`). These are the runs that authorized the merge. There is no separate production deploy of this SHA.
+
+| Workflow | Result | Run |
+|---|---|---|
+| R3 Review Qualification | success | [36982202816](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202816) |
+| R3 Browser Qualification | success | [36982202866](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202866) |
+| R4 Tenancy Qualification | success | [36982202908](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202908) |
+| R4 Browser Qualification | success | [36982202840](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202840) |
+| R5 Contract Enhanced Qualification | success | [36982202912](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202912) |
+| R5 Implementation Qualification | success | [36982202820](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202820) |
+| R5 Browser Qualification | success | [36982202930](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202930) |
+| R6 Implementation Qualification | success | [36982202910](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202910) |
+| R7 Implementation Qualification | success | [36982202834](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202834) |
+| R8 Implementation Qualification | success | [36982202823](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202823) |
+| R9 Implementation Qualification, `qualify` and `reader` | success | [36982202808](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/36982202808) |
+
+R9 `qualify` on that run: migrations applied, `db:drift` reported no difference, unit tests **70 files / 596 passed**, live PostgreSQL tests **28 files / 226 passed**, lint, typecheck, production build, and `npm audit --omit=dev --audit-level=high` reported **0 vulnerabilities**. The reader job printed `R9 reader qualification passed`.
 
 ## What passed on `0eac350`
 
@@ -65,8 +87,10 @@ The frozen contract’s command surface is `/api/v1/r9`. The publishing desk pag
 
 ## Still locked
 
-`magazine.reader.publish` and `publish.execute` stay dormant. No new permission key was added. R10 distribution, checkout, portal expansion, and any other R10 application are not implemented. V1.0 is not certified. Pull request #14 must not be merged; its documentation is already on this branch. Open pull requests #8 and #10 are not part of this acceptance.
+`magazine.reader.publish` and `publish.execute` stay dormant. No new permission key was added. R10 distribution, checkout, portal expansion, and any other R10 application are not implemented. V1.0 is not certified. Open pull requests #8 and #10 are not part of this acceptance.
 
 ## Merge
 
-Merge pull request #15 with a merge commit only after this acceptance commit’s own R3–R9 workflows succeed. Do not squash. The merge SHA is not known in this file. Record it after the merge; do not invent it here.
+Pull request #15 was merged with a merge commit on 2 October 2026: `a54c0fb5c7ac02be6c5c6225af5529456369c291`. It was not squashed. Pull request #14 was not given its own merge onto `main`. GitHub marked #14 merged because its head `e423841f2e4dab5b1bc08e952d6e0eeb65cb9871` is already contained in #15. The red R4 run on that earlier documentation head is superseded by the green R4 run on `3dafe22`. Open pull requests #8 and #10 are not part of this acceptance.
+
+R10 may enter G0 planning only after this record. R10 implementation is not authorized.
