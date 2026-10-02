@@ -41,7 +41,7 @@ try {
     await field.focus();
     await field.fill(desk.value);
     if (desk.start) await page.locator("#start-field").fill("2026-12-01T15:00");
-    await page.getByRole("button", { name: "Create" }).click();
+    await page.locator("form").getByRole("button", { name: "Create" }).click();
     await page.getByRole("status").filter({ hasText: "Created. It is not public and it is not delivered." }).waitFor();
     await page.keyboard.press("Tab");
     if (index === 0) await page.screenshot({ path: `${evidenceDir}/desk-mobile.png`, fullPage: false });
