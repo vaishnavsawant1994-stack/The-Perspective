@@ -5,7 +5,7 @@ Checkpoint: **P4-R0 / Findings frozen for review**
 Design baseline: **Designs 001–153 frozen; no Design 154 authorized**  
 Inspection date: **2026-08-23**
 
-> **Current-state note, 2 October 2026:** This audit is historical. It describes the repository on 23 August 2026, before the accepted R1–R10 engineering releases. Do not use the matrix below as the current implementation status. The current checkpoint is [PHASE-4-R10-COMPLETION-RECORD.md](./PHASE-4-R10-COMPLETION-RECORD.md). R11 G0 planning is unlocked. R11 implementation is not authorized. V1.0 is not certified. The findings underneath are not rewritten.
+> **Current-state note, 2 October 2026:** This audit is historical. It describes the repository on 23 August 2026, before the accepted R1–R11 engineering releases. Do not use the matrix below as the current implementation status. The current checkpoint is [PHASE-4-R11-COMPLETION-RECORD.md](./PHASE-4-R11-COMPLETION-RECORD.md). R12 G0 planning is unlocked. R12 implementation is not authorized. V1.0 is not certified. The findings underneath are not rewritten.
 
 This is an implementation-reconciliation report, not a visual-design audit and not a remediation change set. Application code was inspected and verified without modifying product behavior.
 

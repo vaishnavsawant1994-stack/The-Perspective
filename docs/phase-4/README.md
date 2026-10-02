@@ -1,6 +1,6 @@
 # Phase 4 — Engineering Implementation Reconciliation
 
-**Current state (2 October 2026):** R1–R9 were accepted on earlier merges. R10 was qualified on `9e1e1c94cc3fbc05100a357e4419da422fe8b79f` and merged by pull request #17 at `289abd9f4258464fc294407e37d4e9f88cb68f01`. The checkpoint is [P4-R10-C1](./PHASE-4-R10-COMPLETION-RECORD.md). R11 G0 planning is unlocked in [PHASE-4-R11-G0-PLANNING-UNLOCK.md](./PHASE-4-R11-G0-PLANNING-UNLOCK.md). R11 implementation is not authorized. V1.0 is not certified. The status line and bullets below are the historical R5 index. They are not the current checkpoint.
+**Current state (2 October 2026):** R1–R10 were accepted on earlier merges. R11 was qualified on `dcf754b3965ae4032f63bfd20d60ed1573a63e80` and merged by pull request #19 at `9c4a11a06def1c9f4a87f1fb21be1cc3640395d8`. The checkpoint is [P4-R11-C1](./PHASE-4-R11-COMPLETION-RECORD.md). R12 G0 planning is unlocked in [PHASE-4-R12-G0-PLANNING-UNLOCK.md](./PHASE-4-R12-G0-PLANNING-UNLOCK.md). R12 implementation is not authorized. V1.0 is not certified. The status line and bullets below are the historical R5 index. They are not the current checkpoint.
 
 Status: **R1–R5 accepted; R5 implementation merged; R6 remains separately locked**
 

@@ -2,9 +2,9 @@
 
 PROJECT: The Perspective
 RELEASE: Phase 4 / R11
-STATUS: **OWNER ACCEPTED. NOT MERGED.**
+STATUS: **OWNER ACCEPTED AND MERGED**
 DATE: 2 October 2026
-R12: **LOCKED. G0 PLANNING IS NOT OPEN UNTIL THIS ACCEPTANCE IS MERGED.**
+R12: **G0 PLANNING UNLOCKED. IMPLEMENTATION NOT AUTHORIZED.**
 
 ## Decision
 
@@ -32,4 +32,6 @@ Published-only SEO metadata and index, deduplicated observations, last-touch att
 
 ## Merge
 
-Not merged. R12 G0 planning opens only after pull request #19 is merged. R12 implementation is not authorized by this file.
+Merged. Pull request #19, merge commit `9c4a11a06def1c9f4a87f1fb21be1cc3640395d8`, pre-merge head `ee2b4bc8d2f9ede86cda767cebc3848bc9e09bf2`. The permanent merged note is `docs/phase-4/PHASE-4-R11-ACCEPTED-MERGED.md`.
+
+R12 may enter G0 planning. R12 implementation is not authorized by this file.
