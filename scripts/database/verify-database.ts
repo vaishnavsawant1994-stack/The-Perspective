@@ -15,6 +15,7 @@ async function verify() {
     "prisma/migrations/20260926173000_r4_tenancy_isolation/verify.sql",
     "prisma/migrations/20260927101500_r6_crm_commercial_foundation/verify.sql",
     "prisma/migrations/20261002190000_r10_media_distribution/verify.sql",
+    "prisma/migrations/20261002220000_r11_growth_seo_analytics/verify.sql",
   ];
   const verificationSql = await Promise.all(
     verificationFiles.map((file) => readFile(resolve(file), "utf8")),
