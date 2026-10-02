@@ -527,31 +527,27 @@ export async function createDeal(
   input: CreateDealInput,
   database: PrismaClient = getPrismaClient(),
 ): Promise<CommercialResult<Awaited<ReturnType<typeof createDealInTransaction>>>> {
-  const first = await run(
-    context,
-    (transaction) => createDealInTransaction(transaction, context, input),
-    database,
-  );
-  if (
-    first.kind === "error" &&
-    (first.code === "CONFLICT" || first.code === "STALE_WRITE") &&
-    input.sourceLeadId
-  ) {
-    return run(
-      context,
-      async (transaction) => {
-        const existing = await readExistingConvertedDeal(
-          transaction,
-          context,
-          input,
-        );
-        if (!existing) throw new CommercialCommandError("CONFLICT");
-        return existing;
-      },
-      database,
-    );
+  let last: CommercialResult<Awaited<ReturnType<typeof createDealInTransaction>>> = error("CONFLICT");
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      const result = await run(
+        context,
+        (transaction) => createDealInTransaction(transaction, context, input),
+        database,
+      );
+      const retry =
+        result.kind === "error" &&
+        Boolean(input.sourceLeadId) &&
+        (result.code === "CONFLICT" || result.code === "STALE_WRITE") &&
+        attempt < 5;
+      if (!retry) return result;
+      last = result;
+    } catch (cause) {
+      if (databaseCode(cause) === "40P01" && input.sourceLeadId && attempt < 5) continue;
+      throw cause;
+    }
   }
-  return first;
+  return last;
 }
 
 export async function updateDealFields(

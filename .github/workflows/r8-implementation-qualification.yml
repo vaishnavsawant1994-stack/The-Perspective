@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - phase4/r8-g0-editorial-production-freeze-20261001
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:

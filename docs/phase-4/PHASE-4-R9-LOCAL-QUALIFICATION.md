@@ -1,8 +1,8 @@
 # R9 local qualification note
 
-STATUS: **LOCAL DATABASE QUALIFICATION ONLY — NOT HOSTED, NOT A MERGE**
+STATUS: **LOCAL DATABASE QUALIFICATION ONLY — NOT HOSTED**
 
-This note records what was actually executed. It is not an owner acceptance of a deployed exact head.
+This note records what was actually executed before the merge. It is not an owner acceptance of a deployed exact head. The later merge is [PHASE-4-R9-MERGED.md](./PHASE-4-R9-MERGED.md). Hosted exact-head evidence is [PHASE-4-R9-COMPLETION-RECORD.md](./PHASE-4-R9-COMPLETION-RECORD.md). Do not read this local note as that gate.
 
 ## What ran
 
@@ -34,10 +34,9 @@ The existing public routes read that projection. Published and archived snapshot
 ## What this note does not claim
 
 - The full database regression suite for R1–R8 on this head
-- GitHub Actions on this head
+- GitHub Actions. Those results are on the merge record, not in this local run
 - A hosted deployment of this commit
 - Exact-head production verification
 - Owner acceptance of a qualified deployment
-- A merge to `main`
 
 R10 remains locked.

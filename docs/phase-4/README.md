@@ -1,5 +1,7 @@
 # Phase 4 — Engineering Implementation Reconciliation
 
+**Current state (2 October 2026):** R1–R8 were accepted on earlier merges. R9 was implemented and merged in pull request #13 at `7cd38065610f7bac0d91c93eb75feff69b20e865`. The later closure is [P4-R9-C1](./PHASE-4-R9-COMPLETION-RECORD.md): accepted on evidence head `0eac350c0dca690357c4e43b6e03be64d8d4c251`, not yet merged. R10 is locked and not started. V1.0 is not certified. The status line and bullets below are the historical R5 index. They are not the current checkpoint.
+
 Status: **R1–R5 accepted; R5 implementation merged; R6 remains separately locked**
 
 - [Repository-Wide Implementation Reconciliation](./PHASE-4-REPOSITORY-WIDE-IMPLEMENTATION-RECONCILIATION.md)
