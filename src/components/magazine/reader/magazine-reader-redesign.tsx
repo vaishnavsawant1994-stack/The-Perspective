@@ -40,6 +40,14 @@ function getPreviewImage(page: ResolvedMagazinePage, fallback?: MagazineIssue["c
   return page.image ?? page.article?.heroImage ?? fallback;
 }
 
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return true;
+  if (target.tagName !== "INPUT") return false;
+  const type = (target as HTMLInputElement).type;
+  return type !== "range" && type !== "button" && type !== "checkbox" && type !== "radio";
+}
+
 export function MagazineReaderRedesign({ initialPage, previousIssues, reader }: Props) {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [panel, setPanel] = useState<"thumbnails" | "contents">("thumbnails");
@@ -68,10 +76,23 @@ export function MagazineReaderRedesign({ initialPage, previousIssues, reader }: 
   }, [reader.pageCount]);
 
   useEffect(() => {
+    document.documentElement.dataset.readerReady = reader.issue.slug;
+    return () => {
+      delete document.documentElement.dataset.readerReady;
+    };
+  }, [reader.issue.slug]);
+
+  useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLElement && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
-      if (event.key === "ArrowRight") goToPage(currentPage + 1);
-      if (event.key === "ArrowLeft") goToPage(currentPage - 1);
+      if (isTypingTarget(event.target)) return;
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goToPage(currentPage + 1);
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goToPage(currentPage - 1);
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -90,8 +111,12 @@ export function MagazineReaderRedesign({ initialPage, previousIssues, reader }: 
 
   async function toggleFullscreen() {
     if (!shellRef.current) return;
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else await shellRef.current.requestFullscreen();
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await shellRef.current.requestFullscreen();
+    } catch {
+      // A headless qualification browser may refuse the Fullscreen API. Page turns must still work.
+    }
   }
 
   async function shareIssue() {

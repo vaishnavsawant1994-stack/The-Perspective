@@ -15,24 +15,39 @@ try {
 
   const reader = await page.goto(new URL("/magazine/read/august-2026", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   assert.equal(reader?.status(), 200);
+  await page.waitForFunction(() => document.documentElement.dataset.readerReady === "august-2026", undefined, { timeout: 20000 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   assert.ok(overflow <= 1, `mobile reader overflowed by ${overflow}px`);
   const progress = page.locator("input[aria-label='Magazine reading progress']").first();
   const before = await progress.inputValue();
+  await progress.focus();
   await page.keyboard.press("ArrowRight");
+  await page.waitForFunction((start) => {
+    const input = document.querySelector("input[aria-label='Magazine reading progress']");
+    return input instanceof HTMLInputElement && input.value !== start;
+  }, before, { timeout: 5000 });
   await page.keyboard.press("ArrowLeft");
+  await page.waitForFunction((start) => {
+    const input = document.querySelector("input[aria-label='Magazine reading progress']");
+    return input instanceof HTMLInputElement && input.value === start;
+  }, before, { timeout: 5000 });
   assert.equal(await progress.inputValue(), before);
-  await page.keyboard.press("ArrowRight");
-  assert.notEqual(await progress.inputValue(), before, "ArrowRight must turn the page");
   await page.getByRole("button", { name: "Next page" }).first().click();
+  await page.waitForFunction((start) => {
+    const input = document.querySelector("input[aria-label='Magazine reading progress']");
+    return input instanceof HTMLInputElement && input.value !== start;
+  }, before, { timeout: 5000 });
+  await page.getByRole("button", { name: "Open page thumbnails" }).click();
+  await page.getByRole("button", { name: /^Go to page / }).first().click();
   await page.screenshot({ path: `${evidenceDir}/reader-mobile.png`, fullPage: false });
 
   await page.setViewportSize({ width: 1280, height: 900 });
+  const desktopOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  assert.ok(desktopOverflow <= 1, `desktop reader overflowed by ${desktopOverflow}px`);
   await page.getByRole("button", { name: "Zoom in" }).first().click();
   await page.getByRole("button", { name: "Zoom out" }).first().click();
-  await page.getByRole("button", { name: "Open page thumbnails" }).first().click();
-  await page.getByRole("button", { name: /^Go to page / }).first().click();
-  await page.getByRole("button", { name: "Enter full screen" }).first().click();
+  await page.getByRole("button", { name: /full\s*screen/i }).first().click();
+  await page.keyboard.press("ArrowRight");
   await page.screenshot({ path: `${evidenceDir}/reader-desktop.png`, fullPage: false });
 
   const premium = await page.request.get(new URL("/api/v1/r9/public/premium", baseUrl).toString());

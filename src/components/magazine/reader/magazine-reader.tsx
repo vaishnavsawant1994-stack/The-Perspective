@@ -9,6 +9,14 @@ import { ReaderContentsPanel, ReaderThumbnailPanel } from "./reader-panels";
 import { ReaderPageRenderer } from "./reader-page-renderer";
 import { ReaderToolbar } from "./reader-toolbar";
 
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return true;
+  if (target.tagName !== "INPUT") return false;
+  const type = (target as HTMLInputElement).type;
+  return type !== "range" && type !== "button" && type !== "checkbox" && type !== "radio";
+}
+
 export function MagazineReader({ reader, initialPage }: { reader: ResolvedMagazineReaderIssue; initialPage: number }) {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [contentsOpen, setContentsOpen] = useState(false);
@@ -56,7 +64,7 @@ export function MagazineReader({ reader, initialPage }: { reader: ResolvedMagazi
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target;
-      if (target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      if (isTypingTarget(target)) return;
       if (contentsOpen || thumbnailsOpen) return;
       if (["ArrowRight", "PageDown"].includes(event.key)) { event.preventDefault(); nextPage(); }
       else if (["ArrowLeft", "PageUp"].includes(event.key)) { event.preventDefault(); previousPage(); }

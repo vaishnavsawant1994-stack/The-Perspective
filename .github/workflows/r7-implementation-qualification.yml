@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - phase4/r7-g0-commercial-finance-freeze-20260928
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
