@@ -15,9 +15,9 @@ This record does not rewrite the G0 contract. The product behavior it accepts is
 | Previous main | `024e4ae7d3b317fa86fbedc865bf7a44884f5b98` |
 | G0 freeze | `ea29ee99d7dfa4fc0bdfa16cea58862688831724` |
 | G0 acceptance | `2538ebb394787217e1150a1fe0cf0b3a0a8358f0` |
-| Implementation authorization | `f77ee160` — `docs/phase-4/PHASE-4-R10-IMPLEMENTATION-AUTHORIZATION.md` |
-| Implementation | `7daaf86` |
-| Desk seed repair | `af2e96b` |
+| Implementation authorization | `f77ee160b1b32ef151115ce2301ea5088768ab56` — `docs/phase-4/PHASE-4-R10-IMPLEMENTATION-AUTHORIZATION.md` |
+| Implementation | `7daaf86b7ed53d8ba37d4920d099be07e2fe32cc` |
+| Desk seed repair | `af2e96ba50e4b4769a7ca8a86e398b8484c3fa69` |
 | Desk form repair | `9e1e1c94cc3fbc05100a357e4419da422fe8b79f` |
 | Qualification head | `9e1e1c94cc3fbc05100a357e4419da422fe8b79f` |
 | Pull request | #17 |
