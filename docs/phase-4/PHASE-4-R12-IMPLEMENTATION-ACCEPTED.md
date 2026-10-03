@@ -2,9 +2,9 @@
 
 PROJECT: The Perspective
 RELEASE: Phase 4 / R12
-STATUS: **OWNER ACCEPTED. NOT MERGED.**
+STATUS: **OWNER ACCEPTED AND MERGED**
 DATE: 3 October 2026
-R13: **LOCKED. G0 PLANNING IS NOT OPEN UNTIL THIS ACCEPTANCE IS MERGED.**
+R13: **G0 PLANNING UNLOCKED. IMPLEMENTATION NOT AUTHORIZED.**
 
 ## Decision
 
@@ -32,4 +32,6 @@ Dormant `client.*` keys, including payment and signing. No new permission key. N
 
 ## Merge
 
-Not merged. R13 G0 planning opens only after pull request #21 is merged. R13 implementation is not authorized by this file.
+Merged. Pull request #21, merge commit `c8a2351343d46f504b5831e9b28d8e71ce5c18aa`, pre-merge head `7d85b452a34210279bcc800ab3bbb1c52260f7f9`. The permanent merged note is `docs/phase-4/PHASE-4-R12-ACCEPTED-MERGED.md`.
+
+R13 may enter G0 planning. R13 implementation is not authorized by this file.

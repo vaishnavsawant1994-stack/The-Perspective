@@ -1,6 +1,6 @@
 # P4-R12-C1 — Client portal and member platform qualification
 
-STATUS: **P4-R12-C1 — ACCEPTED. NOT MERGED.**
+STATUS: **P4-R12-C1 — ACCEPTED AND MERGED.**
 
 DATE: 3 October 2026
 
@@ -57,4 +57,8 @@ Activated read keys: `client.dashboard.view`, `client.project.view`, `client.app
 
 ## Merge
 
-Not merged. Merge waits until the documentation commit that cites this record is green, and then uses a merge commit. R13 may enter G0 planning only after that merge is recorded. R13 implementation is not authorized.
+Pull request #21 was merged with a merge commit on 3 October 2026: `c8a2351343d46f504b5831e9b28d8e71ce5c18aa`. It was not squashed. First parent `c6b928d4b159cc66eb768ad10be4a4ef9b1aea7a`. Second parent `7d85b452a34210279bcc800ab3bbb1c52260f7f9`.
+
+`7d85b45` contains no product-code change after `e71a11f`. The inherited workflows were green again on that documentation head before the merge, including [R12 Implementation Qualification](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37102964028). The product qualification remains the `e71a11f` table above. The permanent merged note is `docs/phase-4/PHASE-4-R12-ACCEPTED-MERGED.md`.
+
+R13 may enter G0 planning. The unlock is `docs/phase-4/PHASE-4-R13-G0-PLANNING-UNLOCK.md`. R13 implementation is not authorized. V1.0 is not certified.
