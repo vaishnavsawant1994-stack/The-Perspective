@@ -11,7 +11,7 @@
 **Production certification:** NOT READY  
 **Design 154:** NOT AUTHORIZED
 
-> **Current-state supersession, 3 October 2026:** The header lines above are the 26 September 2026 control snapshot. They are not the current engineering checkpoint. The newest accepted checkpoint is P4-R13-C1 in `docs/phase-4/PHASE-4-R13-COMPLETION-RECORD.md`, merged by pull request #23 at `fe0cbc0221dfa4b67c7304bfbbfcb75733b53101`. R1–R12 remain accepted. R14 G0 / V1.0 certification planning is unlocked in `docs/phase-4/PHASE-4-R14-G0-PLANNING-UNLOCK.md`. R14 implementation is not authorized. V1.0 production certification is still not claimed and still requires genuine external independent review. Design 154 remains unauthorized.
+> **Current-state supersession, 3 October 2026:** The header lines above are the 26 September 2026 control snapshot. They are not the current engineering checkpoint. The newest accepted product checkpoint is P4-R13-C1 in `docs/phase-4/PHASE-4-R13-COMPLETION-RECORD.md`, merged by pull request #23 at `fe0cbc0221dfa4b67c7304bfbbfcb75733b53101`. R1–R12 remain accepted. R14 G0 is frozen in `docs/phase-4/PHASE-4-R14-G0-FREEZE.md`. Technical qualification is not V1.0 certification. Independent external review has not been performed. Production is not deployed. Design 154 remains unauthorized.
 
 ---
 
