@@ -2,9 +2,9 @@
 
 PROJECT: The Perspective
 RELEASE: Phase 4 / R13
-STATUS: **OWNER ACCEPTED. NOT MERGED.**
+STATUS: **OWNER ACCEPTED AND MERGED**
 DATE: 3 October 2026
-R14: **LOCKED. G0 / V1.0 CERTIFICATION PLANNING IS NOT OPEN UNTIL THIS ACCEPTANCE IS MERGED.**
+R14: **G0 / V1.0 CERTIFICATION PLANNING UNLOCKED. IMPLEMENTATION NOT AUTHORIZED.**
 
 ## Decision
 
@@ -32,4 +32,6 @@ No new permission key. No secret store. No verified integration. No notification
 
 ## Merge
 
-Not merged. R14 G0 / V1.0 certification planning opens only after pull request #23 is merged. R14 implementation is not authorized by this file.
+Merged. Pull request #23, merge commit `fe0cbc0221dfa4b67c7304bfbbfcb75733b53101`, pre-merge head `6a063a0f0187eadba0ba4f6c7bfbddce4ff0059e`. The permanent merged note is `docs/phase-4/PHASE-4-R13-ACCEPTED-MERGED.md`.
+
+R14 may enter G0 / V1.0 certification planning. R14 implementation is not authorized by this file. V1.0 is not certified.

@@ -1,6 +1,6 @@
 # P4-R13-C1 — Enterprise operations qualification
 
-STATUS: **P4-R13-C1 — ACCEPTED. NOT MERGED.**
+STATUS: **P4-R13-C1 — ACCEPTED AND MERGED.**
 
 DATE: 3 October 2026
 
@@ -58,4 +58,8 @@ Teams, departments, invitations, and role administration stay the accepted R5/R3
 
 ## Merge
 
-Not merged. Merge waits until the documentation commit that cites this record is green, and then uses a merge commit. R14 may enter G0 / V1.0 certification planning only after that merge is recorded. R14 implementation is not authorized.
+Pull request #23 was merged with a merge commit on 3 October 2026: `fe0cbc0221dfa4b67c7304bfbbfcb75733b53101`. It was not squashed. First parent `8717ad284ef65bbd8105bb5f5849184d9306896a`. Second parent `6a063a0f0187eadba0ba4f6c7bfbddce4ff0059e`.
+
+`6a063a0` contains no product-code change after `f56ec78`. The inherited workflows were green again on that documentation head before the merge, including [R13 Implementation Qualification](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/37119706249). The product qualification remains the `f56ec78` table above. The permanent merged note is `docs/phase-4/PHASE-4-R13-ACCEPTED-MERGED.md`.
+
+R14 may enter G0 / V1.0 certification planning. The unlock is `docs/phase-4/PHASE-4-R14-G0-PLANNING-UNLOCK.md`. R14 implementation is not authorized. V1.0 is not certified. R14/V1.0 still requires genuine external independent review and cannot use the owner-approved enhanced qualification waiver.
