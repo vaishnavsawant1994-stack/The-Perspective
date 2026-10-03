@@ -1,0 +1,39 @@
+import { describe, expect, it } from "vitest";
+
+import { assertProductionConfiguration, productionConfigurationErrors } from "./production-boundary";
+
+const complete = {
+  PERSPECTIVE_REQUIRE_PRODUCTION_CONFIG: "true",
+  PERSPECTIVE_AUTH_BOUNDARY_MODE: "sessions",
+  PERSPECTIVE_PUBLIC_APP_ORIGIN: "https://example.com",
+  PERSPECTIVE_AUTH_DATA_KEY: Buffer.alloc(32, 1).toString("base64"),
+  PERSPECTIVE_AUTH_KEY_VERSION: "1",
+  DATABASE_URL: "postgresql://runtime@db.internal:5432/perspective",
+};
+
+describe("production configuration", () => {
+  it("does nothing unless production enforcement is requested", () => {
+    expect(productionConfigurationErrors({})).toEqual([]);
+  });
+
+  it("accepts a complete https configuration", () => {
+    expect(productionConfigurationErrors(complete)).toEqual([]);
+  });
+
+  it("rejects wildcard origins, http without an explicit allowance, and a short key", () => {
+    expect(productionConfigurationErrors({
+      ...complete,
+      PERSPECTIVE_PUBLIC_APP_ORIGIN: "https://*.example.com",
+      PERSPECTIVE_AUTH_DATA_KEY: "short",
+    })).toEqual(expect.arrayContaining(["origin", "data key"]));
+    expect(productionConfigurationErrors({
+      ...complete,
+      PERSPECTIVE_PUBLIC_APP_ORIGIN: "http://localhost:3100",
+    })).toEqual(["https origin"]);
+    expect(() => assertProductionConfiguration({
+      ...complete,
+      PERSPECTIVE_AUTH_BOUNDARY_MODE: "deny-all",
+      DATABASE_URL: "",
+    })).toThrow(/auth mode/);
+  });
+});
