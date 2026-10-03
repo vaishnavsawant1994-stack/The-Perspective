@@ -21,6 +21,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Attachments must be 10 MB or smaller." }, { status: 400 });
   }
 
-  const reference = `TP-${new Date().getUTCFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-  return NextResponse.json({ ok: true, reference, message: "Your enquiry has been routed to the appropriate Perspective team." });
+  return NextResponse.json(
+    {
+      ok: false,
+      message: "Enquiry delivery is not configured. Nothing was stored or sent. Email hello@theperspective.com instead.",
+    },
+    { status: 503 },
+  );
 }

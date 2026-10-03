@@ -3998,6 +3998,24 @@ body:has([data-home-v2]) {
 }
 
 @media (max-width: 900px) and (min-width: 768px) {
+  .home-utility {
+    height: auto;
+  }
+  .home-utility-inner {
+    height: auto;
+    min-height: 36px;
+    flex-wrap: wrap;
+    white-space: normal;
+    padding-block: 6px;
+  }
+  .home-utility-actions {
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+  .home-topic-stage,
+  .home-topic-rail {
+    max-width: 100%;
+  }
   .home-discovery-utility-row {
     display: block;
   }

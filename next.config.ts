@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
+import { publicAliases } from "./src/modules/foundation/routing/public-aliases";
+
 const nextConfig: NextConfig = {
+  async redirects() {
+    return publicAliases.map((alias) => ({
+      source: alias.source,
+      destination: alias.destination,
+      permanent: false,
+    }));
+  },
   async headers() {
     const origin = process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN ?? "";
     const headers = [

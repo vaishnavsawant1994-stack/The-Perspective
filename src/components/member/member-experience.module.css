@@ -9,3 +9,5 @@
 @media(max-width:1100px){.storyGrid,.followTopicGrid,.briefingGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.profileHero{grid-template-columns:100px 1fr 1fr}.profileHero dl{display:none}.benefitRow{grid-template-columns:repeat(3,1fr)}.featureEvent{grid-template-columns:240px 1fr}.ticketCode{display:none}}
 @media(max-width:900px){.dashboardRail,.rightRail{grid-template-columns:1fr 1fr}.briefingGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.profileHero{grid-template-columns:90px 1fr}.profileHero>p{display:none}.avatar{width:82px;height:82px}.featureEvent{grid-template-columns:1fr}}
 @media(max-width:640px){.memberMain{padding:11px 8px 20px}.dashboardRail,.rightRail,.storyGrid,.followTopicGrid,.briefingGrid{grid-template-columns:1fr}.pageHeader{min-height:0}.headerActions{flex:1 1 100%}.profileHero{grid-template-columns:70px minmax(0,1fr);padding:12px}.avatar{width:64px;height:64px}.statStrip>div{padding:11px}.memberRoot .card{padding:12px}}
+.fixtureNotice{margin:0 0 12px;padding:10px 12px;border:1px solid #e7d3a1;background:#fff8e8;color:#5c4310;font-size:12px;line-height:1.45}
+.memberRoot button:disabled{cursor:not-allowed;opacity:.72}

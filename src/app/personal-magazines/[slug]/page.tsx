@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: PersonalMagazineRouteProps): 
   const { slug } = await params;
   const profile = getResolvedPersonalMagazineBySlug(slug);
   const shelf = await publishedShelf(slug);
-  if (!profile && !shelf) notFound();
+  if (!profile && !shelf) return { title: "Not found", robots: { index: false, follow: false } };
   if (!profile && shelf) {
     const description = shelf.description || `Published stories from ${shelf.name}.`;
     return {

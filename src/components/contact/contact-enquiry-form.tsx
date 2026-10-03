@@ -32,7 +32,7 @@ export function ContactEnquiryForm() {
     </div>
     <div className={styles.formFooter}>
       <label className={styles.file}><Paperclip/><span><b>Attach Files (Optional)</b><small>Documents, images or PDFs up to 10 MB</small></span><input accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" name="attachment" type="file" /></label>
-      <div className={styles.consent}><label><input name="accepted" required type="checkbox"/><span>I agree to the <Link href="/search?q=privacy">Privacy Policy</Link> and <Link href="/search?q=terms">Terms of Use</Link>.</span></label><button disabled={state.status === "sending"} type="submit">{state.status === "sending" ? "Sending…" : "Send Message"}<Send/></button><p>We typically respond within 1–2 business days.</p></div>
+      <div className={styles.consent}><label><input name="accepted" required type="checkbox"/><span>I agree to the <Link href="/privacy">Privacy Policy</Link> and <Link href="/terms">Terms of Use</Link>.</span></label><button disabled={state.status === "sending"} type="submit">{state.status === "sending" ? "Sending…" : "Send Message"}<Send/></button><p>This form does not deliver an enquiry until email delivery is configured.</p></div>
     </div>
     <div aria-live="polite" className={`${styles.formStatus} ${state.status === "error" ? styles.error : ""}`} hidden={state.status === "idle" || state.status === "sending"}>{state.message}{state.reference ? <> Reference: <b>{state.reference}</b>.</> : null}</div>
   </form>;

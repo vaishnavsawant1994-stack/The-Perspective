@@ -11,6 +11,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import { NewsletterForm } from "@/components/layout/newsletter-form";
 import type {
   ArticleSearchResult,
   SearchCounts,
@@ -289,7 +290,7 @@ function SearchCta() {
   return (
     <section className={`${styles.searchCta} ${styles.shell}`}>
       <div><span><Search aria-hidden="true" /></span><div><h2>Can’t Find What You’re Looking For?</h2><p>Try different keywords or explore our topics and categories.</p><Link href="/search">Explore All Topics</Link></div></div>
-      <div><span className={styles.envelope}>✉</span><div><h2>Stay Updated with The Perspective</h2><p>Get the best stories, interviews and insights delivered to your inbox every week.</p><form action="/search" method="get"><input aria-label="Email address" name="q" placeholder="Enter your email address" type="email" /><button type="submit">Subscribe</button></form></div></div>
+      <div><span className={styles.envelope}>✉</span><div><h2>Stay Updated with The Perspective</h2><p>Email delivery is not configured. A subscription is not created from this page.</p><NewsletterForm buttonLabel="Subscribe" label="Weekly briefing" theme="light" /></div></div>
     </section>
   );
 }
