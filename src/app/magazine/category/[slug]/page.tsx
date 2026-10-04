@@ -21,7 +21,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: MagazineCategoryRouteProps): Promise<Metadata> {
   const { slug } = await params;
   const category = getMagazineCategoryBySlug(slug);
-  if (!category) notFound();
+  if (!category) return { title: "Not found", robots: { index: false, follow: false } };
   const content = getMagazineCategoryContent(category);
   const path = `/magazine/category/${category.slug}`;
   const title = category.slug === "special-editions" ? "Special Editions | The Perspective Magazine" : `${category.name} Magazine | The Perspective`;

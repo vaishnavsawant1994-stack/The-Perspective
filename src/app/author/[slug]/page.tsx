@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
   const { slug } = await params;
   const profile = getAuthorProfileBySlug(slug);
   const published = await publishedByAuthor(slug);
-  if (!profile && published.length === 0) notFound();
+  if (!profile && published.length === 0) return { title: "Not found", robots: { index: false, follow: false } };
   if (!profile) {
     const name = published[0]?.author ?? slug;
     const description = `Published stories by ${name}.`;
