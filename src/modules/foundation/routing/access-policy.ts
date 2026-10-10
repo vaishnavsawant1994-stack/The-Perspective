@@ -26,7 +26,12 @@ export function isPublicClientAuthPath(pathname: string) {
 export function classifyRouteAccess(pathname: string): RouteAccessDecision {
   const normalized = normalizePathname(pathname);
 
-  if (normalized === "/app" || normalized.startsWith("/app/")) {
+  if (
+    normalized === "/app" ||
+    normalized.startsWith("/app/") ||
+    normalized === "/my" ||
+    normalized.startsWith("/my/")
+  ) {
     return { kind: "protected-team", signInPath: "/login" };
   }
 
@@ -68,12 +73,9 @@ export function sanitizeProtectedReturnPath(
   if (!safeReturnPath) return undefined;
 
   const parsed = new URL(safeReturnPath, "https://route-policy.invalid");
-  const root = surface === "TEAM" ? "/app" : "/client";
+  const roots = surface === "TEAM" ? ["/app", "/my"] : ["/client"];
 
-  if (
-    parsed.pathname !== root &&
-    !parsed.pathname.startsWith(`${root}/`)
-  ) {
+  if (!roots.some((root) => parsed.pathname === root || parsed.pathname.startsWith(`${root}/`))) {
     return undefined;
   }
 
