@@ -89,8 +89,8 @@ export async function publishedSearch(query: string) {
 }
 
 export async function publishedAuthorExists(slug: string) {
-  const hits = await publishedSearch("");
-  return hits.some((hit) => hit.kind === "article" && Boolean(hit.author) && publicSlug(hit.author) === slug);
+  const catalogue = await publishedCatalogue();
+  return catalogue.some((issue) => issue.articles.some((article) => Boolean(article.author) && publicSlug(article.author) === slug));
 }
 
 export async function publishedShelf(slug: string) {
