@@ -3,10 +3,6 @@ import type { NextConfig } from "next";
 import { publicAliases } from "./src/modules/foundation/routing/public-aliases";
 
 const nextConfig: NextConfig = {
-  // Missing dynamic public resources must return a real HTTP 404. Blocking
-  // metadata resolution ensures generateMetadata() can call notFound() before
-  // response headers are streamed to the browser.
-  htmlLimitedBots: /.*/,
   async redirects() {
     return publicAliases.map((alias) => ({
       source: alias.source,
