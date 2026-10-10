@@ -5,7 +5,7 @@ import { publishedPaths } from "@/modules/r9/projection";
 
 export const dynamic = "force-dynamic";
 
-const designedPaths = ["/", "/magazine", "/magazine/archive", "/magazine/premium", "/magazine/subscribe", "/search", "/authors", "/personal-magazines", "/sitemap"];
+const designedPaths = ["/", "/magazine", "/magazine/archive", "/magazine/premium", "/subscribe", "/newsletters", "/advertise", "/search", "/authors", "/personal-magazines", "/sitemap"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const published = await publishedPaths();
