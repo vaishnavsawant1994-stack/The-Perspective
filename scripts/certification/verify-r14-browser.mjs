@@ -25,6 +25,17 @@ try {
   const denied = await page.goto(new URL("/app/operations/desk", base).toString(), { waitUntil: "domcontentloaded" });
   assert.equal(new URL(denied?.url() ?? base).pathname, "/login");
 
+  const missingPublicRoutes = [
+    "/article/qualification-missing-article",
+    "/author/qualification-missing-author",
+    "/personal-magazines/qualification-missing-personal-magazine",
+    "/magazine/category/qualification-missing-category",
+  ];
+  for (const path of missingPublicRoutes) {
+    const missing = await page.goto(new URL(path, base).toString(), { waitUntil: "domcontentloaded" });
+    assert.equal(missing?.status(), 404, `${path} must return HTTP 404`);
+  }
+
   const live = await page.goto(new URL("/api/health/live", base).toString());
   assert.equal(live?.status(), 200);
   const liveText = await page.locator("body").innerText();
@@ -39,6 +50,7 @@ try {
     r14_browser: "pass",
     homeMobileOverflowPx: mobileOverflow,
     homeDesktopOverflowPx: desktopOverflow,
+    missingPublicRouteStatus: 404,
     accessibility: "keyboard-and-heading-only",
     browsers: ["chromium"],
   })}\n`);
