@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   if (published) {
     return { title: published.title, description: published.summary, alternates: { canonical: `/article/${published.slug}` }, robots: { index: true, follow: true } };
   }
-  const article = getArticleDetailBySlug(slug); if (!article) return { title: "Not found", robots: { index: false, follow: false } };
+  const article = getArticleDetailBySlug(slug); if (!article) notFound();
   const description = article.dek ?? article.excerpt; const path = `/article/${article.slug}`;
   const images = article.heroImage ? [{ url: article.heroImage.src, width: article.heroImage.width, height: article.heroImage.height, alt: article.heroImage.alt }] : undefined;
   return { title: article.title, description, alternates: { canonical: path }, openGraph: { title: `${article.title} | ${siteConfig.name}`, description, type: "article", url: path, siteName: siteConfig.name, publishedTime: article.publishedAt, modifiedTime: article.updatedAt, authors: article.authors.map((author) => author.name), section: article.category.name, images }, twitter: { card: "summary_large_image", title: `${article.title} | ${siteConfig.name}`, description, images: article.heroImage ? [article.heroImage.src] : undefined } };
