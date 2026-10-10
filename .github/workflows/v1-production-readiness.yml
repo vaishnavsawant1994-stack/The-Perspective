@@ -1,0 +1,48 @@
+name: V1 Production Readiness
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v1-production-readiness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_PERSPECTIVE_SITE_URL: https://perspective.example.com
+      NEXT_PUBLIC_PERSPECTIVE_EDITORIAL_EMAIL: editorial@perspective.example.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify production configuration contract
+        run: |
+          npx vitest run src/modules/foundation/config/production-boundary.test.ts
+          node scripts/certification/verify-v1-production-readiness.mjs
+
+      - name: Lint production readiness changes
+        run: npm run lint
+
+      - name: Typecheck production readiness changes
+        run: npm run typecheck
+
+      - name: Build with configured public identity
+        run: npm run build
