@@ -14,12 +14,15 @@ const editorialPromo = {
   action: "Explore the issue",
 } as const;
 
+const configuredSiteUrl = (process.env.NEXT_PUBLIC_PERSPECTIVE_SITE_URL ?? "https://theperspective.example").replace(/\/$/u, "");
+const configuredEditorialEmail = (process.env.NEXT_PUBLIC_PERSPECTIVE_EDITORIAL_EMAIL ?? "editorial@theperspective.example").trim();
+
 export const siteConfig = {
   name: "The Perspective",
   shortName: "TP",
   description: "Independent ideas, reporting, and culture for a wider point of view.",
-  url: "https://theperspective.example",
-  email: "editorial@theperspective.example",
+  url: configuredSiteUrl,
+  email: configuredEditorialEmail,
   edition: "India Edition",
   utilityLinks: [{ label: "News", href: "/news" }, { label: "Newsletters", href: "/newsletter" }, { label: "Podcasts", href: "/podcasts" }],
   navigation: [
