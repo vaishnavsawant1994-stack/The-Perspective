@@ -1,14 +1,27 @@
 import type { NextConfig } from "next";
 
 import { publicAliases } from "./src/modules/foundation/routing/public-aliases";
+import {
+  r14ProductionAliases,
+  supersededLegacyAliasSources,
+} from "./src/modules/foundation/routing/r14-production-aliases";
 
 const nextConfig: NextConfig = {
   async redirects() {
-    return publicAliases.map((alias) => ({
-      source: alias.source,
-      destination: alias.destination,
-      permanent: false,
-    }));
+    return [
+      ...r14ProductionAliases.map((alias) => ({
+        source: alias.source,
+        destination: alias.destination,
+        permanent: true,
+      })),
+      ...publicAliases
+        .filter((alias) => !supersededLegacyAliasSources.has(alias.source))
+        .map((alias) => ({
+          source: alias.source,
+          destination: alias.destination,
+          permanent: false,
+        })),
+    ];
   },
   async headers() {
     const origin = process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN ?? "";
