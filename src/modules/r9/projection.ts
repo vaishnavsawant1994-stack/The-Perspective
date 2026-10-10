@@ -88,6 +88,11 @@ export async function publishedSearch(query: string) {
   });
 }
 
+export async function publishedAuthorExists(slug: string) {
+  const hits = await publishedSearch("");
+  return hits.some((hit) => hit.kind === "article" && Boolean(hit.author) && publicSlug(hit.author) === slug);
+}
+
 export async function publishedShelf(slug: string) {
   const value = await safeRead("r9_public_shelf", slug);
   if (!value || typeof value !== "object" || !("name" in value) || !("stories" in value)) return null;
