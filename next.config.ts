@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     return publicAliases.map((alias) => ({
       source: alias.source,
       destination: alias.destination,
-      permanent: false,
+      permanent: alias.permanent ?? false,
     }));
   },
   async headers() {
