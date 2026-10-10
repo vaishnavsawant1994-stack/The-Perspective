@@ -28,7 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.29.0",
-    "next": "16.3.6",
+    "next": "16.4.0",
     "pg": "8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -44,7 +44,7 @@
     "@types/react-dom": "^19",
     "dotenv": "17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.4.0",
     "prisma": "7.9.1",
     "tailwindcss": "^4",
     "tsx": "4.23.12",
@@ -55,6 +55,7 @@
     "deepmerge-ts": "8.0.2",
     "nanoid": "3.3.18",
     "mysql2": "3.24.4",
-    "sharp": "0.35.4"
+    "sharp": "0.35.5",
+    "source-map-js": "1.2.2"
   }
 }
