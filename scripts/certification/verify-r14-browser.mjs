@@ -25,6 +25,9 @@ try {
   const denied = await page.goto(new URL("/app/operations/desk", base).toString(), { waitUntil: "domcontentloaded" });
   assert.equal(new URL(denied?.url() ?? base).pathname, "/login");
 
+  const createMagazine = await page.goto(new URL("/personal-magazines/create", base).toString(), { waitUntil: "domcontentloaded" });
+  assert.equal(createMagazine?.status(), 200, "/personal-magazines/create must remain routable");
+
   const missingPublicRoutes = [
     "/article/qualification-missing-article",
     "/author/qualification-missing-author",
