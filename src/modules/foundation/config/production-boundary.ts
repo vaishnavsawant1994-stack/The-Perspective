@@ -1,4 +1,26 @@
 const originPattern = /^https?:\/\/[^/\s*]+(?::[0-9]+)?$/u;
+const editorialEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+const reservedProductionHosts = new Set(["localhost", "127.0.0.1", "::1"]);
+const reservedProductionSuffixes = [".example", ".invalid", ".localhost", ".test"];
+
+function normalizedOrigin(value: string) {
+  return value.replace(/\/$/u, "");
+}
+
+function productionHostname(value: string) {
+  try {
+    return new URL(value).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function reservedHostname(hostname: string) {
+  return (
+    reservedProductionHosts.has(hostname) ||
+    reservedProductionSuffixes.some((suffix) => hostname.endsWith(suffix))
+  );
+}
 
 export function productionConfigurationErrors(
   environment: Record<string, string | undefined>,
@@ -12,6 +34,27 @@ export function productionConfigurationErrors(
   if (!originPattern.test(origin) || origin.includes("*")) errors.push("origin");
   else if (origin.startsWith("http://") && environment.PERSPECTIVE_ALLOW_INSECURE_ORIGIN !== "true") {
     errors.push("https origin");
+  }
+
+  const siteUrl = environment.NEXT_PUBLIC_PERSPECTIVE_SITE_URL ?? "";
+  const siteHostname = productionHostname(siteUrl);
+  if (
+    !siteUrl.startsWith("https://") ||
+    !siteHostname ||
+    reservedHostname(siteHostname) ||
+    normalizedOrigin(siteUrl) !== normalizedOrigin(origin)
+  ) {
+    errors.push("site url");
+  }
+
+  const editorialEmail = (environment.NEXT_PUBLIC_PERSPECTIVE_EDITORIAL_EMAIL ?? "").trim().toLowerCase();
+  const editorialDomain = editorialEmail.includes("@") ? editorialEmail.split("@").at(-1) ?? "" : "";
+  if (
+    !editorialEmailPattern.test(editorialEmail) ||
+    !editorialDomain ||
+    reservedHostname(editorialDomain)
+  ) {
+    errors.push("editorial email");
   }
 
   try {
