@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   browser-qualify:
+    name: R5 browser qualification
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -54,7 +55,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
 
       - name: Install project dependencies
