@@ -35,15 +35,16 @@ The approved 57-page ledger calls route 19 `/personal-magazines/discover`, marks
 
 ## Release evidence
 
-- `npm ci`: completed from the lockfile; zero vulnerabilities reported.
-- `npm run typecheck`: passed after implementation.
-- Full unit suite: 625/625 passed with the documented local-only dummy auth/database settings before the final copy/metadata adjustments.
-- Production build: passed on Next.js 16.4.3; route table includes `/personal-magazines/discover`.
-- Local production-server smoke: discovery returned HTTP 200 and the expected heading; canonical was `https://the-perspective-liart.vercel.app/personal-magazines/discover`; unknown slug returned HTTP 404 with not-found content; sitemap contains the production discovery URL.
-- Desktop visual inspection: local page opened at `http://localhost:4317/personal-magazines/discover` and displayed its catalogue.
-- Updated candidate `d3790fc8f82302709e6e31eb4cbea065536e2576` merges `main@fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2`. Vercel Preview deployment `dpl_G9ieLaXqKJoJNEQyaLXj5SVF27vg` is READY at `https://the-perspective-hq7c813l7-vishnu26.vercel.app`.
-- Preview smoke on that exact SHA: discovery HTTP 200 with unique title/canonical and expected heading; `/robots.txt` names `https://the-perspective-liart.vercel.app/sitemap.xml`; `/sitemap.xml` includes the canonical discovery URL and has no `.example` host; unknown profile slug returns HTTP 404 with the not-found title.
+- `npm ci`: passed from the lockfile on Node.js 24.20.0; audit reported 0 vulnerabilities.
+- `npm run lint`: passed with 0 errors and 3 existing warnings. `npm run typecheck`, `npm run db:validate`, and `npm audit`: passed with no findings.
+- Unit suite: 625/625 passed with local-only sessions configuration, a test key, and a closed database URL at `127.0.0.1:1`; no database connection was made.
+- Next.js 16.4.3 production build passed and generated 475 static pages; the route table includes `/personal-magazines/discover`, `/robots.txt`, and `/sitemap.xml`.
+- Local production-build smoke: discovery returned 200 with the expected heading and canonical; sitemap/robots used the verified production host; an unknown profile slug returned HTTP 404.
+- Playwright 1.55.0 cross-browser acceptance on the local production build: Chromium 140.0.7339.16, Firefox 141.0, and WebKit 26.0 passed discovery, search submission, category navigation, edition-card navigation, and unknown-slug 404. At 390x844, 768x1024, and 1440x900 there was no horizontal overflow or broken image. Initial discovery loads had no page or console errors. Chromium and WebKit log the expected 404 resource diagnostic only when the deliberately unknown slug is requested; Firefox did not.
+- Desktop and mobile full-page screenshots were visually inspected; the responsive layout stacks controls and cards without clipping.
+- Code candidate `d3790fc8f82302709e6e31eb4cbea065536e2576` merges `main@fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2`. The documentation-only current PR head is `60d0f5b8c2e05eb375000f033a395abeea665911`. The exact current head passed 16/16 Node 24 R3-R14 workflows and Vercel Preview.
+- Vercel Preview deployment `dpl_HLrn287kBRBQbfzJyRA4TkRy7Mf7` is READY at `https://the-perspective-9t3e2vqz6-vishnu26.vercel.app`. Current-head preview smoke: discovery 200 with unique title, canonical and heading; `/robots.txt` points to `https://the-perspective-liart.vercel.app/sitemap.xml`; `/sitemap.xml` includes discovery and has no `.example` host; unknown profile slug is HTTP 404.
 - Production on `main@fb7c87e` still serves a soft 404 for discovery and `.example` URLs in `robots.txt`/sitemap. The candidate's shared `siteConfig.url` correction addresses both discovery metadata and robots/sitemap output; it has not been deployed to production.
-- Cross-browser and mobile viewport checks remain pending. PR #41 remains draft and unmerged until those checks and exact-head required contexts pass.
+- Responsive and cross-browser checks are complete for the stated viewports and tested journeys. PR #41 remains draft and unmerged pending owner review and fresh required checks after this evidence update.
 
 V1.0 certification remains open until the broader R14 gates and independent review pass.
