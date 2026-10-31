@@ -1,0 +1,1 @@
+Temporary branch-protection enforcement test. This file is removed when the test pull request is closed.
