@@ -41,8 +41,9 @@ The approved 57-page ledger calls route 19 `/personal-magazines/discover`, marks
 - Production build: passed on Next.js 16.4.3; route table includes `/personal-magazines/discover`.
 - Local production-server smoke: discovery returned HTTP 200 and the expected heading; canonical was `https://the-perspective-liart.vercel.app/personal-magazines/discover`; unknown slug returned HTTP 404 with not-found content; sitemap contains the production discovery URL.
 - Desktop visual inspection: local page opened at `http://localhost:4317/personal-magazines/discover` and displayed its catalogue.
-- Candidate `8545b7d` passed 16/16 workflows and Vercel preview on the previous base. The candidate has now merged `main@fb7c87e`; qualification must be repeated on the merge head before it can be considered for release.
-- Production `robots.txt` on the current `main@fb7c87e` still uses the placeholder sitemap host. The candidate's shared `siteConfig.url` correction addresses both discovery metadata and robots/sitemap output; verify against its new preview.
+- Updated candidate `d3790fc8f82302709e6e31eb4cbea065536e2576` merges `main@fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2`. Vercel Preview deployment `dpl_G9ieLaXqKJoJNEQyaLXj5SVF27vg` is READY at `https://the-perspective-hq7c813l7-vishnu26.vercel.app`.
+- Preview smoke on that exact SHA: discovery HTTP 200 with unique title/canonical and expected heading; `/robots.txt` names `https://the-perspective-liart.vercel.app/sitemap.xml`; `/sitemap.xml` includes the canonical discovery URL and has no `.example` host; unknown profile slug returns HTTP 404 with the not-found title.
+- Production on `main@fb7c87e` still serves a soft 404 for discovery and `.example` URLs in `robots.txt`/sitemap. The candidate's shared `siteConfig.url` correction addresses both discovery metadata and robots/sitemap output; it has not been deployed to production.
 - Cross-browser and mobile viewport checks remain pending. PR #41 remains draft and unmerged until those checks and exact-head required contexts pass.
 
 V1.0 certification remains open until the broader R14 gates and independent review pass.
