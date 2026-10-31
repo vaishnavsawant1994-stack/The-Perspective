@@ -7,7 +7,7 @@
 
 **Core contents:** Next.js/TypeScript frontend, typed editorial content architecture, PostgreSQL/Prisma persistence, authentication/session and organization context foundations, tenant-isolation work, tests, scripts, and the V1 Master Completion Bible.
 
-**Current status (31 October 2026):** R1–R13 were accepted and R14 technical qualification was merged. Current `main` at `28d5cc69c7534e401b03d8aa2c18a8a65f41bc3a` is deployed to Vercel on Node.js 24 with Neon PostgreSQL 16. The 31 October reconciliation records its original `9c266451fbc5c07788993ba453c5a9997e5453cf` baseline; see its post-release addendum for current evidence. V1.0 is not independently certified. See [the current-state reconciliation](docs/release/CURRENT-STATE-RECONCILIATION-2026-10-31.md) for the exact deployment identity, verified health checks, route/design matrix, and remaining gates.
+**Current status (31 October 2026):** R1–R13 were accepted and R14 technical qualification was merged. Current `main` at `fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2` is deployed to Vercel on Node.js 24 with Neon PostgreSQL 16. PR #39 aligned CI workflows with Node 24. The 31 October reconciliation preserves its original `9c266451fbc5c07788993ba453c5a9997e5453cf` baseline and records later releases in addenda. V1.0 is not independently certified. See [the current-state reconciliation](docs/release/CURRENT-STATE-RECONCILIATION-2026-10-31.md) for deployment identity, verified checks, route/design matrix, and remaining gates.
 
 **Recommended next milestone:** Keep the Master Completion Bible and exact accepted checkpoint authoritative; update this profile only when a later release is formally qualified and accepted.
 <!-- repository-profile:end -->
