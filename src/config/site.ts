@@ -18,7 +18,7 @@ export const siteConfig = {
   name: "The Perspective",
   shortName: "TP",
   description: "Independent ideas, reporting, and culture for a wider point of view.",
-  url: "https://theperspective.example",
+  url: "https://the-perspective-liart.vercel.app",
   email: "editorial@theperspective.example",
   edition: "India Edition",
   utilityLinks: [{ label: "News", href: "/news" }, { label: "Newsletters", href: "/newsletter" }, { label: "Podcasts", href: "/podcasts" }],
