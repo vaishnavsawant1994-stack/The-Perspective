@@ -96,14 +96,14 @@ Detailed current capabilities and exclusions remain governed by the [V1 product 
 | Area | Verified position |
 | --- | --- |
 | Vercel | Current `main` SHA is deployed in production and reports `READY`; liveness/readiness and homepage responded successfully during this reconciliation. |
-| Neon PostgreSQL | Production project `the-perspective-production` is in `aws-eu-central-1`, PostgreSQL 16. Read-only inspection found six-hour history retention, no automatic snapshot schedule, one manual snapshot `v1-prelaunch-recovery-2026-10-10` expiring 2026-11-09, and an archived restore-check branch. Production branch is not protected. These facts do not prove a tested restore drill. |
+| Neon PostgreSQL | Production project `the-perspective-production` is in `aws-eu-central-1`, PostgreSQL 16, on subscription `free_v3`. History retention is six hours; automatic snapshot schedule is empty; one manual snapshot `v1-prelaunch-recovery-2026-10-10` expires 2026-11-09. The authorized daily/30-day schedule was rejected with `backup schedule creation is not enabled for this project`; no schedule change occurred. Production branch is unprotected, and an archived restore-check branch does not prove a tested restore drill. |
 | Authentication | Database-backed implementation exists. The existing handoff says the production database has no legitimate accounts, organizations, memberships, or sessions; production-positive auth and tenant paths therefore remain unqualified. |
 | Email and notifications | No production delivery provider is configured in the frozen V1 surface. |
 | Payments and e-signatures | No trusted production provider is configured; workflows must fail closed without provider evidence. |
 | Object storage | No V1 object-storage upload product is part of the accepted surface. |
 | Distribution | Internal SITE publication exists; external social, email, and media distribution is not qualified. |
 | Monitoring | Vercel runtime-error aggregation showed no errors in the preceding 24 hours; grouped runtime logs showed no error/fatal rows in the preceding 30 minutes. The Hobby runtime-log window is limited to one hour. Project webhook listing returned 403 and Vercel CLI is unavailable here, so human alert configuration and delivery could not be verified. |
-| Backups | One manual Neon snapshot exists and expires 2026-11-09; an associated restore-check branch is archived. The production schedule is empty and history retention is six hours. No dated result proves a successful restore drill with measured recovery time. |
+| Backups | Production subscription is `free_v3`; Neon rejected enabling the authorized daily/30-day snapshot schedule because schedule creation is not enabled for this project. The schedule remains empty and history retention is six hours. One manual snapshot expires 2026-11-09 and an associated restore-check branch is archived; no dated result proves a successful measured restore drill. |
 | AI | No live V1 assistant/provider is included. |
 
 ## 6. Pull requests and documentation drift
