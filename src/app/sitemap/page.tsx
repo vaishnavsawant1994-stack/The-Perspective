@@ -3,7 +3,7 @@ import { PublishedPathList } from "@/components/magazine/published/published-pro
 import { SitemapPage } from "@/components/utility/utility-pages";
 import { publishedPaths } from "@/modules/r9/projection";
 
-export const metadata: Metadata = { title: "Sitemap", robots: { index: true, follow: true } };
+export const metadata: Metadata = { title: "Sitemap", alternates: { canonical: "/sitemap" }, robots: { index: true, follow: true } };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
