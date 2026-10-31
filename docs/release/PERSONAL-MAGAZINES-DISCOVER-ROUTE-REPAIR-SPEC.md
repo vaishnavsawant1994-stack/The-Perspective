@@ -1,19 +1,20 @@
-# Personal Magazine discovery route repair specification
+# Personal Magazine discovery route repair
 
-**Scope:** Frozen V1 route repair only. Do not change the Company/People Profile Network proposal or introduce a database migration, provider integration, or AI automation.
+**Scope:** Frozen V1 route repair only. Implementation is on `docs/personal-magazines-discover-route-spec`; PR #41 remains a draft pending exact-head GitHub checks and owner review. No Company/People Profile Network routes, database migrations, provider integrations, or AI automation are included.
 
 ## Contract decision
 
-The approved 57-page ledger calls route 19 `/personal-magazines/discover`, marks it a public page, says its design is folded into the landing page, and recommends ?Create distinct route using existing discovery component.? The V1 Master Completion Bible independently lists route 19 as a public route. This establishes a distinct canonical discovery URL; a redirect to `/personal-magazines` would not preserve the frozen route contract. The route is currently missing and is consumed by the `[slug]` profile route, which renders not-found content with an HTTP 200 streaming response.
+The approved 57-page ledger calls route 19 `/personal-magazines/discover`, marks it a public page, says its design is folded into the landing page, and recommends `Create distinct route using existing discovery component`. The V1 Master Completion Bible independently lists route 19 as a public route. This establishes a distinct canonical discovery URL; a redirect to `/personal-magazines` would not preserve the frozen route contract. The original defect was the missing page module being consumed by the `[slug]` profile route. That route now renders the new discovery page; unknown slugs retain their not-found behavior.
 
 ## Minimal implementation
 
-- Add `src/app/personal-magazines/discover/page.tsx` as a static public route using the existing `PersonalMagazineDiscoveryRedesign` and existing resolved edition data. Do not add a second discovery experience or alter the profile `[slug]` resolver.
-- Give the route a unique title/description and canonical URL `/personal-magazines/discover`; keep `/personal-magazines` canonical on the collection page. Add the route to the sitemap only if the existing public-route sitemap contract includes it.
-- Add a visible internal link to discovery from the Personal Magazines landing page and ensure any header/menu link targets the same canonical URL. Existing discovery links that intend a page-local anchor must resolve on the route or point to a real section; do not leave `#original-personal-magazine-content` dangling when the component is rendered alone.
-- Review fallback people, category counts, sorting and region selectors. Do not present fabricated counts or non-functional controls as live inventory. Keep the current fixture-based disclosure boundary; link profile cards only to existing canonical editions or explicitly supported search results.
+- Implement `src/app/personal-magazines/discover/page.tsx` using `PersonalMagazineDiscoveryRedesign` and resolved edition data. The profile `[slug]` resolver remains unchanged.
+- Add a unique title/description and `/personal-magazines/discover` canonical metadata; keep `/personal-magazines` on the collection page. Add the discovery route to the public sitemap.
+- Add a visible discovery link from the Personal Magazines landing page. Existing page-local anchors now target the actual collection-intro section.
+- Remove fallback profile cards, invented category/inventory counts, non-functional sort/region selectors and an unverified testimonial from the shared discovery experience. Cards now link to existing canonical editions; industry links derive from resolved edition expertise.
 - Preserve all existing landing page discovery sections and its search behavior. Search from the discovery route may navigate to the existing `/personal-magazines?q=...` results contract; preserve URL encoding and the user-entered query.
-- Do not alter unknown slug handling. Ensure an unknown `/personal-magazines/{slug}` remains a genuine not-found response with HTTP 404 and a not-found view.
+- Keep unknown slug handling unchanged; verify an unknown `/personal-magazines/{slug}` returns HTTP 404 and the not-found view.
+- Correct the shared canonical origin to the project’s verified production domain, `https://the-perspective-liart.vercel.app`; Vercel’s project domain list reports this as the project’s production alias.
 
 ## Acceptance test matrix
 
@@ -32,4 +33,12 @@ The approved 57-page ledger calls route 19 `/personal-magazines/discover`, marks
 
 ## Release evidence
 
-Run exact-head lint, typecheck, unit and applicable route tests, production build, and browser smoke on the candidate. Check rendered status and page content separately because the current failure streams a not-found view with HTTP 200. Keep V1.0 certification open until the broader R14 gates and independent review pass.
+- `npm ci`: completed from the lockfile; zero vulnerabilities reported.
+- `npm run typecheck`: passed after implementation.
+- Full unit suite: 625/625 passed with the documented local-only dummy auth/database settings before the final copy/metadata adjustments.
+- Production build: passed on Next.js 16.4.3; route table includes `/personal-magazines/discover`.
+- Local production-server smoke: discovery returned HTTP 200 and the expected heading; canonical was `https://the-perspective-liart.vercel.app/personal-magazines/discover`; unknown slug returned HTTP 404 with not-found content; sitemap contains the production discovery URL.
+- Desktop visual inspection: local page opened at `http://localhost:4317/personal-magazines/discover` and displayed its catalogue.
+- Cross-browser and mobile viewport checks remain pending; exact-head GitHub qualification for the implementation branch is pending.
+
+V1.0 certification remains open until the broader R14 gates and independent review pass.
