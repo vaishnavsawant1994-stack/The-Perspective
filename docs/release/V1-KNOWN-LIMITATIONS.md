@@ -4,7 +4,7 @@
 
 Current exact source and environment evidence are recorded in [CURRENT-STATE-RECONCILIATION-2026-10-31.md](./CURRENT-STATE-RECONCILIATION-2026-10-31.md). This list describes the current release boundary, not the earlier pre-production state.
 
-- Production runs from `main@9c266451fbc5c07788993ba453c5a9997e5453cf` on Vercel/Node.js 24 with Neon PostgreSQL 16. Liveness and readiness checks returned HTTP 200 during the 31 October 2026 reconciliation.
+- Production runs from `main@28d5cc69c7534e401b03d8aa2c18a8a65f41bc3a` on Vercel/Node.js 24 with Neon PostgreSQL 16. Post-release liveness/readiness checks returned HTTP 200; see the reconciliation addendum for deployment and smoke evidence.
 - No legitimate production user, organization, membership, or session is available for positive production login, session lifecycle, tenant-switch, same-tenant, and cross-tenant acceptance. Do not use disposable account fixtures in production.
 - An independent external V1 review has not been performed. V1.0 is not certified.
 - The current Neon snapshot schedule is empty. A manual backup/restore and a private baseline are recorded, but an automated retained schedule and protected production branch remain unresolved under current account capabilities.

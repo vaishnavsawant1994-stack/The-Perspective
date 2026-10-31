@@ -2,10 +2,10 @@
 
 **STATUS: PRODUCTION DEPLOYED — V1.0 NOT CERTIFIED**
 
-**Current source:** `main@9c266451fbc5c07788993ba453c5a9997e5453cf`
-**Current Vercel deployment:** `dpl_5Rw3qraVtUBARXZtSRfRAPwKP69h` (`READY`, production, Node.js 24, `fra1`)
+**Current source:** `main@28d5cc69c7534e401b03d8aa2c18a8a65f41bc3a`
+**Current Vercel deployment:** `dpl_DTnagc9Sv7hT2XgJq7Fgjqfozgpw` (`READY`, production, Node.js 24; see reconciliation addendum)
 
-This file is a concise entry point. The dated [current-state reconciliation](./CURRENT-STATE-RECONCILIATION-2026-10-31.md) holds the exact current evidence and supersedes earlier readiness snapshots below.
+This file is a concise entry point. The dated [current-state reconciliation](./CURRENT-STATE-RECONCILIATION-2026-10-31.md) preserves its original baseline and has a post-release addendum with current deployment evidence; that addendum supersedes earlier readiness snapshots below.
 
 | Gate | Current state |
 | --- | --- |
@@ -22,4 +22,4 @@ This file is a concise entry point. The dated [current-state reconciliation](./C
 | Independent review | Not performed; mandatory before V1.0 certification |
 | V1.0 release tag | Must not be created before all blockers close and the independent review record is accepted |
 
-R14 technical qualification, successful deployment, or passing health endpoints alone do not equal production certification.
+R14 technical qualification, successful deployment, or passing health endpoints alone do not equal production certification. CI used Node.js 20 while production uses Node.js 24; runtime parity remains open.
