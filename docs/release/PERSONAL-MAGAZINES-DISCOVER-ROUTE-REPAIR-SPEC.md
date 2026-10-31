@@ -1,6 +1,6 @@
 # Personal Magazine discovery route repair
 
-**Scope:** Frozen V1 route repair only. Implementation is on `docs/personal-magazines-discover-route-spec`; PR #41 remains a draft pending exact-head GitHub checks and owner review. No Company/People Profile Network routes, database migrations, provider integrations, or AI automation are included.
+**Scope:** Frozen V1 route repair only. Implementation is on `docs/personal-magazines-discover-route-spec`; PR #41 remains a draft pending exact-head GitHub checks, responsive/cross-browser acceptance, and owner review. Candidate base is `main@fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2` (PR #39 Node 24 CI release). No Company/People Profile Network routes, database migrations, provider integrations, or AI automation are included.
 
 ## Contract decision
 
@@ -15,6 +15,7 @@ The approved 57-page ledger calls route 19 `/personal-magazines/discover`, marks
 - Preserve all existing landing page discovery sections and its search behavior. Search from the discovery route may navigate to the existing `/personal-magazines?q=...` results contract; preserve URL encoding and the user-entered query.
 - Keep unknown slug handling unchanged; verify an unknown `/personal-magazines/{slug}` returns HTTP 404 and the not-found view.
 - Correct the shared canonical origin to the project’s verified production domain, `https://the-perspective-liart.vercel.app`; Vercel’s project domain list reports this as the project’s production alias.
+- Verify generated `/robots.txt` points to `https://the-perspective-liart.vercel.app/sitemap.xml`. The currently deployed pre-PR #41 build still points at the placeholder `theperspective.example`; this is a confirmed production indexing defect and will be corrected when this route fix is released.
 
 ## Acceptance test matrix
 
@@ -30,6 +31,7 @@ The approved 57-page ledger calls route 19 `/personal-magazines/discover`, marks
 | Responsive | Chromium 390x844 and 768x1024 | Hero, search, categories, cards and sidebar reflow without clipping or horizontal overflow; interactive targets remain usable |
 | Cross-browser | Chromium, Firefox, WebKit at desktop and mobile widths | Core route, search and card navigation work consistently; record browser/version and exact candidate SHA |
 | Metadata/indexing | Inspect rendered head and sitemap | Unique title/description; canonical identity correct; one sitemap entry if included by contract; no duplicate canonical URL |
+| Robots sitemap origin | GET `/robots.txt` | Sitemap directive uses the verified production host, never `theperspective.example` |
 
 ## Release evidence
 
@@ -39,6 +41,8 @@ The approved 57-page ledger calls route 19 `/personal-magazines/discover`, marks
 - Production build: passed on Next.js 16.4.3; route table includes `/personal-magazines/discover`.
 - Local production-server smoke: discovery returned HTTP 200 and the expected heading; canonical was `https://the-perspective-liart.vercel.app/personal-magazines/discover`; unknown slug returned HTTP 404 with not-found content; sitemap contains the production discovery URL.
 - Desktop visual inspection: local page opened at `http://localhost:4317/personal-magazines/discover` and displayed its catalogue.
-- Cross-browser and mobile viewport checks remain pending; exact-head GitHub qualification for the implementation branch is pending.
+- Candidate `8545b7d` passed 16/16 workflows and Vercel preview on the previous base. The candidate has now merged `main@fb7c87e`; qualification must be repeated on the merge head before it can be considered for release.
+- Production `robots.txt` on the current `main@fb7c87e` still uses the placeholder sitemap host. The candidate's shared `siteConfig.url` correction addresses both discovery metadata and robots/sitemap output; verify against its new preview.
+- Cross-browser and mobile viewport checks remain pending. PR #41 remains draft and unmerged until those checks and exact-head required contexts pass.
 
 V1.0 certification remains open until the broader R14 gates and independent review pass.
