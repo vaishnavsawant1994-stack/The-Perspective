@@ -10,7 +10,7 @@ function routeFiles(directory: string): string[] {
     return entry.isDirectory()
       ? routeFiles(path)
       : entry.name === "route.ts"
-        ? [relative(proposalApiRoot, path).replaceAll("\\\\", "/")]
+        ? [relative(proposalApiRoot, path).replaceAll("\\", "/")]
         : [];
   }).sort();
 }
