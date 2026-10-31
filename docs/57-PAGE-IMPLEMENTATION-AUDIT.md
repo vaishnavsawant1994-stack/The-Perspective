@@ -1,6 +1,7 @@
 # The Perspective — 57-Page Implementation Audit
 
 Audit date: 13 August 2026  
+**Historical status:** This is an August source snapshot. Its route and data/backend observations are not current production qualification. Use [the 31 October 2026 reconciliation](./release/CURRENT-STATE-RECONCILIATION-2026-10-31.md) and its generated matrix for the current source/deployment identity; preserve this file as historical audit evidence.
 Audit inputs:
 
 - `C:\Users\HP\Downloads\the-perspective-master-57-page-connection-route-map.md`

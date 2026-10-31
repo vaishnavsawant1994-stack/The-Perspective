@@ -1,6 +1,6 @@
 # Phase 4 — Engineering Implementation Reconciliation
 
-**Current state (3 October 2026):** R1–R12 were accepted on earlier merges. R13 was qualified on `f56ec78eb7304e8883507cf5fe579302e770ec2c` and merged by pull request #23 at `fe0cbc0221dfa4b67c7304bfbbfcb75733b53101`. The product checkpoint is [P4-R13-C1](./PHASE-4-R13-COMPLETION-RECORD.md). R14 G0 is frozen in [PHASE-4-R14-G0-FREEZE.md](./PHASE-4-R14-G0-FREEZE.md). Technical qualification is not V1.0 certification. Independent external review has not been performed. Production is not deployed. The status line and bullets below are the historical R5 index. They are not the current checkpoint.
+**Current state (31 October 2026):** R1–R13 were accepted in their recorded scopes. R14 technical qualification and the production route repair were merged; `main@9c266451fbc5c07788993ba453c5a9997e5453cf` is deployed to Vercel on Node.js 24 with Neon PostgreSQL 16. Production health checks returned HTTP 200 during the latest reconciliation. V1.0 remains uncertified because independent review and production identity, durable backup, release protection, and paging gates remain open. See [the current-state reconciliation](../release/CURRENT-STATE-RECONCILIATION-2026-10-31.md) and [the generated master implementation matrix](../release/MASTER-IMPLEMENTATION-MATRIX-2026-10-31.csv). The status line and bullets below are the historical R5 index, not the current checkpoint.
 
 Status: **R1–R5 accepted; R5 implementation merged; R6 remains separately locked**
 
