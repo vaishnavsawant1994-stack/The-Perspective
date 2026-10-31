@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const root = process.cwd();
-const snapshot = "9c266451fbc5c07788993ba453c5a9997e5453cf";
+const snapshot = "fa919593bdbb983b35977f82ca708ba88fabae6c";
 const routeAuditPath = "docs/57-PAGE-IMPLEMENTATION-AUDIT.md";
 const designAuditPath = "docs/phase-3/PHASE-3A-DOCUMENT-01-MASTER-153-DESIGN-AUDIT-AND-COMPONENT-MAPPING.md";
 
@@ -55,12 +55,6 @@ function routeSource(route, title) {
   const canonical = route.match(/`([^`]+)`/u)?.[1] ?? route;
   const pathname = canonical.split("?")[0].replaceAll("`", "").replace(/\{([^}]+)\}/gu, "[$1]");
   const expected = pathname.split("/").filter(Boolean);
-  if (pathname === "/personal-magazines/discover") {
-    return {
-      status: "Dynamic handler present; live renders not-found screen (stream status 200)",
-      path: "src/app/personal-magazines/[slug]/page.tsx",
-    };
-  }
   const found = pageRoutes.find(({ segments }) => expected.length === segments.length && expected.every((segment, index) => {
     const current = segments[index];
     return /^\[[^\]]+\]$/u.test(segment) ? /^\[[^\]]+\]$/u.test(current) : segment === current;
@@ -81,16 +75,23 @@ const publicRows = sectionRows(routeAudit, "## 57-page ledger", "## Existing rou
 for (const line of publicRows) {
   const [number, title, canonicalRoute, oldImplementation, oldDesign, oldData, nextAction] = cells(line);
   const source = routeSource(canonicalRoute, title);
+  const normalizedSourcePath = source.path.split(sep).join("/");
+  const isDiscovery = canonicalRoute.includes("/personal-magazines/discover");
+  if (isDiscovery && normalizedSourcePath === "src/app/personal-magazines/discover/page.tsx") {
+    source.status = "UI route present; production HTTP 200, canonical, sitemap, robots, and unknown-edition 404 verified 2026-11-01; API/database/provider status not implied";
+  }
   rows.push({
     id: `PUB-${number.padStart(2, "0")}`,
     scope: "Public page contract",
     item: title,
     canonicalRouteOrSurface: canonicalRoute,
-    codeEvidenceAtSnapshot: source.path,
+    codeEvidenceAtSnapshot: normalizedSourcePath,
     currentSourceState: source.status,
     historicalAuditStatus_2026_08_13: `${oldImplementation}; design: ${oldDesign}; data: ${oldData}`,
     securityOrTrustBoundary: "See route policy and current R14 production qualification; per-route runtime authorization still requires exact-head evidence.",
-    remainingEvidenceOrAction: nextAction,
+    remainingEvidenceOrAction: isDiscovery && normalizedSourcePath === "src/app/personal-magazines/discover/page.tsx"
+      ? "Route and production canonical/indexing acceptance passed on main@fa919593bdbb983b35977f82ca708ba88fabae6c; broader site accessibility and authenticated journeys remain separate R14 gates."
+      : nextAction,
     sourceOfTruth: routeAuditPath,
   });
 }
@@ -130,18 +131,18 @@ const releases = [
   ["R13", "Enterprise operations and integration declarations", "Accepted limited active surface; provider verification returns PROVIDER_UNAVAILABLE", "docs/phase-4/PHASE-4-R13-COMPLETION-RECORD.md"],
   ["R14", "Technical qualification and production hardening", "Technical qualification merged; production runs at current main SHA; V1.0 remains NOT CERTIFIED", "docs/phase-4/PHASE-4-R14-TECHNICAL-RECORD.md"],
 ];
-for (const [id, item, state, source] of releases) rows.push({ id, scope: "Accepted release capability", item, canonicalRouteOrSurface: "R1-R14 domain scope", codeEvidenceAtSnapshot: source, currentSourceState: state, historicalAuditStatus_2026_08_13: "Not applicable", securityOrTrustBoundary: "Use the accepted release contract; dormant permissions and fail-closed provider boundaries remain enforced.", remainingEvidenceOrAction: id === "R14" ? "Independent review, positive production identity/tenant checks, durable backups/branch protections and tested human paging remain outstanding." : "Feature-level page/data/provider mappings are tracked separately from release acceptance.", sourceOfTruth: source });
+for (const [id, item, state, source] of releases) rows.push({ id, scope: "Accepted release capability", item, canonicalRouteOrSurface: "R1-R14 domain scope", codeEvidenceAtSnapshot: source, currentSourceState: state, historicalAuditStatus_2026_08_13: "Not applicable", securityOrTrustBoundary: "Use the accepted release contract; dormant permissions and fail-closed provider boundaries remain enforced.", remainingEvidenceOrAction: id === "R14" ? "Independent review, positive production identity/tenant checks, daily/30-day recovery and restore evidence, fully verified branch protections, tested human paging, and editor disposition of synthetic public content remain outstanding." : "Feature-level page/data/provider mappings are tracked separately from release acceptance.", sourceOfTruth: source });
 
 const integrations = [
-  ["INT-01", "Production hosting", "Vercel; production deployment READY; Node.js 24; fra1", "Current main SHA is deployed; deployment metadata verified 2026-10-31", "docs/release/CURRENT-STATE-RECONCILIATION-2026-10-31.md"],
-  ["INT-02", "Production database", "Neon PostgreSQL 16, Frankfurt", "Production health readiness returned 200; automated snapshot schedule currently empty; branch protection unavailable on plan", "docs/release/CURRENT-STATE-RECONCILIATION-2026-10-31.md"],
-  ["INT-03", "Authentication and tenant onboarding", "Database-backed auth and tenancy exist", "Production has no legitimate accounts/organizations/memberships/sessions per issue #32; positive flows remain unqualified", "https://github.com/vaishnavsawant1994-stack/The-Perspective/issues/32"],
+  ["INT-01", "Production hosting", "Vercel; production deployment READY; Node.js 24; Next.js 16.4.3; fra1", "main@fa919593bdbb983b35977f82ca708ba88fabae6c; deployment dpl_CM9kE4H8sbTB7T2oBQvbqjJGLA8F verified 2026-11-01", "docs/release/CURRENT-STATE-RECONCILIATION-2026-10-31.md"],
+  ["INT-02", "Production database", "Neon PostgreSQL 16, Frankfurt", "Production readiness returned 200; PITR history is 21,600 seconds (6 hours); snapshot schedule is empty; production branch is unprotected on the current Free plan", "docs/release/CURRENT-STATE-RECONCILIATION-2026-10-31.md"],
+  ["INT-03", "Authentication and tenant onboarding", "Database-backed auth and tenancy exist", "Latest R14 handoff reports no legitimate production test identities; this population state was not rechecked. Positive production flows remain unqualified.", "https://github.com/vaishnavsawant1994-stack/The-Perspective/issues/32"],
   ["INT-04", "Email and notifications", "No production delivery provider", "Delivery must not be claimed; configure and qualify a provider in a separately approved release", "docs/phase-4/PHASE-4-V1-PRODUCT-SURFACE.md"],
   ["INT-05", "Payments and signatures", "No trusted production provider", "Payment and signature commands fail closed when provider evidence is absent", "docs/phase-4/PHASE-4-V1-PRODUCT-SURFACE.md"],
   ["INT-06", "Object storage", "No V1 object-storage upload product", "Do not advertise uploads or file delivery as operational", "docs/phase-4/PHASE-4-V1-PRODUCT-SURFACE.md"],
   ["INT-07", "Publishing distribution", "Internal SITE publication is supported", "External social, email and media delivery are not connected/qualified", "docs/phase-4/PHASE-4-R10-COMPLETION-RECORD.md"],
   ["INT-08", "Monitoring and paging", "Vercel runtime logs plus hourly liveness/readiness monitoring", "Human paging path under simulated failure is not demonstrated", "https://github.com/vaishnavsawant1994-stack/The-Perspective/issues/32"],
-  ["INT-09", "Backup and recovery", "Manual logical backup/restore and private baseline documented", "Current Neon automatic schedule is empty; current plan has no available snapshot schedule/protected-branch allowance", "https://github.com/vaishnavsawant1994-stack/The-Perspective/issues/32"],
+  ["INT-09", "Backup and recovery", "Manual logical backup/restore and private baseline documented", "Requested daily snapshots with 30-day retention could not be scheduled because the current Neon Free plan does not enable snapshot scheduling; no paid plan change approved; restore drill remains outstanding", "https://github.com/vaishnavsawant1994-stack/The-Perspective/issues/32"],
   ["INT-10", "AI assistance", "No live V1 assistant", "No model/provider integration is part of the accepted V1 surface", "docs/phase-4/PHASE-4-V1-PRODUCT-SURFACE.md"],
 ];
 for (const [id, item, state, evidence, source] of integrations) rows.push({ id, scope: "Provider and operations integration", item, canonicalRouteOrSurface: "Production platform", codeEvidenceAtSnapshot: evidence, currentSourceState: state, historicalAuditStatus_2026_08_13: "Historical status reconciled against production deployment and latest project evidence where available.", securityOrTrustBoundary: "Production credentials stay in provider secret stores; app must fail closed without trusted provider evidence.", remainingEvidenceOrAction: evidence, sourceOfTruth: source });
@@ -150,6 +151,6 @@ const header = ["id", "scope", "item", "canonicalRouteOrSurface", "codeEvidenceA
 const lines = [header, ...rows.map((row) => header.map((key) => row[key] ?? ""))].map((line) => line.map(csv).join(","));
 if (publicRows.length !== 57) throw new Error(`Expected 57 public rows; found ${publicRows.length}`);
 if (designRows.length !== 153) throw new Error(`Expected 153 design rows; found ${designRows.length}`);
-const output = "docs/release/MASTER-IMPLEMENTATION-MATRIX-2026-10-31.csv";
+const output = "docs/release/MASTER-IMPLEMENTATION-MATRIX-2026-11-01.csv";
 writeFileSync(join(root, output), `${lines.join("\n")}\n`, "utf8");
 process.stdout.write(`Wrote ${output}: ${publicRows.length} public pages, ${designRows.length} designs, ${releases.length} releases, ${integrations.length} integrations. Snapshot ${snapshot}.\n`);

@@ -1,27 +1,29 @@
 # The Perspective current-state reconciliation
 
-**As of:** 31 October 2026 (Asia/Kolkata)
+**As of:** 1 November 2026 (Asia/Kolkata)
 
 **Repository:** `vaishnavsawant1994-stack/The-Perspective`
-**Status:** Production is deployed. V1.0 is **not independently certified**.
+**Status:** Production is deployed with the PR #41 discovery-route repair and PR #42 canonical metadata repair. V1.0 is **not independently certified**.
+
+> **Current release addendum (1 November 2026):** The original audit and matrix below preserve their historical source snapshot. Current `main` is `fa919593bdbb983b35977f82ca708ba88fabae6c`, merged from PR #42 after PR #41. PR #42 passed 23/23 exact-head check runs. Production deployment `dpl_CM9kE4H8sbTB7T2oBQvbqjJGLA8F` is READY and serves that exact SHA. Live production checks confirm the discovery route, canonical metadata, robots and sitemap, a genuine 404 for an unknown edition, and canonical tags on all seven static utility pages fixed by PR #42. A representative live sweep also returned HTTP 200 for 42 static routes and 25 dynamic routes, with real 404s for unknown article/person/edition slugs; this is sampled route acceptance, not full browser or accessibility acceptance. Earlier statements below that PR #41 is unmerged or that production serves a discovery soft-404 / placeholder sitemap describe the pre-merge state and are superseded by this addendum.
 
 ## 1. Exact source and production identity
 
 | Evidence | Current value |
 | --- | --- |
-| Local and GitHub `main` | `9c266451fbc5c07788993ba453c5a9997e5453cf` |
-| Source change | Merged PR [#34](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/34), `fix(r14): restore production route contract` |
-| Production Vercel deployment | `dpl_5Rw3qraVtUBARXZtSRfRAPwKP69h` — `READY` |
-| Deployed Git source | `main` at the same SHA shown above |
+| Local and GitHub `main` | `fa919593bdbb983b35977f82ca708ba88fabae6c` |
+| Source changes | Merged PR [#41](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/41), discovery repair; PR [#42](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/42), static utility-page canonical repair |
+| Production Vercel deployment | `dpl_CM9kE4H8sbTB7T2oBQvbqjJGLA8F` — `READY` |
+| Deployed Git source | `main` at `fa919593bdbb983b35977f82ca708ba88fabae6c` |
 | Production aliases | `the-perspective-vishnu26.vercel.app`, `the-perspective-liart.vercel.app` |
 | Runtime / region | Node.js 24 / `fra1` |
-| Production checks performed for this reconciliation | `/api/health/live` returned HTTP 200; `/api/health/ready` returned HTTP 200; homepage returned HTTP 200 |
+| Production checks performed for this reconciliation | Seven canonical utility routes plus `/`, `/personal-magazines`, `/personal-magazines/discover`, `/robots.txt`, `/sitemap.xml`, and `/api/health/ready` returned HTTP 200; unknown edition returned HTTP 404; readiness returned `ready` |
 
 The current Vercel deployment is later than the deployment named in the existing GitHub certification handoff. This establishes that hosting and a production deployment exist. It does not by itself establish that all V1 acceptance gates or positive authenticated user journeys have passed.
 
 ## 2. V1 program status
 
-R1–R13 were accepted within their recorded scopes. R14 technical qualification was merged, the production route repair in PR #34 was deployed, and the current liveness/readiness checks pass. **V1.0 certification remains open.** The route repair is not an independent review or certification.
+R1–R13 were accepted within their recorded scopes. R14 technical qualification was merged; PR #34's initial production route repair and PR #41's discovery/canonical route repair are deployed. Current liveness/readiness checks pass. **V1.0 certification remains open.** Route deployment is not independent review or full V1.0 certification.
 
 The GitHub [R14 handoff issue #32](https://github.com/vaishnavsawant1994-stack/The-Perspective/issues/32) still names accepted SHA `9a69a786…` and deployment `dpl_2taVAdx…`. Both are superseded by the current main/deployment identity above. Its unresolved requirements remain useful, but its candidate and production identity must be reconciled before it can serve as the current handoff.
 
@@ -29,8 +31,9 @@ The GitHub [R14 handoff issue #32](https://github.com/vaishnavsawant1994-stack/T
 
 - Independent review by a reviewer separate from the implementation and qualification agent.
 - Legitimate production identity setup and positive-path checks for login, sessions, tenant selection, same-tenant authorization, tenant switching, and cross-tenant denial. Disposable fixtures must remain limited to disposable databases.
-- Neon automatic backup scheduling and protected-branch capabilities. Current read-only project inspection shows no snapshot schedule and the production branch is not protected.
-- GitHub main protection is active: 23 required checks, strict up-to-date enforcement, admin enforcement, and force-push/deletion denial. Release tags matching `v*` are immutable, and the GitHub `Production` environment allows only `main`. PR #39 is merged as `fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2`; its Node 24 workflow definitions passed all 16 qualification workflows. No approval count is configured; outside reviewers were not added.
+- Editorial authenticity: `src/data/mock/people.ts` explicitly describes Anika Rao as fictional, while the record also has a realistic portrait alt-text, title, company, biography, and quotation. The production exposure and editorial labeling of this synthetic profile/interview have not been independently resolved. An editor must decide whether to remove it, clearly label it fictional, or replace it with verified content before V1.0 acceptance; do not present it as a real person or interview without verification.
+- Neon automatic backup scheduling and protected-branch capabilities. Current read-only project inspection shows no snapshot schedule, six-hour PITR history, and an unprotected production branch. The selected daily snapshot / 30-day retention schedule was rejected by Neon because snapshot scheduling is not enabled for the current Free plan; no plan change or production setting change was made. The account's exact upgrade cost must be reviewed before a paid plan change.
+- GitHub reports the `main` branch as protected with 23 required check contexts. Release-tag ruleset 26278001 was previously read as active for `v*`; the `Production` environment was previously reported as restricted to `main`. This session could not read the detailed branch-protection endpoint (403), so strict up-to-date/admin enforcement, force-push/deletion settings, required review policy and environment restrictions need an authorized read-back before certification. PR #39 is merged as `fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2`; its Node 24 workflow definitions passed all 16 qualification workflows.
 - A tested human notification or paging path under a simulated failure.
 - Production qualification evidence pinned to the new exact SHA, including the representative browser, security, authorization, and recovery checks required by the R14 contracts.
 
@@ -38,7 +41,7 @@ Do not create a V1.0 release tag or state that V1.0 is certified until those gat
 
 ## 3. Coverage matrix and interpretation
 
-The row-level matrix is [MASTER-IMPLEMENTATION-MATRIX-2026-10-31.csv](./MASTER-IMPLEMENTATION-MATRIX-2026-10-31.csv). It covers:
+The historical 31 October row-level matrix is [MASTER-IMPLEMENTATION-MATRIX-2026-10-31.csv](./MASTER-IMPLEMENTATION-MATRIX-2026-10-31.csv). The refreshed [1 November matrix](./MASTER-IMPLEMENTATION-MATRIX-2026-11-01.csv) uses the merged production source and records the route module and acceptance evidence separately. Both cover:
 
 - all 57 rows in the existing approved public-page ledger;
 - all 153 rows in the Phase 3A design audit;
@@ -51,7 +54,7 @@ The matrix keeps three different kinds of evidence separate:
 2. The older 57-page audit's design/data/backend assessments are preserved as historical observations dated 13 August 2026. They are not silently promoted to current production evidence.
 3. **PASS** in the 153-design audit means the approved screen responsibility and architecture were audited. That audit explicitly deferred route mapping. It does not mean the screen is implemented, connected to live data, or qualified in production.
 
-The point-in-time matrix identifies `/personal-magazines/discover` as a frozen contract without a dedicated page module on its recorded source snapshot. PR #41 adds the distinct page module, metadata, navigation, sitemap entry, and shared discovery cleanup. Exact head `7bec3187813686c3dae781c23c43f1f264b921ac` passed 16/16 R3-R14 workflows and preview smoke; PR #41 is ready for owner review but remains unmerged.
+The 31 October point-in-time matrix identifies `/personal-magazines/discover` as a frozen contract without a dedicated page module on its recorded source snapshot. PR #41 subsequently added the distinct page module, metadata, navigation, sitemap entry, and shared discovery cleanup. Exact head `7bec3187813686c3dae781c23c43f1f264b921ac` passed all 23 GitHub check runs and Vercel Preview before it was merged. Production acceptance is recorded in the latest addendum; the 1 November matrix records the dedicated module and verified route status.
 The approved 57-page ledger (route 19) and V1 Master Completion Bible both specify `/personal-magazines/discover` as a public route. The ledger says its design was folded into `/personal-magazines` but explicitly recommends `Create distinct route using existing discovery component`. A redirect to the landing page would violate this frozen contract. The smallest V1 correction is a distinct page module at the canonical route that reuses the existing discovery component, with independent canonical metadata, working navigation/sitemap coverage, and real HTTP 404 behavior for unknown profile slugs. No route code is added in this documentation PR.
 
 
@@ -127,7 +130,9 @@ The local development server is available at `http://localhost:3000`. The local 
 5. Only then consider the V1.0 release decision.
 6. Keep V1.1 Profile Network work in a separate proposal and authorized release boundary; do not mix new routes or schema into the V1 candidate.
 
-## Post-release addenda (31 October 2026)
+## Historical post-release addenda (31 October 2026)
+
+The following addendum records the state before PR #41 was merged and is superseded for current production facts by the 1 November addendum below.
 
 The original tables and route/design analysis above are a point-in-time snapshot at `main@9c266451fbc5c07788993ba453c5a9997e5453cf`. PR #37 was merged as `28d5cc69c7534e401b03d8aa2c18a8a65f41bc3a`; its focused dependency remediation passed 16/16 GitHub workflow runs. PR #39 was later merged as `fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2`, aligning the R3–R14 qualification workflows with Node.js 24; its 16/16 qualification workflows passed. Vercel production deployment `dpl_2CvyM3fq6rzxnRZtsddwBwQiAbt6` is `READY`, targets production, and was built from `main@fb7c87ed4bcc6eacbb047ce3a9925213ae5b8ab2`. It reports Node.js 24 and Next.js 16.4.3. Aliases include `the-perspective-liart.vercel.app` and `the-perspective-vishnu26.vercel.app`. The prior known-good deployment `dpl_DTnagc9Sv7hT2XgJq7Fgjqfozgpw` remains available as a rollback candidate.
 
@@ -135,4 +140,22 @@ Live production smoke against deployment `dpl_2CvyM3fq6rzxnRZtsddwBwQiAbt6` conf
 
 PR #39 changed CI workflow definitions only; it did not alter application routing or the shared canonical origin. Production URL acceptance therefore remains incomplete until the corrected origin and route implementation pass exact-head browser checks and are released.
 
-The distinct discovery route and canonical-origin correction are in PR #41 at `7bec3187813686c3dae781c23c43f1f264b921ac`, ready for owner review after 16/16 qualification checks and successful preview acceptance. They have not reached production: it still serves an HTTP 200 soft 404 at the discovery URL and the placeholder robots/sitemap host. Preview acceptance does not satisfy production acceptance. PR #39 aligned CI and production Node.js versions at Node 24. Positive production authenticated-tenancy acceptance, scheduled retained backups and restore drill, tested human alert, broader accessibility and cross-browser coverage, rollback rehearsal, and independent V1 review remain open. V1.0 is **not certified**. The 57-page/design matrix below continues to describe the stated original audit baseline; its source-level observations should be rechecked against current main before being treated as current implementation evidence.
+PR #41's distinct discovery route and canonical-origin repair were merged into `main@1984656053c6eea39559e0f4b05ab6f673d15c48` and deployed in `dpl_H1eYMzy78iVPhrZhaxgfGtNDCPAt`. PR #42 added canonical metadata to seven static public utility pages and was merged as `main@fa919593bdbb983b35977f82ca708ba88fabae6c`, deployed in `dpl_CM9kE4H8sbTB7T2oBQvbqjJGLA8F`. Production acceptance verified the route canonicals, correct robots/sitemap host and sitemap inclusion, and genuine unknown-edition HTTP 404. PR #39 aligned CI and production Node.js versions at Node 24. Positive production authenticated-tenancy acceptance, scheduled retained backups and restore drill, tested human alert, broader accessibility and cross-browser coverage, rollback rehearsal, and independent V1 review remain open. V1.0 is **not certified**. The 57-page/design matrix below continues to describe the stated original audit baseline; its source-level observations should be rechecked against current main before being treated as current implementation evidence.
+
+## Updated production acceptance evidence (1 November 2026)
+
+Test environment: Vercel production aliases `https://the-perspective-liart.vercel.app` and `https://the-perspective-vishnu26.vercel.app`. Target SHA: `fa919593bdbb983b35977f82ca708ba88fabae6c`. Deployment: `dpl_CM9kE4H8sbTB7T2oBQvbqjJGLA8F` (`READY`). Read-only HTTP GET requests were made with curl; no authenticated or customer data was accessed.
+
+| Test | Expected | Actual | Result |
+| --- | --- | --- | --- |
+| Homepage `/` | 200 and canonical on production origin | 200; `https://the-perspective-liart.vercel.app` | PASS |
+| Personal Magazines `/personal-magazines` | 200 and operational landing page | 200; expected page title and heading | PASS |
+| Discovery `/personal-magazines/discover` | 200, unique title and canonical | 200; title `Discover Personal Magazines | The Perspective`; canonical `https://the-perspective-liart.vercel.app/personal-magazines/discover`; discovery content rendered | PASS |
+| Unknown edition `/personal-magazines/definitely-not-a-real-edition` | Real 404 | HTTP 404; `Page Not Found | The Perspective` | PASS |
+| `robots.txt` | 200, production sitemap URL, no placeholder host | 200; sitemap points to `https://the-perspective-liart.vercel.app/sitemap.xml`; no `.example` | PASS |
+| `sitemap.xml` | 200 and canonical discovery URL present | 200; includes `/personal-magazines/discover`; no `.example` | PASS |
+| Readiness `/api/health/ready` | 200 and ready status | 200; `{"status":"ready"}` | PASS |
+| Static utility canonicals | Seven routes return 200 and self-canonicalize to the production origin | `/privacy`, `/terms`, `/cookies`, `/editorial-standards`, `/accessibility`, `/community-guidelines`, `/sitemap`; each returned 200 with its exact production-origin self-canonical URL | PASS |
+| Representative route sweep | Approved static routes and sampled dynamic pages respond; invalid slugs return 404 | 42 static route paths returned 200; 25 representative dynamic paths returned 200; unknown article/person/edition slugs returned 404 | PASS (sampled; not full UI/browser acceptance) |
+
+These checks close the discovery route and identified public canonical production findings for this exact deployment. The 42 static and 25 dynamic route requests are HTTP samples and do not cover every interactive journey. They do not cover authenticated workflows, API authorization, tenant isolation, accessibility, database recovery, human alert delivery, rollback rehearsal, or independent review. Those remain separate R14 gates.
