@@ -8,7 +8,6 @@ import {
   Factory,
   GraduationCap,
   HeartPulse,
-  Home,
   Search,
   Sparkles,
 } from "lucide-react";
@@ -32,105 +31,6 @@ type DiscoveryProfile = {
   coverTitle: string;
   tag?: string;
 };
-
-const fallbackPeople: DiscoveryProfile[] = [
-  [
-    "neha-sharma",
-    "Neha Sharma",
-    "CEO",
-    "Globalian",
-    "Business",
-    "/images/articles/elena-rossi.png",
-    "Women Who Build",
-  ],
-  [
-    "rohit-bansal",
-    "Rohit Bansal",
-    "Founder & Managing Partner",
-    "Kairos Capital",
-    "Investment",
-    "/images/articles/marcus-chen.png",
-    "Capital With Conviction",
-  ],
-  [
-    "kavya-iyer",
-    "Dr. Kavya Iyer",
-    "Founder & CEO",
-    "BioNova Labs",
-    "Healthcare",
-    "/images/authors/ananya-mehta-featured.png",
-    "Science With Purpose",
-  ],
-  [
-    "vikram-menon",
-    "Vikram Menon",
-    "Chairman",
-    "Menon Group",
-    "Real Estate",
-    "/images/articles/daniel-kim.png",
-    "Building Across Generations",
-  ],
-  [
-    "sameer-agarwal",
-    "Sameer Agarwal",
-    "Co-Founder & CEO",
-    "Finixia",
-    "Finance",
-    "/images/articles/marcus-chen.png",
-    "The Builder's Discipline",
-  ],
-  [
-    "meera-rao",
-    "Meera Rao",
-    "Founder",
-    "GreenOrbit",
-    "Sustainability",
-    "/images/articles/elena-rossi.png",
-    "A Greener Horizon",
-  ],
-  [
-    "aditya-nanda",
-    "Aditya Nanda",
-    "CEO",
-    "CloudOrbit",
-    "Technology",
-    "/images/articles/daniel-kim.png",
-    "Engineering Global Scale",
-  ],
-  [
-    "priya-subramanian",
-    "Priya Subramanian",
-    "Managing Director",
-    "Subra Group",
-    "Real Estate",
-    "/images/authors/ananya-mehta-featured.png",
-    "Leading With Clarity",
-  ],
-  [
-    "rahul-deshpande",
-    "Rahul Deshpande",
-    "Founder & CEO",
-    "InnoviaDrive",
-    "Automotive",
-    "/images/articles/arjun-mehta.png",
-    "Industry Reimagined",
-  ],
-].map(([id, name, title, company, industry, src, coverTitle], index) => ({
-  id,
-  name,
-  title,
-  company,
-  industry,
-  coverTitle,
-  href: `/search?q=${encodeURIComponent(name)}`,
-  image: {
-    src,
-    alt: `${name}, ${title} at ${company}`,
-    width: 1024,
-    height: 1536,
-  },
-  tag: index === 0 || index === 5 ? "New" : index === 8 ? "Premium" : undefined,
-})) as DiscoveryProfile[];
 
 function fromEdition(
   edition: ResolvedPersonalMagazineSummary,
@@ -197,59 +97,53 @@ function DiscoveryCover({
 
 export function PersonalMagazineDiscoveryRedesign({
   editions,
+  discoveryOnly = false,
 }: {
   editions: readonly ResolvedPersonalMagazineSummary[];
+  discoveryOnly?: boolean;
 }) {
   const canonical = editions.map(fromEdition);
-  const featured = [
-    canonical[0],
-    fallbackPeople[0],
-    canonical[1],
-    fallbackPeople[1],
-    canonical[2],
-  ].filter(Boolean) as DiscoveryProfile[];
-  const latest = fallbackPeople.slice(2, 7);
+  const featured = canonical.slice(0, 5);
+  const latest = canonical.slice(5, 10);
   const hero = canonical[0];
   if (!hero) return null;
-  const industries = [
-    [Cpu, "Technology", "128 Magazines"],
-    [BriefcaseBusiness, "Business & Management", "156 Magazines"],
-    [CircleDollarSign, "Finance", "82 Magazines"],
-    [HeartPulse, "Healthcare", "74 Magazines"],
-    [Factory, "Manufacturing", "68 Magazines"],
-    [Home, "Real Estate", "61 Magazines"],
-    [GraduationCap, "Education", "49 Magazines"],
-    [Sparkles, "Energy", "37 Magazines"],
-  ] as const;
+  const industryIcons = new Map<string, typeof Cpu>([
+    ["Technology", Cpu],
+    ["Finance", CircleDollarSign],
+    ["Healthcare", HeartPulse],
+    ["Industrial Strategy", Factory],
+    ["Education", GraduationCap],
+    ["Artificial Intelligence", Sparkles],
+    ["Global Business", BriefcaseBusiness],
+    ["Entrepreneurship", BriefcaseBusiness],
+  ]);
+  const industries = Array.from(
+    new Set(canonical.map((edition) => edition.industry)),
+  ).map((label) => [industryIcons.get(label) ?? BriefcaseBusiness, label] as const);
   const collections = [
     [
       "Top Founders",
       "Trailblazers building tomorrow's companies",
-      "76 Magazines",
       "/images/articles/board-governance.png",
     ],
     [
       "Women Leaders",
       "Women redefining leadership and impact",
-      "62 Magazines",
       "/images/articles/elena-rossi.png",
     ],
     [
       "Global Visionaries",
       "Leaders with a global perspective",
-      "58 Magazines",
       "/images/articles/global-growth.png",
     ],
     [
       "Disruptors & Innovators",
       "Challenging the status quo and creating change",
-      "71 Magazines",
       "/images/articles/ai-infrastructure.png",
     ],
     [
       "Next Gen Leaders",
       "The next generation of extraordinary leaders",
-      "43 Magazines",
       "/images/articles/future-leader.png",
     ],
   ] as const;
@@ -318,23 +212,15 @@ export function PersonalMagazineDiscoveryRedesign({
             <br />
             {hero.company}
           </b>
-          <span>
-            An exclusive look inside the vision, leadership and innovation
-            driving a global institution.
-          </span>
+        <span>
+          Read the published profile and explore the stories and ideas in this
+          edition.
+        </span>
           <Link href={hero.href}>
             View magazine <ArrowRight aria-hidden="true" />
           </Link>
           <div>
-            <p>
-              <BookIcon /> <strong>1</strong> Exclusive issue
-            </p>
-            <p>
-              <FileIcon /> <strong>92</strong> Pages
-            </p>
-            <p>
-              <LibraryIcon /> <strong>8</strong> Chapters
-            </p>
+            <p>Explore the published edition and its verified stories.</p>
           </div>
         </aside>
       </section>
@@ -344,6 +230,9 @@ export function PersonalMagazineDiscoveryRedesign({
         className={styles.discoveryBar}
       >
         <h2 id="discover-personal-heading">Discover personal magazines</h2>
+        {!discoveryOnly ? (
+          <Link href="/personal-magazines/discover">Open the discovery catalogue</Link>
+        ) : null}
         <form action="/personal-magazines" method="get" role="search">
           <Search aria-hidden="true" />
           <input
@@ -378,15 +267,6 @@ export function PersonalMagazineDiscoveryRedesign({
               {label}
             </Link>
           ))}
-          <select aria-label="Sort magazines" defaultValue="latest">
-            <option value="latest">Latest</option>
-            <option value="popular">Most popular</option>
-          </select>
-          <select aria-label="Filter by region" defaultValue="all">
-            <option value="all">All regions</option>
-            <option>India</option>
-            <option>Global</option>
-          </select>
         </div>
       </section>
 
@@ -404,23 +284,25 @@ export function PersonalMagazineDiscoveryRedesign({
               ))}
             </div>
           </section>
-          <section>
-            <h2>Latest personal magazines</h2>
-            <div className={styles.profileGrid}>
-              {latest.map((profile, index) => (
-                <DiscoveryCover
-                  index={index}
-                  key={profile.id}
-                  profile={profile}
-                />
-              ))}
-            </div>
-          </section>
+          {latest.length > 0 ? (
+            <section>
+              <h2>More personal magazines</h2>
+              <div className={styles.profileGrid}>
+                {latest.map((profile, index) => (
+                  <DiscoveryCover
+                    index={index}
+                    key={profile.id}
+                    profile={profile}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </main>
         <aside>
           <section>
             <h2>Explore by industry</h2>
-            {industries.map(([Icon, label, count]) => (
+            {industries.map(([Icon, label]) => (
               <Link
                 href={`/personal-magazines?q=${encodeURIComponent(label)}`}
                 key={label}
@@ -428,7 +310,6 @@ export function PersonalMagazineDiscoveryRedesign({
                 <Icon aria-hidden="true" />
                 <span>
                   <b>{label}</b>
-                  <small>{count}</small>
                 </span>
               </Link>
             ))}
@@ -440,7 +321,7 @@ export function PersonalMagazineDiscoveryRedesign({
             </Link>
           </section>
           <section>
-            <h2>Trending magazines</h2>
+            <h2>Published editions</h2>
             {featured.map((profile, index) => (
               <Link href={profile.href} key={profile.id}>
                 <strong>{String(index + 1).padStart(2, "0")}</strong>
@@ -469,7 +350,7 @@ export function PersonalMagazineDiscoveryRedesign({
         <div>
           <h2>Curated collections</h2>
           <div>
-            {collections.map(([title, description, count, image]) => (
+            {collections.map(([title, description, image]) => (
               <Link
                 href={`/personal-magazines?q=${encodeURIComponent(title)}`}
                 key={title}
@@ -479,7 +360,6 @@ export function PersonalMagazineDiscoveryRedesign({
                 </span>
                 <h3>{title}</h3>
                 <p>{description}</p>
-                <b>{count}</b>
               </Link>
             ))}
           </div>
@@ -538,61 +418,22 @@ export function PersonalMagazineDiscoveryRedesign({
             View all FAQs <ArrowRight aria-hidden="true" />
           </Link>
         </article>
-        <blockquote>
-          <p>
-            “The Perspective team captured my journey with incredible depth and
-            creativity. A magazine I’m truly proud to share.”
-          </p>
-          <div>
-            <Image
-              alt={hero.image.alt}
-              height={64}
-              src={hero.image.src}
-              width={52}
-            />
-            <span>
-              <b>— {hero.name}</b>
-              <small>
-                {hero.title}, {hero.company}
-              </small>
-            </span>
-          </div>
-        </blockquote>
       </section>
 
       <section
         aria-labelledby="original-personal-heading"
         className={styles.originalIntro}
+        id="original-personal-magazine-content"
       >
-        <p>Complete Personal Magazine collection</p>
+        <p>Explore the Personal Magazine collection</p>
         <h2 id="original-personal-heading">
           Original discovery and editorial experience
         </h2>
         <span>
-          The existing Personal Magazines design, searchable collection, full
-          process, selected stories and complete FAQs continue below.
+          Search the collection or browse the editorial process, selected
+          stories and frequently asked questions.
         </span>
       </section>
-      <div id="original-personal-magazine-content" />
     </div>
   );
-}
-
-function BookIcon() {
-  return <BookOpenIcon />;
-}
-function FileIcon() {
-  return <FileTextIcon />;
-}
-function LibraryIcon() {
-  return <LibraryBooksIcon />;
-}
-function BookOpenIcon() {
-  return <span aria-hidden="true">▤</span>;
-}
-function FileTextIcon() {
-  return <span aria-hidden="true">□</span>;
-}
-function LibraryBooksIcon() {
-  return <span aria-hidden="true">▥</span>;
 }
