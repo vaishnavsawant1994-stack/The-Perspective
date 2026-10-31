@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   qualify:
+    name: R5 contract qualification
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -29,7 +30,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Refresh main reference
         run: git fetch origin main --no-tags
