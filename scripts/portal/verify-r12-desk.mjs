@@ -18,6 +18,10 @@ try {
   assert.equal(anonymousLibraryApi.status(), 401, "anonymous member library requests must be denied by the API");
   const library = await anonymous.goto(new URL("/my-perspective/library", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   assert.equal(library?.status(), 200);
+  await anonymous.screenshot({ path: `${evidenceDir}/anonymous-member-library.png`, fullPage: false });
+  const initialStatus = await anonymous.getByRole("status").textContent().catch(() => null);
+  const headingCount = await anonymous.getByRole("heading", { name: "Member library" }).count();
+  process.stdout.write(`Anonymous member library rendered at ${new URL(anonymous.url()).pathname}; headingCount=${headingCount}; status=${JSON.stringify(initialStatus)}\n`);
   await anonymous.getByRole("status").filter({ hasText: "Sign in to see issues you are entitled to." }).waitFor();
   await anonymous.getByText("No entitled issue is visible.").waitFor();
   const mobileLibraryOverflow = await anonymous.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
