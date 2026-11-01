@@ -96,6 +96,29 @@ describe("R6 API canonical field projection", () => {
     },
   );
 
+  it("does not expose a lead list when the actor has no list-management grant", async () => {
+    const row = {
+      id: "lead-list-1",
+      resourceId: "resource-list-1",
+      ownerOrganizationId: "org-r6",
+      departmentId: null,
+      ownerMembershipId: "another-membership",
+      visibility: "INTERNAL",
+      sensitivity: "CONFIDENTIAL",
+      name: "Restricted list",
+      listType: "STATIC",
+      memberCount: 3,
+      rowVersion: 1,
+    };
+    const database = {
+      crmLeadList: { findMany: vi.fn().mockResolvedValue([row]) },
+    } as unknown as PrismaClient;
+
+    await expect(listAuthorizedLeadLists(context(), 25, database)).resolves.toEqual({
+      items: [],
+    });
+  });
+
   it.each([
     ["company", "crmCompany", getAuthorizedCompany],
     ["contact", "crmContact", getAuthorizedContact],
