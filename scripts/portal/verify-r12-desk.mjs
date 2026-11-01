@@ -19,11 +19,8 @@ try {
   const library = await anonymous.goto(new URL("/my-perspective/library", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   assert.equal(library?.status(), 200);
   await anonymous.screenshot({ path: `${evidenceDir}/anonymous-member-library.png`, fullPage: false });
-  const initialStatus = await anonymous.getByRole("status").textContent().catch(() => null);
-  const headingCount = await anonymous.getByRole("heading", { name: "Member library" }).count();
-  process.stdout.write(`Anonymous member library rendered at ${new URL(anonymous.url()).pathname}; headingCount=${headingCount}; status=${JSON.stringify(initialStatus)}\n`);
-  await anonymous.getByRole("status").filter({ hasText: "Sign in to see issues you are entitled to." }).waitFor();
-  await anonymous.getByText("No entitled issue is visible.").waitFor();
+  assert.equal(new URL(anonymous.url()).pathname, "/login", "anonymous member-page requests must reach the login page");
+  await anonymous.getByRole("heading", { name: /sign in/i }).waitFor();
   const mobileLibraryOverflow = await anonymous.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   assert.ok(mobileLibraryOverflow <= 1, `member library overflowed by ${mobileLibraryOverflow}px`);
   await anonymous.close();
