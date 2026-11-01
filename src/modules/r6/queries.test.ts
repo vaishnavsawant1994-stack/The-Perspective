@@ -15,6 +15,7 @@ import {
   getAuthorizedLead,
   listAuthorizedCompanies,
   listAuthorizedContacts,
+  listAuthorizedLeadLists,
   listDiscoverableLeadSources,
   projectR6ReadableFields,
 } from "./queries";
@@ -71,6 +72,7 @@ describe("R6 API canonical field projection", () => {
   it.each([
     ["companies", "crmCompany", listAuthorizedCompanies],
     ["contacts", "crmContact", listAuthorizedContacts],
+    ["lead lists", "crmLeadList", listAuthorizedLeadLists],
     ["lead sources", "crmLeadSource", listDiscoverableLeadSources],
   ] as const)(
     "hard-binds %s list candidates to the selected tenant",
