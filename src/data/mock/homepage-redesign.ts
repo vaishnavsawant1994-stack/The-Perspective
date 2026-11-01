@@ -1,17 +1,6 @@
 export const homepageRedesignConfig = {
   heroSlides: [
     {
-      articleId: "article-human-purpose-ai-world",
-      personId: "person-anika-rao",
-      portrait: { src: "/images/home/anika-rao-cutout.png", alt: "Anika Rao photographed for The Perspective leadership cover story", width: 1122, height: 1402 },
-      quote: "Technology is not only about how much we can automate, but how much human ingenuity we can amplify.",
-      insights: [
-        "Empathy remains the original code of leadership.",
-        "AI should expand judgment, not replace responsibility.",
-        "Innovation compounds when culture and trust move together.",
-      ],
-    },
-    {
       articleId: "article-interview-elena-rossi",
       personId: "person-elena-rossi",
       portrait: { src: "/images/home/elena-rossi-cutout.png", alt: "Elena Rossi standing for The Perspective leadership interview", width: 1024, height: 1536 },
@@ -57,7 +46,6 @@ export const homepageRedesignConfig = {
     { articleId: "article-opinion-institutions-outlast-founders", label: "Opinion" },
   ],
   podcastEpisodes: [
-    { id: "podcast-purpose", series: "The Leadership Dialogues", episode: "Ep. 48", duration: "34:32", articleId: "article-human-purpose-ai-world" },
     { id: "podcast-building", series: "Builders", episode: "Ep. 31", duration: "29:14", articleId: "article-business-interview-arjun-mehta" },
     { id: "podcast-capital", series: "The Future of Capital", episode: "Ep. 22", duration: "31:08", articleId: "article-purpose-capital" },
     { id: "podcast-markets", series: "Market Outlook", episode: "Ep. 17", duration: "26:45", articleId: "article-markets-investors-watching" },

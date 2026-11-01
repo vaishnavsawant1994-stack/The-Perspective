@@ -4,7 +4,6 @@ import { people } from "@/data/mock/people";
 import { getResolvedPersonalMagazineByPersonId } from "@/lib/personal-magazines";
 
 const interviewIds: Record<string, string> = {
-  "anika-rao": "article-human-purpose-ai-world",
   "elena-rossi": "article-interview-elena-rossi",
   "marcus-chen": "article-interview-marcus-chen",
   "arjun-mehta": "article-business-interview-arjun-mehta",
@@ -13,7 +12,6 @@ const interviewIds: Record<string, string> = {
 };
 
 const coverageIds: Record<string, readonly string[]> = {
-  "anika-rao": ["article-human-purpose-ai-world", "article-ai-augmented-decisions", "article-organizational-trust", "article-enterprise-ai-phase"],
   "elena-rossi": ["article-interview-elena-rossi", "article-listening-leader", "article-decisions-pressure", "article-new-executive-mandate"],
   "marcus-chen": ["article-interview-marcus-chen", "article-professional-founder", "article-companies-growth-cycle", "article-founders-second-act"],
   "arjun-mehta": ["article-business-interview-arjun-mehta", "article-companies-growth-cycle", "article-industrial-investment-strategy", "article-boards-long-term-investment"],

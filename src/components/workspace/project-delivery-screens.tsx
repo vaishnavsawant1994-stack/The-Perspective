@@ -25,7 +25,6 @@ const people: Record<string, string> = {
   "Neha Sharma": "/images/articles/elena-rossi.png",
   "Liao Wong": "/images/articles/marcus-chen.png",
   "Vikram Rao": "/images/articles/future-leader.png",
-  "Anita Desai": "/images/home/anika-rao-cutout.png",
   "Rohit Verma": "/images/articles/board-governance.png",
   "Michael Chen": "/images/articles/daniel-kim.png",
 };
