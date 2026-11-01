@@ -140,11 +140,16 @@ async function inspectControl(locator, route, index) {
 async function auditRoute(page, surface, route) {
   const routeFailures = [];
   const serverFailures = [];
+  const forbiddenApiResponses = [];
   const consoleErrors = [];
 
   const responseListener = (response) => {
+    const responseUrl = new URL(response.url());
+    if (response.status() === 403 && responseUrl.pathname.startsWith("/api/")) {
+      forbiddenApiResponses.push(`${response.status()} ${responseUrl.pathname}`);
+    }
     if (response.status() >= 500) {
-      serverFailures.push(`${response.status()} ${new URL(response.url()).pathname}`);
+      serverFailures.push(`${response.status()} ${responseUrl.pathname}`);
     }
   };
   const consoleListener = (message) => {
@@ -165,7 +170,10 @@ async function auditRoute(page, surface, route) {
     const finalPath = new URL(page.url()).pathname;
     if (surface === "team" && !finalPath.startsWith("/app")) routeFailures.push(`unexpected redirect to ${finalPath}`);
     if (surface === "client" && !finalPath.startsWith("/client")) routeFailures.push(`unexpected redirect to ${finalPath}`);
-    if (surface === "member" && !finalPath.startsWith("/my-perspective")) routeFailures.push(`unexpected redirect to ${finalPath}`);
+    if (surface === "member") {
+      const expectedCanonicalPath = route.replace(/^\/my-perspective(?=\/|$)/u, "/my");
+      if (finalPath !== expectedCanonicalPath) routeFailures.push(`unexpected redirect to ${finalPath}; expected canonical path ${expectedCanonicalPath}`);
+    }
 
     const bodyText = (await page.locator("body").innerText()).trim();
     if (bodyText.length < 20) routeFailures.push("rendered body is unexpectedly empty");
@@ -200,6 +208,7 @@ async function auditRoute(page, surface, route) {
     await page.setViewportSize({ width: 1280, height: 900 });
 
     if (serverFailures.length > 0) routeFailures.push(`5xx responses: ${[...new Set(serverFailures)].join(", ")}`);
+    if (forbiddenApiResponses.length > 0) routeFailures.push(`403 API responses: ${[...new Set(forbiddenApiResponses)].join(", ")}`);
     if (consoleErrors.length > 0) routeFailures.push(`console errors: ${[...new Set(consoleErrors)].join(" | ")}`);
 
     if (routeFailures.length > 0) {
