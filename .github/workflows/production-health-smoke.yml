@@ -1,0 +1,34 @@
+name: Production Health Smoke
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-health-smoke
+  cancel-in-progress: true
+
+jobs:
+  health:
+    name: Check public production health
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check liveness, database readiness and public response
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for path in /api/health/live /api/health/ready /; do
+            status="$(curl --silent --show-error --location --retry 2 --retry-delay 2 --max-time 15 \
+              --output /dev/null --write-out '%{http_code}' "https://the-perspective-vishnu26.vercel.app${path}")"
+            printf '%s %s\n' "$status" "$path"
+            if [[ "$status" != "200" ]]; then
+              echo "Production health check failed for ${path}." >&2
+              exit 1
+            fi
+          done
