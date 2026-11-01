@@ -46,8 +46,17 @@ try {
   const memberContext = await browser.newContext();
   await memberContext.setExtraHTTPHeaders({ cookie: `__Host-perspective-session=${memberToken}` });
   const member = await memberContext.newPage({ viewport: { width: 1280, height: 900 } });
-  const memberResponse = await member.goto(new URL("/my-perspective/library", baseUrl).toString(), { waitUntil: "domcontentloaded" });
+  const memberSession = await member.request.get(new URL("/api/v1/auth/session", baseUrl).toString());
+  const memberSessionBody = await memberSession.json();
+  assert.equal(memberSession.status(), 200, `seeded member session was rejected: ${JSON.stringify(memberSessionBody)}`);
+  assert.equal(memberSessionBody.authenticated, true, "seeded member session must authenticate before route acceptance is measured");
+  assert.equal(memberSessionBody.surface, "TEAM", "member session must use the team surface");
+  const memberResponse = await member.goto(new URL("/my/library", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   assert.equal(memberResponse?.status(), 200);
+  assert.equal(new URL(member.url()).pathname, "/my/library", `authenticated member route redirected to ${new URL(member.url()).pathname}`);
+  const memberHeadingCount = await member.getByRole("heading", { name: "Member library" }).count();
+  process.stdout.write(`Authenticated member library rendered at ${new URL(member.url()).pathname}; headingCount=${memberHeadingCount}\n`);
+  await member.screenshot({ path: `${evidenceDir}/authenticated-member-library.png`, fullPage: false });
   await member.getByRole("heading", { name: "Member library" }).waitFor();
   await member.getByText("No entitled issue is visible.").waitFor();
   await member.locator("#offer-id").fill("00000000-0000-4000-8000-000000000000");
