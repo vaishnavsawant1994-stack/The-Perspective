@@ -1,5 +1,7 @@
 # The Perspective current-state reconciliation
 
+> **Current-status pointer (1 November 2026):** This dated report and its later addenda preserve earlier production snapshots. The current source, deployment, backup evidence, and remaining R14 gates are in [CURRENT-STATE-RECONCILIATION-2026-11-01.md](./CURRENT-STATE-RECONCILIATION-2026-11-01.md), which supersedes the current-production statements below.
+
 **As of:** 1 November 2026 (Asia/Kolkata)
 
 **Repository:** `vaishnavsawant1994-stack/The-Perspective`
