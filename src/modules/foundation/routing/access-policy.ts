@@ -29,6 +29,7 @@ export function classifyRouteAccess(pathname: string): RouteAccessDecision {
   if (
     normalized === "/app" ||
     normalized.startsWith("/app/") ||
+    normalized === "/security/mfa/setup" ||
     normalized === "/my" ||
     normalized.startsWith("/my/")
   ) {
