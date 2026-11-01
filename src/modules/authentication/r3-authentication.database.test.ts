@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 
 import {
   AccountState,
+  AuthAttemptKind,
+  AuthAttemptOutcome,
   IdentityProvider,
   MembershipStatus,
   MembershipType,
@@ -531,6 +533,102 @@ describe("R3 PostgreSQL authentication boundary", () => {
     expect(existingAccepted.kind).toBe("accepted");
   });
 
+  it("defers the R01 grant until a fresh password plus TOTP login and revokes the invite session", async () => {
+    const organization = await createOrganization("TEAM");
+    const role = await database.role.create({
+      data: {
+        id: randomUUID(),
+        organizationId: organization.id,
+        key: "R01",
+        name: "Super Admin",
+        systemRole: true,
+        defaultScope: RoleScope.ORG,
+        status: RecordStatus.ACTIVE,
+      },
+    });
+    const token = createOpaqueToken();
+    const email = `first-owner-${randomUUID()}@example.test`;
+    await database.invitation.create({
+      data: {
+        id: randomUUID(),
+        organizationId: organization.id,
+        emailNormalized: email,
+        intendedRoleId: role.id,
+        tokenHash: hashOpaqueToken(token),
+        expiresAt: new Date(Date.now() + 60 * 60_000),
+      },
+    });
+
+    const accepted = await acceptInvitation(
+      {
+        token,
+        displayName: "First Owner",
+        password: "First Owner Secure Passphrase 2026!",
+        termsAccepted: true,
+      },
+      metadata("first-owner-accept"),
+      database,
+    );
+    expect(accepted).toMatchObject({
+      kind: "accepted",
+      requiresMfaActivation: true,
+      mfaEnrollmentRequired: true,
+    });
+    if (accepted.kind !== "accepted") throw new Error("Expected invitation acceptance.");
+    const acceptedInvitation = await database.invitation.findFirstOrThrow({
+      where: { tokenHash: hashOpaqueToken(token) },
+      select: { id: true, createdAt: true },
+    });
+    await database.invitation.update({
+      where: { id: acceptedInvitation.id },
+      data: { expiresAt: new Date(acceptedInvitation.createdAt.getTime() + 1) },
+    });
+    const membership = await database.organizationMembership.findFirstOrThrow({
+      where: { organizationId: organization.id, userAccountId: accepted.session.userAccountId },
+    });
+    expect(await database.membershipRole.count({ where: { membershipId: membership.id } })).toBe(0);
+
+    const enrollment = await beginTotpEnrollment(
+      accepted.token,
+      email,
+      metadata("first-owner-enroll"),
+      database,
+    );
+    if (!enrollment) throw new Error("Expected TOTP enrollment.");
+    await expect(
+      confirmTotpEnrollment(
+        accepted.token,
+        enrollment.challengeToken,
+        generateTotpCode(enrollment.secret),
+        metadata("first-owner-confirm"),
+        database,
+      ),
+    ).resolves.toBe(true);
+    expect(await database.membershipRole.count({ where: { membershipId: membership.id } })).toBe(0);
+
+    const passwordLogin = await authenticatePassword(
+      { email, password: "First Owner Secure Passphrase 2026!", surface: "TEAM" },
+      metadata("first-owner-password"),
+      database,
+    );
+    if (passwordLogin.kind !== "mfa-required") throw new Error("Expected MFA challenge.");
+    const mfaLogin = await verifyMfaLogin(
+      passwordLogin.challengeToken,
+      generateTotpCode(enrollment.secret),
+      metadata("first-owner-mfa-login"),
+      database,
+    );
+    if (mfaLogin.kind !== "authenticated") throw new Error("Expected MFA-authenticated session.");
+
+    expect(await database.membershipRole.count({ where: { membershipId: membership.id, roleId: role.id } })).toBe(1);
+    expect(await verifySessionToken(accepted.token, "TEAM", database)).toBeNull();
+    expect(await verifySessionToken(mfaLogin.token, "TEAM", database)).toMatchObject({
+      mfaVerifiedAt: expect.any(Date),
+      membershipId: membership.id,
+      organizationId: organization.id,
+    });
+  });
+
   it("enrolls encrypted TOTP and requires a one-time challenge before session creation", async () => {
     const user = await createPasswordUser(
       "CLIENT",
@@ -589,6 +687,100 @@ describe("R3 PostgreSQL authentication boundary", () => {
       mfaVerifiedAt: expect.any(Date),
     });
     expect(await verifyMfaLogin(challenged.challengeToken, generateTotpCode(enrollment.secret), metadata("mfa-replay"), database)).toEqual({ kind: "invalid" });
+  });
+
+  it("keeps the MFA attempt budget across newly issued login challenges", async () => {
+    const user = await createPasswordUser(
+      "CLIENT",
+      "R3 MFA Throttle Passphrase 2026!",
+    );
+    const login = await authenticatePassword(
+      { email: user.email, password: user.password, surface: "CLIENT" },
+      metadata("mfa-throttle-enrollment-login"),
+      database,
+    );
+    if (login.kind !== "authenticated") throw new Error("Expected session.");
+
+    const enrollment = await beginTotpEnrollment(
+      login.token,
+      user.email,
+      metadata("mfa-throttle-enrollment"),
+      database,
+    );
+    if (!enrollment) throw new Error("Expected enrollment.");
+    expect(
+      await confirmTotpEnrollment(
+        login.token,
+        enrollment.challengeToken,
+        generateTotpCode(enrollment.secret),
+        metadata("mfa-throttle-confirm"),
+        database,
+      ),
+    ).toBe(true);
+    await revokeSession(login.token, metadata("mfa-throttle-logout"), database);
+
+    const sharedIp = "198.51.100.199";
+    const requestMetadata = (label: string): AuthenticationRequestMetadata => ({
+      ...metadata(label),
+      ipAddress: sharedIp,
+    });
+    const correctCode = generateTotpCode(enrollment.secret);
+    const invalidCode = correctCode === "000000" ? "000001" : "000000";
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const challenged = await authenticatePassword(
+        { email: user.email, password: user.password, surface: "CLIENT" },
+        requestMetadata(`mfa-throttle-login-${attempt}`),
+        database,
+      );
+      if (challenged.kind !== "mfa-required") {
+        throw new Error("Expected a fresh MFA challenge before the budget is exhausted.");
+      }
+      await expect(
+        verifyMfaLogin(
+          challenged.challengeToken,
+          invalidCode,
+          requestMetadata(`mfa-throttle-failure-${attempt}`),
+          database,
+        ),
+      ).resolves.toEqual({ kind: "invalid" });
+    }
+
+    const nextChallenge = await authenticatePassword(
+      { email: user.email, password: user.password, surface: "CLIENT" },
+      requestMetadata("mfa-throttle-login-after-budget"),
+      database,
+    );
+    if (nextChallenge.kind !== "mfa-required") {
+      throw new Error("Expected a fresh MFA challenge to verify the shared attempt budget.");
+    }
+    await expect(
+      verifyMfaLogin(
+        nextChallenge.challengeToken,
+        correctCode,
+        requestMetadata("mfa-throttle-blocked-correct-code"),
+        database,
+      ),
+    ).resolves.toEqual({ kind: "throttled" });
+
+    expect(
+      await database.authenticationAttempt.count({
+        where: {
+          userAccountId: user.userAccountId,
+          kind: AuthAttemptKind.MFA_VERIFY,
+          outcome: AuthAttemptOutcome.FAILED,
+        },
+      }),
+    ).toBe(5);
+    expect(
+      await database.authenticationAttempt.count({
+        where: {
+          userAccountId: user.userAccountId,
+          kind: AuthAttemptKind.MFA_VERIFY,
+          outcome: AuthAttemptOutcome.THROTTLED,
+        },
+      }),
+    ).toBe(1);
   });
 
   it("recovers generically with a single-use token, immutable history, and global session revocation", async () => {
