@@ -78,6 +78,7 @@ function Button({
   danger,
   small,
   href,
+  ariaLabel,
 }: {
   children: React.ReactNode;
   primary?: boolean;
@@ -85,14 +86,15 @@ function Button({
   danger?: boolean;
   small?: boolean;
   href?: string;
+  ariaLabel?: string;
 }) {
   const cls = `${s.button} ${primary ? s.primary : ""} ${success ? s.success : ""} ${danger ? s.danger : ""} ${small ? s.small : ""}`;
   return href ? (
-    <Link className={cls} href={href}>
+    <Link aria-label={ariaLabel} className={cls} href={href}>
       {children}
     </Link>
   ) : (
-    <button className={cls} type="button">
+    <button aria-label={ariaLabel} className={cls} type="button">
       {children}
     </button>
   );
@@ -1723,7 +1725,7 @@ export function ContractDetailScreen() {
                     <Button small>
                       <Eye size={12} /> Original
                     </Button>
-                    <Button small>
+                    <Button ariaLabel="Download signed contract PDF" small>
                       <Download size={12} />
                     </Button>
                   </div>
@@ -4543,16 +4545,19 @@ export function WorkflowTemplateLibraryScreen() {
                     <td>{r.updated}</td>
                     <td>
                       <div className={s.inline}>
-                        <Link
-                          className={s.link}
-                          href={
-                            i === 0
-                              ? "/app/workflows/personal-magazine-full-workflow"
-                              : "#"
-                          }
-                        >
-                          <Eye size={13} />
-                        </Link>
+                        {i === 0 ? (
+                          <Link
+                            aria-label={`Preview ${r.name}`}
+                            className={s.link}
+                            href="/app/workflows/personal-magazine-full-workflow"
+                          >
+                            <Eye size={13} />
+                          </Link>
+                        ) : (
+                          <span aria-disabled="true" className={s.link} title="Preview is not available for this template">
+                            <Eye size={13} />
+                          </span>
+                        )}
                         <MoreHorizontal size={13} />
                       </div>
                     </td>
