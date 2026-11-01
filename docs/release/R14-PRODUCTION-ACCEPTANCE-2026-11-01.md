@@ -4,18 +4,18 @@
 
 | Field | Evidence |
 | --- | --- |
-| Current production source | `main` at `0a6c3139f57424359ce6998b99d2de5c3ea47154` |
-| Current Vercel production deployment | `dpl_Go4iP81rd45C5ku31xSSQb5HWrgi` — READY |
+| Current production source | `main` at `ed2ca4f0aff6701feae901c66a3dfb94140b62f1` |
+| Current Vercel production deployment | `dpl_39ZSD96wYCmJMvVqsyi8dFhGNcmC` — READY |
 | Application aliases | `https://the-perspective-liart.vercel.app`, `https://the-perspective-vishnu26.vercel.app` |
 | Release decision | **V1.0 NOT CERTIFIED** |
 
-Vercel readback on 2026-11-01 confirms the current deployment source is `main@0a6c3139f57424359ce6998b99d2de5c3ea47154`. Live HTTP probes on the production alias returned 200 for `/`, `/api/health/live` and `/api/health/ready`. The detailed qualification below mostly describes the earlier `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401` candidate and is retained as historical evidence; it does not independently qualify the current SHA.
+Vercel readback on 2026-11-01 confirms the current deployment source is `main@ed2ca4f0aff6701feae901c66a3dfb94140b62f1`. Live HTTP probes on the production alias returned 200 for `/`, `/api/health/live` and `/api/health/ready`; anonymous `GET /api/v1/r6/crm/lead-lists` returned the expected 401 `AUTHZ_AUTH_REQUIRED`. The detailed qualification below mostly describes the earlier `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401` candidate and is retained as historical evidence; it does not independently qualify the current SHA or prove positive authenticated access to the new route.
 
 ## Acceptance matrix
 
 | Gate | Result | Evidence and remaining work |
 | --- | --- | --- |
-| Current production release identity | PASS | Vercel reports READY for exact `main` SHA `0a6c3139f57424359ce6998b99d2de5c3ea47154` on deployment `dpl_Go4iP81rd45C5ku31xSSQb5HWrgi`, with both production aliases. |
+| Current production release identity | PASS | Vercel reports READY for exact `main` SHA `ed2ca4f0aff6701feae901c66a3dfb94140b62f1` on deployment `dpl_39ZSD96wYCmJMvVqsyi8dFhGNcmC`, with both production aliases. |
 | Core public HTTP surfaces | PASS (sampled) | After the deployment became READY, live production returned 404 for `/people/anika-rao`, the associated Anika article and `/images/home/anika-rao-cutout.png`; `/`, `/api/health/live` and `/api/health/ready` returned 200. Homepage HTML no longer contains Anika Rao or Asteria Systems; `/events` no longer contains Asteria Systems. Earlier production samples covered discovery, privacy, terms, cookies, editorial standards, accessibility, community guidelines, `robots.txt`, sitemap and exact canonicals. This is a route sample, not exhaustive browser coverage. |
 | Production build | PASS | PR #43 exact head built successfully with Next.js 16.4.3 and generated 469 static pages. PR #44's synced exact head also passed the R14 full qualification production build and deployed successfully on current `main`. |
 | Lint and TypeScript | PASS (historical candidate) | On the previous `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401` candidate, lint completed with 0 errors and 3 existing unused-variable warnings; TypeScript check passed. |
@@ -68,9 +68,9 @@ No plan change or off-platform backup infrastructure was applied. An encrypted o
 
 | Item | Current evidence | Disposition |
 | --- | --- | --- |
-| PR #30 | Updated against current `main`; head `c152fc5de7b418d0fa9234e4702389588af2a9d7`. Exact-head qualification is running, including the V1 UI Control Qualification. Previous merge-head `4206df8ded802f2366bf9beb7773281405dad1f7` failed after auditing 167 authenticated routes / 12,519 controls and reporting 569 control/navigation issues, including unnamed controls, dead `#` links and a console 403. | Keep open and unmerged. Review the current-head artifact, fix genuine findings in bounded UI tranches, and rerun. Do not weaken the audit. |
-| PR #48 | Sales Lists GET fix at exact head `711e2ffa86b389ceb800ffd60066fc0f721953ec`; GitHub qualification workflows and Vercel Preview passed. | Draft and unmerged pending the separate owner merge authorization. |
-| PR #49 | First-owner MFA-gated activation at exact head `55c3a41f1079a5ef827d61c46645304a5c59820a`; all 16 GitHub qualification workflows and Vercel Preview passed. Its disposable PostgreSQL workflow passed all 36 DB suites, including 9 first-owner/MFA tests. | Draft and unmerged pending independent security review. No production bootstrap or account creation occurred. |
+| PR #30 | Head `c152fc5de7b418d0fa9234e4702389588af2a9d7` was synced before PR #48 merged; its exact-head qualification is running. Previous merge-head `4206df8ded802f2366bf9beb7773281405dad1f7` failed after auditing 167 authenticated routes / 12,519 controls and reporting 569 control/navigation issues, including unnamed controls, dead `#` links and a console 403. | Refresh onto current `main` after this run completes, inspect the current-base artifact, fix genuine findings in bounded UI tranches, and rerun. Do not weaken the audit. |
+| PR #48 | Sales Lists GET fix merged at `ed2ca4f0aff6701feae901c66a3dfb94140b62f1`; production deployment `dpl_39ZSD96wYCmJMvVqsyi8dFhGNcmC` is READY. The live endpoint rejects anonymous requests with 401 as expected. | Released. Positive authenticated tenant data access remains blocked pending an approved production identity. |
+| PR #49 | First-owner MFA-gated activation at exact head `ad0ba3f39fe4b401b255daa2b5f6b2f0dd028ed0`, synced with merged PR #48. Previous head `55c3a41f1079a5ef827d61c46645304a5c59820a` passed 16/16 workflows, including 36 disposable-PostgreSQL suites and 9 first-owner/MFA tests; current-head checks are rerunning. | Draft and unmerged pending exact-head checks and independent security review. No production bootstrap or account creation occurred. |
 | PR #31 | Broad grouped development dependency changes include major version jumps; its old exact-head checks failed 15 of 16 reported qualifications. | Keep open and unmerged pending a scoped, current-base dependency proposal and full qualification. |
 | PR #33 | Adds `/news` alias contrary to the current route contract test, which explicitly rejects that alias; most related route repairs are already on `main`. | Closed as superseded/conflicting on 2026-11-01 with rationale recorded on the PR. |
 | PR #38 | Old base; its old-head checks passed, but it proposes grouped updates without an established active advisory need. Current `main` audit reports zero npm findings. | Keep open and unmerged pending current-base requalification and security/advisory reconciliation. |
