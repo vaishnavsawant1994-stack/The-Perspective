@@ -527,6 +527,9 @@ export async function createDeal(
   input: CreateDealInput,
   database: PrismaClient = getPrismaClient(),
 ): Promise<CommercialResult<Awaited<ReturnType<typeof createDealInTransaction>>>> {
+  const waitForCompetingLeadConversion = (attempt: number) =>
+    new Promise<void>((resolve) => setTimeout(resolve, Math.min(100, attempt * 20)));
+
   let last: CommercialResult<Awaited<ReturnType<typeof createDealInTransaction>>> = error("CONFLICT");
   for (let attempt = 1; attempt <= 5; attempt += 1) {
     try {
@@ -542,8 +545,12 @@ export async function createDeal(
         attempt < 5;
       if (!retry) return result;
       last = result;
+      await waitForCompetingLeadConversion(attempt);
     } catch (cause) {
-      if (databaseCode(cause) === "40P01" && input.sourceLeadId && attempt < 5) continue;
+      if (databaseCode(cause) === "40P01" && input.sourceLeadId && attempt < 5) {
+        await waitForCompetingLeadConversion(attempt);
+        continue;
+      }
       throw cause;
     }
   }
