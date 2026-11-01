@@ -573,9 +573,13 @@ describe("R3 PostgreSQL authentication boundary", () => {
       mfaEnrollmentRequired: true,
     });
     if (accepted.kind !== "accepted") throw new Error("Expected invitation acceptance.");
-    await database.invitation.updateMany({
+    const acceptedInvitation = await database.invitation.findFirstOrThrow({
       where: { tokenHash: hashOpaqueToken(token) },
-      data: { expiresAt: new Date(Date.now() - 60 * 60_000) },
+      select: { id: true, createdAt: true },
+    });
+    await database.invitation.update({
+      where: { id: acceptedInvitation.id },
+      data: { expiresAt: new Date(acceptedInvitation.createdAt.getTime() + 1) },
     });
     const membership = await database.organizationMembership.findFirstOrThrow({
       where: { organizationId: organization.id, userAccountId: accepted.session.userAccountId },
