@@ -25,6 +25,7 @@ function authorizedReadableFields(
     | "company.view"
     | "contact.view"
     | "lead.discover"
+    | "lead.list.manage"
     | "campaign.view"
     | "emailaccount.manage"
     | "sequence.manage"
@@ -635,6 +636,61 @@ export async function listAuthorizedLeads(
     if (items.length >= limit) break;
   }
 
+  return { items };
+}
+
+export async function listAuthorizedLeadLists(
+  context: AuthorizedRequestContext,
+  limit: number,
+  database: PrismaClient = getPrismaClient(),
+) {
+  const fields = ["id", "name", "listType", "memberCount", "rowVersion"] as const;
+  const rows = await database.crmLeadList.findMany({
+    where: {
+      ownerOrganizationId: context.tenant.organizationId,
+      archivedAt: null,
+    },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    take: Math.min(limit * OVERFETCH_FACTOR, 400),
+    select: {
+      id: true,
+      resourceId: true,
+      ownerOrganizationId: true,
+      departmentId: true,
+      ownerMembershipId: true,
+      visibility: true,
+      sensitivity: true,
+      name: true,
+      listType: true,
+      memberCount: true,
+      rowVersion: true,
+    },
+  });
+
+  const items = [];
+  for (const row of rows) {
+    const resource = commonResource({
+      resourceId: row.resourceId,
+      resourceType: "lead-list",
+      ownerOrganizationId: row.ownerOrganizationId,
+      departmentId: row.departmentId,
+      ownerMembershipId: row.ownerMembershipId,
+      visibility: row.visibility,
+      sensitivity: row.sensitivity,
+      lifecycleState: "ACTIVE",
+      version: row.rowVersion,
+    });
+    const readable = authorizedReadableFields(
+      context,
+      "lead.list.manage",
+      resource,
+      fields,
+      "view",
+    );
+    if (!readable) continue;
+    items.push(projectR6ReadableFields(row, readable));
+    if (items.length >= limit) break;
+  }
   return { items };
 }
 
