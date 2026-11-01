@@ -10,6 +10,7 @@ export const r14ProductionAliases: readonly ProductionAlias[] = [
   { source: "/my-perspective", destination: "/my" },
   { source: "/my-perspective/saved", destination: "/my/saved" },
   { source: "/my-perspective/following", destination: "/my/following" },
+  { source: "/my-perspective/library", destination: "/my/library" },
   { source: "/my-perspective/newsletters", destination: "/my/newsletters" },
   { source: "/my-perspective/subscription", destination: "/my/subscription" },
   { source: "/my-perspective/billing", destination: "/my/billing" },

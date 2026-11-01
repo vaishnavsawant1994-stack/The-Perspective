@@ -7,6 +7,7 @@ import {
   MembershipStatus,
   MembershipType,
   OrganizationType,
+  PermissionEffect,
   RecordStatus,
   RoleScope,
   PrismaClient,
@@ -120,6 +121,48 @@ async function main() {
           joinedAt: new Date(),
         },
       });
+      if (surface === "TEAM") {
+        const roleId = randomUUID();
+        await transaction.role.create({
+          data: {
+            id: roleId,
+            organizationId: organization.id,
+            key: `r3-browser-readonly-${randomUUID()}`,
+            name: "R3 Browser Read Only",
+            defaultScope: RoleScope.ORG,
+            status: RecordStatus.ACTIVE,
+          },
+        });
+        const dashboardPermissions = [
+          "magazine.dashboard.view",
+          "podcast.dashboard.view",
+          "video.dashboard.view",
+          "event.dashboard.view",
+          "distribution.dashboard.view",
+          "report.view",
+        ];
+        for (const key of dashboardPermissions) {
+          const permission = await transaction.permission.findUnique({ where: { key } });
+          if (!permission) throw new Error(`Required permission ${key} is not seeded.`);
+          await transaction.rolePermission.create({
+            data: {
+              roleId,
+              permissionId: permission.id,
+              effect: PermissionEffect.ALLOW,
+              constraints: {},
+            },
+          });
+        }
+        await transaction.membershipRole.create({
+          data: {
+            id: randomUUID(),
+            membershipId,
+            roleId,
+            scope: RoleScope.ORG,
+            validFrom: new Date(Date.now() - 60_000),
+          },
+        });
+      }
     });
   }
 

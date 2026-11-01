@@ -9,9 +9,7 @@ const teamEmail = process.env.PERSPECTIVE_BROWSER_TEAM_EMAIL;
 const teamPassword = process.env.PERSPECTIVE_BROWSER_TEAM_PASSWORD;
 const clientEmail = process.env.PERSPECTIVE_BROWSER_CLIENT_EMAIL;
 const clientPassword = process.env.PERSPECTIVE_BROWSER_CLIENT_PASSWORD;
-const [, memberToken] = (process.env.R12_DESK_TOKENS ?? "").split("\n");
-
-for (const [name, value] of Object.entries({ teamEmail, teamPassword, clientEmail, clientPassword, memberToken })) {
+for (const [name, value] of Object.entries({ teamEmail, teamPassword, clientEmail, clientPassword })) {
   if (!value) throw new Error(`${name} is required.`);
 }
 
@@ -187,17 +185,27 @@ async function auditRoute(page, surface, route) {
     const controls = page.locator(controlSelector);
     const controlCount = await controls.count();
     const controlResults = [];
+    const controlFailures = [];
     let focusedControls = 0;
     for (let index = 0; index < controlCount; index += 1) {
       const locator = controls.nth(index);
       if (!(await locator.isVisible().catch(() => false))) continue;
       const result = await inspectControl(locator, route, index);
       controlResults.push(result);
-      if (!result.name) routeFailures.push(`control ${index} <${result.tag}> has no usable accessible name`);
-      if (result.deadHref !== null) routeFailures.push(`control ${index} has dead href ${result.deadHref}`);
+      if (!result.name) {
+        routeFailures.push(`control ${index} <${result.tag}> has no usable accessible name`);
+        controlFailures.push({ ...result, issue: "missing-accessible-name" });
+      }
+      if (result.deadHref !== null) {
+        routeFailures.push(`control ${index} has dead href ${result.deadHref}`);
+        controlFailures.push({ ...result, issue: "dead-href" });
+      }
       if (!result.disabled) {
         if (result.focusable) focusedControls += 1;
-        else routeFailures.push(`control ${index} <${result.tag}> cannot receive focus`);
+        else {
+          routeFailures.push(`control ${index} <${result.tag}> cannot receive focus`);
+          controlFailures.push({ ...result, issue: "not-focusable" });
+        }
       }
     }
 
@@ -222,6 +230,7 @@ async function auditRoute(page, surface, route) {
       status,
       bodyLength: bodyText.length,
       controls: controlResults.length,
+      controlFailures,
       focusedControls,
       desktopOverflow,
       mobileOverflow,
@@ -255,18 +264,12 @@ async function loginClient(browser) {
   return { context, page };
 }
 
-async function memberSession(browser) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  await context.setExtraHTTPHeaders({ cookie: `__Host-perspective-session=${memberToken}` });
-  return { context, page: await context.newPage() };
-}
-
 const browser = await chromium.launch({ headless: true });
 try {
   const surfaces = [
     ["team", teamRoutes, loginTeam],
     ["client", clientRoutes, loginClient],
-    ["member", memberRoutes, memberSession],
+    ["member", memberRoutes, loginTeam],
   ];
 
   for (const [surface, routes, openSession] of surfaces) {
