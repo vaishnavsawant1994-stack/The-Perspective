@@ -94,7 +94,7 @@ function DataTable({ columns, rows, minWidth = 980, selected = -1 }: { columns: 
 }
 
 function Pagination({ count }: { count: number }) {
-  return <div className={styles.pagination}><span>Showing 1 to {count} of {count * 6 + 2} records</span><span className={styles.pages}><button className={styles.pageButton} type="button"><ChevronLeft size={12}/></button>{[1, 2, 3].map((page) => <button className={cx(styles.pageButton, page === 1 && styles.active)} key={page} type="button">{page}</button>)}<button className={styles.pageButton} type="button"><ChevronRight size={12}/></button></span></div>;
+  return <div className={styles.pagination}><span>Showing 1 to {count} of {count * 6 + 2} records</span><span className={styles.pages}><button aria-label="Previous page" className={styles.pageButton} type="button"><ChevronLeft size={12}/></button>{[1, 2, 3].map((page) => <button aria-label={`Page ${page}`} className={cx(styles.pageButton, page === 1 && styles.active)} key={page} type="button">{page}</button>)}<button aria-label="Next page" className={styles.pageButton} type="button"><ChevronRight size={12}/></button></span></div>;
 }
 
 function Donut({ value, label = "Total", tone = "76%" }: { value: string; label?: string; tone?: string }) {

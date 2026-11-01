@@ -16,7 +16,7 @@ type Tone = "green"|"orange"|"red"|"blue"|"gray"|"teal"|"purple";
 type Row = ReactNode[];
 const portraits=["/images/articles/elena-rossi.png","/images/articles/arjun-mehta.png","/images/articles/marcus-chen.png","/images/articles/daniel-kim.png"];
 
-function Button({children,primary=false,href="#"}:{children:ReactNode;primary?:boolean;href?:string}){return <Link href={href} className={`${s.btn} ${primary?s.primary:""}`}>{children}</Link>}
+function Button({children,primary=false,href="#"}:{children:ReactNode;primary?:boolean;href?:string}){const className=`${s.btn} ${primary?s.primary:""}`;return href==="#"?<span aria-disabled="true" className={className} title="This action is not available yet">{children}</span>:<Link href={href} className={className}>{children}</Link>}
 function Badge({children,tone="purple"}:{children:ReactNode;tone?:Tone}){return <span className={`${s.badge} ${tone==="purple"?"":s[tone]}`}>{children}</span>}
 function Logo({text}:{text:string}){return <span className={s.logo}>{text}</span>}
 function Avatar({i=0}:{i?:number}){return <img className={s.avatar} src={portraits[i%portraits.length]} alt=""/>}
@@ -29,7 +29,7 @@ function Table({headers,rows,cols="1.6fr 1fr 1fr .8fr .8fr .8fr .8fr .8fr .55fr"
 function Pager({count="10",total="128"}:{count?:string;total?:string}){return <footer className={s.pager}><span>Showing 1 to {count} of {total} records</span><div className={s.pages}>{["1","2","3","4","5","›"].map(x=><button key={x}>{x}</button>)}</div><span>Rows per page&nbsp; <b>10⌄</b></span></footer>}
 function Panel({title,children,action}:{title:string;children:ReactNode;action?:string}){return <section className={s.panel}><header><h2>{title}</h2>{action&&<a>{action} →</a>}</header><div className={s.panelBody}>{children}</div></section>}
 function MetricGrid({items}:{items:Array<[string,string]>}){return <div className={s.metricGrid}>{items.map(x=><article key={x[0]}><small>{x[0]}</small><b>{x[1]}</b></article>)}</div>}
-function Quick({items}:{items:Array<[string,Icon,string?]>}){return <div className={s.quick}>{items.map(([x,I,href])=><Link href={href||"#"} key={x}><I size={18}/><span>{x}</span></Link>)}</div>}
+function Quick({items}:{items:Array<[string,Icon,string?]>}){return <div className={s.quick}>{items.map(([x,I,href])=>href?<Link href={href} key={x}><I size={18}/><span>{x}</span></Link>:<span aria-disabled="true" key={x} title="This destination is not available yet"><I size={18}/><span>{x}</span></span>)}</div>}
 function Person({name,role,i=0}:{name:string;role?:string;i?:number}){return <span className={s.cell}><Avatar i={i}/><Stack title={name} sub={role}/></span>}
 function Progress({value}:{value:number}){return <div className={s.progress}><i style={{width:`${value}%`}}/></div>}
 function Donut({value}:{value:string}){return <div className={s.donut} data-value={value}/>}

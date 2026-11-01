@@ -27,10 +27,11 @@ function IconBox({ icon: Icon, tone = "purple" }: { icon: IconType; tone?: Tone 
   return <span className={s["icon_" + tone]}><Icon size={17} /></span>;
 }
 function Action({ children, href = "#", primary = false, danger = false }: { children: React.ReactNode; href?: string; primary?: boolean; danger?: boolean }) {
-  return <Link className={[s.action, primary ? s.actionPrimary : "", danger ? s.actionDanger : ""].join(" ")} href={href}>{children}</Link>;
+  const className = [s.action, primary ? s.actionPrimary : "", danger ? s.actionDanger : ""].join(" ");
+  return href === "#" ? <span aria-disabled="true" className={className} title="This action is not available yet">{children}</span> : <Link className={className} href={href}>{children}</Link>;
 }
 function Panel({ title, action, children, className = "" }: { title: string; action?: string; children: React.ReactNode; className?: string }) {
-  return <section className={[s.panel, className].join(" ")}><header><h2>{title}</h2>{action && <a href="#">{action} <ArrowRight size={12}/></a>}</header>{children}</section>;
+  return <section className={[s.panel, className].join(" ")}><header><h2>{title}</h2>{action && <span className={s.panelAction} aria-disabled="true" title="This destination is not available yet">{action} <ArrowRight size={12}/></span>}</header>{children}</section>;
 }
 function Person({ name, role, src = sarah }: { name: string; role: string; src?: string }) {
   return <span className={s.person}><Image alt="" height={29} src={src} width={29}/><span><b>{name}</b><small>{role}</small></span></span>;
@@ -45,7 +46,7 @@ function PageHead({ title, subtitle, back, badge }: { title: string; subtitle: s
   return <header className={s.pageHead}>{back && <Link href={back}><ArrowLeft size={14}/> Back</Link>}<div><h1>{title}</h1>{badge && <Badge tone="green">{badge}</Badge>}</div><p>{subtitle}</p></header>;
 }
 function Table({ headers, rows, template }: { headers: string[]; rows: React.ReactNode[][]; template: string }) {
-  return <div className={s.table} style={{ "--columns": template } as React.CSSProperties}><div className={s.tableHead}>{headers.map((h) => <span key={h}>{h}</span>)}</div>{rows.map((row, index) => <article className={index === 0 ? s.selected : ""} key={index}>{row.map((cell, col) => <span key={col}>{cell}</span>)}</article>)}<footer><span>Showing 1 to {rows.length} of 32 items</span><nav><button>«</button><button>‹</button><button className={s.current}>1</button><button>2</button><button>3</button><button>›</button><button>»</button></nav><select aria-label="Rows per page"><option>10 / page</option></select></footer></div>;
+  return <div className={s.table} style={{ "--columns": template } as React.CSSProperties}><div className={s.tableHead}>{headers.map((h) => <span key={h}>{h}</span>)}</div>{rows.map((row, index) => <article className={index === 0 ? s.selected : ""} key={index}>{row.map((cell, col) => <span key={col}>{cell}</span>)}</article>)}<footer><span>Showing 1 to {rows.length} of 32 items</span><nav aria-label="Pagination"><button aria-label="First page" type="button">«</button><button aria-label="Previous page" type="button">‹</button><button aria-label="Page 1" className={s.current} type="button">1</button><button aria-label="Page 2" type="button">2</button><button aria-label="Page 3" type="button">3</button><button aria-label="Next page" type="button">›</button><button aria-label="Last page" type="button">»</button></nav><select aria-label="Rows per page"><option>10 / page</option></select></footer></div>;
 }
 function Summary({ title, items }: { title: string; items: Array<[string,string,IconType,Tone]> }) {
   return <Panel title={title}><div className={s.summaryGrid}>{items.map(([label,value,Icon,tone]) => <article key={label}><IconBox icon={Icon} tone={tone}/><p><b>{value}</b><small>{label}</small></p></article>)}</div></Panel>;
