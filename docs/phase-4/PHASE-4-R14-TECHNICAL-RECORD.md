@@ -1,5 +1,7 @@
 # R14 technical record
 
+> **Historical snapshot (3 October 2026).** This record described the pre-deployment R14 technical checkpoint. It is superseded for current hosting/source identity by [the 31 October 2026 reconciliation](../release/CURRENT-STATE-RECONCILIATION-2026-10-31.md): current `main@9c266451fbc5c07788993ba453c5a9997e5453cf` is deployed to Vercel. The historical qualification record remains evidence for the earlier SHA only; it is not evidence that the later production candidate is independently certified.
+
 STATUS: **TECHNICAL QUALIFICATION MERGED — V1.0 NOT CERTIFIED — PRODUCTION NOT DEPLOYED — INDEPENDENT REVIEW NOT PERFORMED**
 DATE: 3 October 2026
 

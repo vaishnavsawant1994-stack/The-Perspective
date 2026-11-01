@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   qualify:
+    name: R12 platform qualification
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -48,7 +49,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
 
       - name: Install dependencies
@@ -95,6 +96,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
   desk:
+    name: R12 member platform qualification
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -128,7 +130,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
 
       - name: Install dependencies
@@ -136,8 +138,11 @@ jobs:
 
       - name: Install Chromium
         run: |
-          npm install --no-save --package-lock=false playwright@1.55.0
-          npx playwright install --with-deps chromium
+          PLAYWRIGHT_DIR="${RUNNER_TEMP}/perspective-playwright"
+          mkdir -p "$PLAYWRIGHT_DIR"
+          npm install --prefix "$PLAYWRIGHT_DIR" --no-save --package-lock=false playwright@1.55.0
+          "$PLAYWRIGHT_DIR/node_modules/.bin/playwright" install --with-deps chromium
+          ln -s "$PLAYWRIGHT_DIR/node_modules/playwright" node_modules/playwright
 
       - name: Prepare database
         run: |
