@@ -22,7 +22,7 @@ const topics = [[BriefcaseBusiness,"All Events"],[UsersRound,"Leadership"],[BarC
 const schedule = [
   ["09:00 AM","Registration & Networking","Welcome coffee and connections"],
   ["10:00 AM","Welcome Address","Ava Morgan, Editor-in-Chief, The Perspective"],
-  ["10:30 AM","Opening Keynote","Naveen Malhotra, CEO, Asteria Systems"],
+  ["10:30 AM","Opening Keynote","The future of global leadership"],
   ["11:30 AM","Leadership Panel","The Future of Global Leadership"],
   ["01:00 PM","Networking Lunch","Private roundtables and introductions"],
   ["02:30 PM","Fireside Chat","Noor Rahman in conversation"],
