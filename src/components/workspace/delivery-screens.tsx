@@ -29,7 +29,10 @@ const podcastHero = "/images/podcasts/naveen-malhotra-hero.webp";
 const videoHero = "/images/videos/naveen-malhotra-featured-interview.png";
 
 function Button({ label, href, primary, tone = "" }: { label: string; href: string; primary?: boolean; tone?: "danger" | "success" | "" }) {
-  return <Link className={`${styles.button} ${primary ? styles.primary : ""} ${tone ? styles[tone] : ""}`} href={href}>{label}{primary && <ArrowRight size={14} />}</Link>;
+  const className = `${styles.button} ${primary ? styles.primary : ""} ${tone ? styles[tone] : ""}`;
+  return href.startsWith("#")
+    ? <span aria-disabled="true" className={className} title="This action is not available yet">{label}{primary && <ArrowRight size={14} />}</span>
+    : <Link className={className} href={href}>{label}{primary && <ArrowRight size={14} />}</Link>;
 }
 
 function Header({ eyebrow, title, subtitle, actions }: { eyebrow: string; title: string; subtitle: string; actions: Action[] }) {
@@ -41,7 +44,7 @@ function Status({ children, tone = "blue" }: { children: React.ReactNode; tone?:
 }
 
 function Panel({ title, link, href = "#", children, className = "" }: { title: string; link?: string; href?: string; children: React.ReactNode; className?: string }) {
-  return <section className={`${styles.panel} ${className}`}><header className={styles.panelHeader}><h2>{title}</h2>{link && <Link href={href}>{link}</Link>}</header>{children}</section>;
+  return <section className={`${styles.panel} ${className}`}><header className={styles.panelHeader}><h2>{title}</h2>{link && (href.startsWith("#") ? <span aria-disabled="true">{link}</span> : <Link href={href}>{link}</Link>)}</header>{children}</section>;
 }
 
 function Tabs({ items }: { items: string[] }) {
@@ -57,7 +60,7 @@ function Person({ name, role, image = people.arjun }: { name: string; role: stri
 }
 
 function Hero({ image, initials, title, subtitle, stats }: { image?: string; initials?: string; title: string; subtitle: string; stats: { label: string; value: React.ReactNode; meta?: string }[] }) {
-  return <section className={styles.hero}><div className={styles.identity}>{image ? <Image src={image} alt="" width={74} height={86} /> : <span>{initials}</span>}<div><h2>{title}</h2><p>{subtitle}</p><Link href="#overview">View full profile <ExternalLink size={10} /></Link></div></div>{stats.map((s) => <div className={styles.heroStat} key={s.label}><small>{s.label}</small><strong>{s.value}</strong>{s.meta && <span>{s.meta}</span>}</div>)}</section>;
+  return <section className={styles.hero}><div className={styles.identity}>{image ? <Image src={image} alt="" width={74} height={86} /> : <span>{initials}</span>}<div><h2>{title}</h2><p>{subtitle}</p><span aria-disabled="true">View full profile <ExternalLink size={10} /></span></div></div>{stats.map((s) => <div className={styles.heroStat} key={s.label}><small>{s.label}</small><strong>{s.value}</strong>{s.meta && <span>{s.meta}</span>}</div>)}</section>;
 }
 
 function Rows({ entries }: { entries: ListEntry[] }) {
@@ -77,7 +80,9 @@ function Workflow({ stages, current }: { stages: string[]; current: number }) {
 }
 
 function Actions({ items }: { items: Action[] }) {
-  return <div className={styles.actionGrid}>{items.map((item) => { const Icon = item.icon ?? Plus; return <Link href={item.href} key={item.label}><Icon size={20} /><span>{item.label}</span></Link>; })}</div>;
+  return <div className={styles.actionGrid}>{items.map((item) => { const Icon = item.icon ?? Plus; return item.href.startsWith("#")
+    ? <span aria-disabled="true" key={item.label}><Icon size={20} /><span>{item.label}</span></span>
+    : <Link href={item.href} key={item.label}><Icon size={20} /><span>{item.label}</span></Link>; })}</div>;
 }
 
 function Files({ compact = false }: { compact?: boolean }) {

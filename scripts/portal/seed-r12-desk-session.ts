@@ -13,6 +13,7 @@ const memberUserId = crypto.randomUUID();
 const clientPersonId = crypto.randomUUID();
 const memberPersonId = crypto.randomUUID();
 const membershipId = crypto.randomUUID();
+const memberMembershipId = crypto.randomUUID();
 const accountId = crypto.randomUUID();
 const resourceId = crypto.randomUUID();
 const projectId = crypto.randomUUID();
@@ -33,6 +34,9 @@ await database.userAccount.createMany({ data: [
 ] });
 await database.organizationMembership.create({
   data: { id: membershipId, organizationId: clientOrgId, userAccountId: clientUserId, membershipType: "CLIENT", status: "ACTIVE", joinedAt: now },
+});
+await database.organizationMembership.create({
+  data: { id: memberMembershipId, organizationId: ownerId, userAccountId: memberUserId, membershipType: "STAFF", status: "ACTIVE", joinedAt: now },
 });
 for (const key of ["client.dashboard.view", "client.project.view", "client.approval.view"]) {
   const permission = await database.permission.upsert({
@@ -79,7 +83,7 @@ await database.session.create({
 });
 await database.session.create({
   data: {
-    id: crypto.randomUUID(), userAccountId: memberUserId, tokenHash: hashOpaqueToken(memberToken),
+    id: crypto.randomUUID(), userAccountId: memberUserId, activeMembershipId: memberMembershipId, tokenHash: hashOpaqueToken(memberToken),
     surface: "TEAM", authenticationMethod: "password", mfaVerifiedAt: now, issuedAt: now, expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
   },
 });

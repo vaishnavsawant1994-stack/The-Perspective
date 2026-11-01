@@ -15,6 +15,7 @@ describe("R14 production aliases", () => {
     expect(aliases.get("/sign-in")).toBe("/login");
     expect(aliases.get("/premium")).toBe("/magazine/premium");
     expect(aliases.get("/my-perspective/saved")).toBe("/my/saved");
+    expect(aliases.get("/my-perspective/library")).toBe("/my/library");
     expect(aliases.has("/news")).toBe(false);
   });
 
