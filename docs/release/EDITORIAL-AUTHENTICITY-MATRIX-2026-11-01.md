@@ -2,7 +2,7 @@
 
 ## Decision status
 
-This is an audit of content reachable from production at `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401`. The editor chose unpublish for clearly fictional content on 2026-11-01. No fabricated replacements were introduced. The known Anika/Asteria content was removed in PR #43 and production route checks confirmed removal.
+This content audit used production source `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401`. Vercel now reports production at `main@ed2ca4f0aff6701feae901c66a3dfb94140b62f1`; this editorial matrix has not yet been comprehensively re-audited against that newer source. The editor chose unpublish for clearly fictional content on 2026-11-01. No fabricated replacements were introduced. The known Anika/Asteria content was removed in PR #43 and production route checks confirmed removal.
 
 | Content | Source evidence | Public surface / claim | Required disposition | Current status |
 | --- | --- | --- | --- | --- |
