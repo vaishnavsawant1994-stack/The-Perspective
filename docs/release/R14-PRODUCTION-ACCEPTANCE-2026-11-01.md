@@ -4,8 +4,8 @@
 
 | Field | Evidence |
 | --- | --- |
-| Production source | `main` at `2c4c0fca3fb3f85b3377490bdd9f9c3e129f01a5` |
-| Vercel production deployment | `dpl_CKXdtPVgQmoP81EqFaTH35s57T4N` — READY |
+| Production source | `main` at `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401` |
+| Vercel production deployment | `dpl_AXggSrAD7G6vrpR5xRTxY6vkqUhJ` — READY |
 | Application aliases | `https://the-perspective-liart.vercel.app`, `https://the-perspective-vishnu26.vercel.app` |
 | Release decision | **V1.0 NOT CERTIFIED** |
 
@@ -15,9 +15,9 @@ The deployment is current and serving traffic. This operational fact does not sa
 
 | Gate | Result | Evidence and remaining work |
 | --- | --- | --- |
-| Production release identity | PASS | Vercel reports READY for exact `main` SHA `2c4c0fca3fb3f85b3377490bdd9f9c3e129f01a5` on deployment `dpl_CKXdtPVgQmoP81EqFaTH35s57T4N`, with both production aliases. |
+| Production release identity | PASS | Vercel reports READY for exact `main` SHA `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401` on deployment `dpl_AXggSrAD7G6vrpR5xRTxY6vkqUhJ`, with both production aliases. |
 | Core public HTTP surfaces | PASS (sampled) | After the deployment became READY, live production returned 404 for `/people/anika-rao`, the associated Anika article and `/images/home/anika-rao-cutout.png`; `/`, `/api/health/live` and `/api/health/ready` returned 200. Homepage HTML no longer contains Anika Rao or Asteria Systems; `/events` no longer contains Asteria Systems. Earlier production samples covered discovery, privacy, terms, cookies, editorial standards, accessibility, community guidelines, `robots.txt`, sitemap and exact canonicals. This is a route sample, not exhaustive browser coverage. |
-| Production build | PASS | PR #43 exact head built successfully with Next.js 16.4.3 and generated 469 static pages. Its production deployment is now READY on current `main`. |
+| Production build | PASS | PR #43 exact head built successfully with Next.js 16.4.3 and generated 469 static pages. PR #44's synced exact head also passed the R14 full qualification production build and deployed successfully on current `main`. |
 | Lint and TypeScript | PASS | Current-main lint completed with 0 errors and 3 existing unused-variable warnings; TypeScript check passed. |
 | Unit suite | PASS | Current-main Vitest: 81 files, 625 tests passed using isolated dummy session configuration and a closed loopback database URL. The initial run without required auth environment failed 19 tests at configuration validation; rerun with the workflow's non-production test values passed. The same 625 tests passed after the editorial unpublish edits. No production database was used. |
 | Prisma schema | PASS | `prisma validate` passed. No migration was run against production. |
@@ -46,12 +46,13 @@ Environment: Node.js `v24.20.0`; clean install from committed lockfile; test dat
 | `npm run build` before editorial removal | PASS; Next.js 16.4.3 compiled and generated 475 static pages. |
 | `npm run build` on PR #43 head | PASS; Next.js 16.4.3 compiled and generated 469 static pages. |
 | PR #43 exact-head GitHub qualification | PASS; all 16 workflow runs succeeded. Vercel Preview status succeeded. |
+| PR #44 synced exact-head qualification | PASS; head `0934bb20e45adfbe58bd8d82fdd49241632b0e53` has 23/23 check runs completed successfully, including R4 tenancy, R14 full qualification and Vercel Preview. Merged as `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401`; production deployment `dpl_AXggSrAD7G6vrpR5xRTxY6vkqUhJ` is READY. |
 | Production dependency SBOM | PASS; CycloneDX 1.5, 28 production dependency components; generated locally and not committed. |
 | `npm audit` | PASS; 0 vulnerabilities (0 critical/high/moderate/low). GitHub alert records remain unresolved due integration access. |
 
 The three lint warnings are existing unused values in `src/modules/comms/r6-communications.database.test.ts` (two) and `src/modules/r7/commands.ts` (one). The PR #43 branch also passed lint, typecheck and 625/625 unit tests.
 
-After PR #43 deployed, production probes returned 404 for `/people/anika-rao`, `/article/the-next-era-of-leadership-human-purpose-in-an-ai-world` and `/images/home/anika-rao-cutout.png`; `/`, `/api/health/live` and `/api/health/ready` returned 200. Homepage and events HTML no longer contain Anika Rao or Asteria Systems. The live deployment source is exact `main` SHA `2c4c0fca3fb3f85b3377490bdd9f9c3e129f01a5`.
+After PR #44 deployed, current production probes returned 404 for `/people/anika-rao`, `/article/the-next-era-of-leadership-human-purpose-in-an-ai-world` and `/images/home/anika-rao-cutout.png`; `/`, `/api/health/live` and `/api/health/ready` returned 200. Current homepage HTML contains neither Anika Rao nor Asteria Systems. The live deployment source is exact `main` SHA `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401`.
 
 ## Recovery facts and decision boundary
 
@@ -72,7 +73,7 @@ No plan change or off-platform backup infrastructure was applied. An encrypted o
 | PR #33 | Adds `/news` alias contrary to the current route contract test, which explicitly rejects that alias; most related route repairs are already on `main`. | Closed as superseded/conflicting on 2026-11-01 with rationale recorded on the PR. |
 | PR #38 | Old base; its old-head checks passed, but it proposes grouped updates without an established active advisory need. Current `main` audit reports zero npm findings. | Keep open and unmerged pending current-base requalification and security/advisory reconciliation. |
 | PR #43 | Editor-approved unpublish of explicitly fictional Anika/Asteria content plus R14 evidence and hourly health smoke workflow. | Merged after 16/16 exact-head GitHub workflows and Vercel Preview passed. Production deployment `dpl_CKXdtPVgQmoP81EqFaTH35s57T4N` is READY; live routes confirm the fictional profile/article/portrait return 404. |
-| PR #36 database retry / PR #44 follow-up | Initial R4 PostgreSQL attempt failed in `contains concurrent lead conversion to one canonical deal`: one same-lead conversion returned `error` where `ok` was expected (1 of 252 DB tests failed). The workflow config sets `fileParallelism: false`, and the test intentionally issues two concurrent conversions; database logs showed serialization conflicts. Rerun passed 252/252 database tests and 625/625 unit tests. | PR #44 adds a bounded 20/40/60/80 ms backoff across the existing five conflict/stale-write/deadlock retries. Exact head `d138838bfcfd0fd39ed1197f96fe5c62659f94a5` has 16/16 GitHub workflow runs successful, including R4 Tenancy Qualification and R14 Technical Certification; Vercel Preview status is successful. A merge attempt using this exact head was rejected by GitHub: “23 of 23 required status checks are expected.” The connected run feed exposes 16 workflows plus the Vercel status; the other required context names cannot be read through this integration. PR remains open and unmerged until the owner resolves the expected-check configuration or supplies the missing statuses. Do not bypass protection. |
+| PR #36 database retry / PR #44 follow-up | Initial R4 PostgreSQL attempt failed in `contains concurrent lead conversion to one canonical deal`: one same-lead conversion returned `error` where `ok` was expected (1 of 252 DB tests failed). The workflow config sets `fileParallelism: false`, and the test intentionally issues two concurrent conversions; database logs showed serialization conflicts. Rerun passed 252/252 database tests and 625/625 unit tests. | PR #44 adds a bounded 20/40/60/80 ms backoff across the existing five conflict/stale-write/deadlock retries. After syncing to current `main`, exact head `0934bb20e45adfbe58bd8d82fdd49241632b0e53` had 23/23 GitHub check runs completed successfully, including R4 Tenancy Qualification and R14 Technical Certification; Vercel Preview succeeded. Merged as `099dff6b0f1e0b9d0e7eb1afd9d43f00be9e3401`. Production deployment `dpl_AXggSrAD7G6vrpR5xRTxY6vkqUhJ` is READY and live route probes passed. An earlier pre-sync merge request returned `23 of 23 required status checks are expected`; syncing to current main and requalifying resolved the merge gate. |
 
 GitHub Dependabot alert details are unavailable through the connected integration. Do not close or dismiss alerts based solely on the clean local `npm audit`. The repository is public. The connected GitHub integration cannot read branch protection (403), although repository ruleset readback succeeded for the tag rule above.
 
