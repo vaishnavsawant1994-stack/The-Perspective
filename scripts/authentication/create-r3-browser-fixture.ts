@@ -142,8 +142,19 @@ async function main() {
           "report.view",
         ];
         for (const key of dashboardPermissions) {
-          const permission = await transaction.permission.findUnique({ where: { key } });
-          if (!permission) throw new Error(`Required permission ${key} is not seeded.`);
+          const [domain, ...parts] = key.split(".");
+          const permission = await transaction.permission.upsert({
+            where: { key },
+            create: {
+              id: randomUUID(),
+              key,
+              domain,
+              action: parts.join(".") || "access",
+              description: "R3 browser fixture permission",
+              riskLevel: "CRITICAL",
+            },
+            update: {},
+          });
           await transaction.rolePermission.create({
             data: {
               roleId,
