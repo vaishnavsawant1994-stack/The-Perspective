@@ -848,7 +848,6 @@ export async function verifyMfaLogin(
             acceptedAt: { not: null },
             termsAcceptedAt: { not: null },
             revokedAt: null,
-            expiresAt: { gt: verifiedAt },
           },
           include: {
             intendedRole: true,
