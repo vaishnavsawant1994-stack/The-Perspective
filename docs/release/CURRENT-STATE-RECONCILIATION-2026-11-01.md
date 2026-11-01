@@ -1,7 +1,8 @@
 # The Perspective current-state reconciliation
 
-**Evidence date:** 1 November 2026 (Asia/Kolkata)  
-**Repository:** `vaishnavsawant1994-stack/The-Perspective`  
+**Evidence date:** 1 November 2026 (Asia/Kolkata)
+
+**Repository:** `vaishnavsawant1994-stack/The-Perspective`
 **Status:** Production is deployed. V1.0 is **not certified**.
 
 This report supersedes the current-production facts in [the 31 October reconciliation](./CURRENT-STATE-RECONCILIATION-2026-10-31.md). That file remains the historical record for its stated source snapshots.
