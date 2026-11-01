@@ -22,6 +22,41 @@ encrypted_dump="$tmpdir/perspective.dump.gpg"
 remote_dump="$tmpdir/perspective.remote.dump.gpg"
 restored_dump="$tmpdir/perspective.restored.dump"
 
+backup_role_check="$(psql "$PERSPECTIVE_BACKUP_DATABASE_URL" --no-psqlrc --tuples-only --no-align --set=ON_ERROR_STOP=1 --command="
+  SELECT CASE WHEN r.rolname = 'perspective_backup_reader'
+    AND NOT r.rolsuper
+    AND NOT r.rolcreaterole
+    AND r.rolbypassrls
+    AND NOT has_database_privilege(r.rolname, current_database(), 'CREATE')
+    AND NOT EXISTS (
+      SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+        AND (c.relowner = r.oid
+          OR has_table_privilege(r.rolname, c.oid, 'INSERT')
+          OR has_table_privilege(r.rolname, c.oid, 'UPDATE')
+          OR has_table_privilege(r.rolname, c.oid, 'DELETE')
+          OR has_table_privilege(r.rolname, c.oid, 'TRUNCATE')
+          OR has_table_privilege(r.rolname, c.oid, 'REFERENCES')
+          OR has_table_privilege(r.rolname, c.oid, 'TRIGGER'))
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM pg_namespace n
+      WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+        AND has_schema_privilege(r.rolname, n.oid, 'CREATE')
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE c.relkind = 'S' AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+        AND (has_sequence_privilege(r.rolname, c.oid, 'USAGE')
+          OR has_sequence_privilege(r.rolname, c.oid, 'UPDATE'))
+    ) THEN 'ok' ELSE 'unsafe' END
+  FROM pg_roles r WHERE r.rolname = current_user
+")"
+if [[ "$backup_role_check" != "ok" ]]; then
+  echo "Backup role preflight failed: expected the dedicated read-only BYPASSRLS role without object-creation privileges." >&2
+  exit 1
+fi
+
 pg_dump \
   --format=custom \
   --no-owner \
@@ -53,6 +88,20 @@ printf '%s' "$PERSPECTIVE_BACKUP_PASSPHRASE" | gpg \
 cmp --silent "$plain_dump" "$restored_dump"
 
 restore_db="perspective_restore_verify"
+# The application schema stores tenant/public RLS policies addressed to these
+# roles. Create inert NOLOGIN role placeholders in the disposable restore
+# cluster so pg_restore can recreate those policies without copying production
+# role credentials or granting the test roles any privileges.
+psql "$RESTORE_ADMIN_URL" --no-psqlrc --set=ON_ERROR_STOP=1 <<'SQL'
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'perspective_runtime') THEN
+    CREATE ROLE perspective_runtime NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'perspective_public') THEN
+    CREATE ROLE perspective_public NOLOGIN;
+  END IF;
+END $$;
+SQL
 createdb --maintenance-db="$RESTORE_ADMIN_URL" "$restore_db"
 restore_url="${RESTORE_ADMIN_URL%/postgres}/${restore_db}"
 pg_restore --no-owner --no-acl --dbname="$restore_url" "$restored_dump"
