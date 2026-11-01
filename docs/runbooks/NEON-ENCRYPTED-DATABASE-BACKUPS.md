@@ -15,6 +15,15 @@ The workflow requires these GitHub Actions repository secrets:
 
 The bucket name, S3 endpoint, and region are public routing metadata in the workflow. They are not credentials.
 
+On the owner’s Windows account, a DPAPI-protected recovery copy of the passphrase is stored at `%LOCALAPPDATA%\ThePerspective\Secrets\backup-recovery-key.dpapi`. To recover it on that same Windows account and save it in an external password manager:
+
+```powershell
+$secure = ConvertTo-SecureString (Get-Content -Raw "$env:LOCALAPPDATA\ThePerspective\Secrets\backup-recovery-key.dpapi")
+$pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+try { [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) }
+finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
+```
+
 ## Restore procedure
 
 1. Select a successful run in **Actions → Neon encrypted database backup** and read the object key from its log.
