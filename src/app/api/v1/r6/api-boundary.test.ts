@@ -7,7 +7,10 @@ import { PATCH as updateDeal } from "./deals/[dealId]/route";
 import { POST as createLeadSource } from "./crm/lead-sources/route";
 import { POST as createExtractionJob } from "./crm/extraction-jobs/route";
 import { POST as requestEnrichment } from "./crm/enrichment-jobs/route";
-import { POST as createLeadList } from "./crm/lead-lists/route";
+import {
+  GET as listLeadLists,
+  POST as createLeadList,
+} from "./crm/lead-lists/route";
 import { POST as addLeadListMember } from "./crm/lead-lists/[leadListId]/members/route";
 import { GET as listCompanies } from "./crm/companies/route";
 import {
@@ -131,6 +134,17 @@ describe("R6 CRM direct-call API boundary", () => {
         sourceType: "PUBLIC_WEB",
         name: "Anonymous source",
       }),
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "AUTHZ_AUTH_REQUIRED",
+    });
+  });
+
+  it("requires an authenticated team session before reading lead lists", async () => {
+    const response = await listLeadLists(
+      new Request(`${origin}/api/v1/r6/crm/lead-lists`),
     );
 
     expect(response.status).toBe(401);
@@ -301,6 +315,14 @@ describe("R6 CRM direct-call API boundary", () => {
     );
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
+      code: "R6_INVALID_REQUEST",
+    });
+
+    const leadLists = await listLeadLists(
+      new Request(`${origin}/api/v1/r6/crm/lead-lists?limit=101`),
+    );
+    expect(leadLists.status).toBe(400);
+    await expect(leadLists.json()).resolves.toMatchObject({
       code: "R6_INVALID_REQUEST",
     });
   });
