@@ -105,7 +105,11 @@ function routeResource(resourceType: string, lifecycleState = "ACTIVE", version 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("PERSPECTIVE_AUTH_BOUNDARY_MODE", "sessions");
+  vi.stubEnv("DATABASE_URL", "postgresql://test:test@example.test:5432/test");
   vi.stubEnv("PERSPECTIVE_PUBLIC_APP_ORIGIN", origin);
+  vi.stubEnv("PERSPECTIVE_AUTH_DATA_KEY", Buffer.alloc(32, 7).toString("base64"));
+  vi.stubEnv("PERSPECTIVE_AUTH_KEY_VERSION", "1");
   mocks.resolve.mockResolvedValue({ kind: "authorized", context });
   mocks.authorize.mockResolvedValue({ kind: "allowed", decision: { decision: "ALLOW" } });
   mocks.loadCompany.mockResolvedValue(routeResource("company"));

@@ -15,6 +15,7 @@ import {
   MfaMethodType,
   OrganizationType,
   Prisma,
+  RecordStatus,
   RoleScope,
   type PrismaClient,
 } from "@/generated/prisma/client";
@@ -49,6 +50,10 @@ import type {
   VerifiedIdentitySession,
   VerifiedUnselectedAuthenticationSession,
 } from "./types";
+import {
+  isPrivilegedOwnerInvitation,
+  privilegedInvitationActivationEligibility,
+} from "./privileged-invitation";
 
 const LOGIN_WINDOW_MS = 15 * 60_000;
 const RECOVERY_WINDOW_MS = 60 * 60_000;
@@ -783,6 +788,7 @@ export async function verifyMfaLogin(
       data: { lastUsedAt: verifiedAt },
     });
     let result: LoginResult;
+    let verifiedSessionId: string;
     if (memberships.length === 1) {
       const created = await createSession(transaction, {
         userAccountId: challenge.userAccountId,
@@ -795,6 +801,7 @@ export async function verifyMfaLogin(
         metadata,
         ipHash: signals.ipHash,
       });
+      verifiedSessionId = created.session.sessionId;
       result = { kind: "authenticated", ...created };
     } else {
       const created = await createUnselectedSession(transaction, {
@@ -806,11 +813,107 @@ export async function verifyMfaLogin(
         metadata,
         ipHash: signals.ipHash,
       });
+      verifiedSessionId = created.session.sessionId;
       result = {
         kind: "context-selection-required",
         ...created,
         contexts: toContextOptions(memberships, surface),
       };
+    }
+
+    const passwordIdentity = await transaction.userIdentity.findFirst({
+      where: {
+        userAccountId: challenge.userAccountId,
+        provider: IdentityProvider.PASSWORD,
+      },
+      select: { providerSubject: true },
+    });
+    const eligibleMemberships = await transaction.organizationMembership.findMany({
+      where: {
+        id: { in: memberships.map((candidate) => candidate.id) },
+        userAccountId: challenge.userAccountId,
+        status: MembershipStatus.ACTIVE,
+        endedAt: null,
+      },
+      select: { id: true, organizationId: true },
+    });
+    const pendingPrivilegedInvitations = passwordIdentity
+      ? await transaction.invitation.findMany({
+          where: {
+            emailNormalized: passwordIdentity.providerSubject,
+            organizationId: {
+              in: eligibleMemberships.map((candidate) => candidate.organizationId),
+            },
+            intendedRole: { key: "R01", status: RecordStatus.ACTIVE },
+            acceptedAt: { not: null },
+            termsAcceptedAt: { not: null },
+            revokedAt: null,
+            expiresAt: { gt: verifiedAt },
+          },
+          include: {
+            intendedRole: true,
+            organization: { select: { organizationType: true } },
+          },
+        })
+      : [];
+    let activatedPrivilegedGrant = false;
+    for (const invitation of pendingPrivilegedInvitations) {
+      if (
+        !invitation.intendedRole ||
+        !privilegedInvitationActivationEligibility({
+          acceptedAt: invitation.acceptedAt,
+          termsAcceptedAt: invitation.termsAcceptedAt,
+          revokedAt: invitation.revokedAt,
+          intendedRoleKey: invitation.intendedRole.key,
+          organizationType: invitation.organization.organizationType,
+        })
+      ) {
+        continue;
+      }
+      const targetMembership = eligibleMemberships.find(
+        (candidate) => candidate.organizationId === invitation.organizationId,
+      );
+      if (!targetMembership) continue;
+      const existingGrant = await transaction.membershipRole.findFirst({
+        where: {
+          membershipId: targetMembership.id,
+          roleId: invitation.intendedRole.id,
+          validUntil: null,
+        },
+        select: { id: true },
+      });
+      if (existingGrant) continue;
+      await transaction.membershipRole.create({
+        data: {
+          id: randomUUID(),
+          membershipId: targetMembership.id,
+          roleId: invitation.intendedRole.id,
+          scope: invitation.intendedRole.defaultScope,
+        },
+      });
+      activatedPrivilegedGrant = true;
+      await recordUserAudit(transaction, {
+        organizationId: invitation.organizationId,
+        userAccountId: challenge.userAccountId,
+        membershipId: targetMembership.id,
+        action: "auth.privileged_invitation.activated_after_mfa",
+        metadata,
+        ipHash: signals.ipHash,
+        reason: `invitation:${invitation.id}`,
+      });
+    }
+    if (activatedPrivilegedGrant) {
+      await transaction.session.updateMany({
+        where: {
+          userAccountId: challenge.userAccountId,
+          id: { not: verifiedSessionId },
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: verifiedAt,
+          revokeReason: "privileged_invitation_mfa_activation",
+        },
+      });
     }
     await recordAttempt(transaction, {
       surface,
@@ -823,7 +926,7 @@ export async function verifyMfaLogin(
         memberships.length > 1 ? { contextSelectionRequired: true } : {},
     });
     return result;
-  });
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
 
 export async function beginTotpEnrollment(
@@ -989,6 +1092,9 @@ export async function inspectInvitation(
   return {
     organizationName: invitation.organization.displayName,
     roleName: invitation.intendedRole?.name,
+    requiresMfaActivation: isPrivilegedOwnerInvitation({
+      intendedRoleKey: invitation.intendedRole?.key,
+    }),
     expiresAt: invitation.expiresAt,
     surface:
       invitation.organization.organizationType === OrganizationType.CLIENT
@@ -1027,6 +1133,9 @@ export async function acceptInvitation(
       ? "CLIENT"
       : "TEAM";
   const identifier = normalizeLoginIdentifier(invitation.emailNormalized);
+  const requiresMfaActivation = isPrivilegedOwnerInvitation({
+    intendedRoleKey: invitation.intendedRole?.key,
+  });
   const signals = hashRequestSignals(identifier, metadata, configuration.dataKey);
   const existingIdentity = await database.userIdentity.findUnique({
     where: {
@@ -1139,7 +1248,7 @@ export async function acceptInvitation(
         });
       }
 
-      if (invitation.intendedRoleId) {
+      if (invitation.intendedRoleId && !requiresMfaActivation) {
         const existingRole = await transaction.membershipRole.findFirst({
           where: {
             membershipId,
@@ -1194,7 +1303,24 @@ export async function acceptInvitation(
         metadata,
         ipHash: signals.ipHash,
       });
-      return { kind: "accepted", ...created } as const;
+      const hasVerifiedMfa = requiresMfaActivation
+        ? Boolean(
+            await transaction.mfaMethod.findFirst({
+              where: {
+                userAccountId,
+                verifiedAt: { not: null },
+                disabledAt: null,
+              },
+              select: { id: true },
+            }),
+          )
+        : false;
+      return {
+        kind: "accepted",
+        ...created,
+        requiresMfaActivation,
+        mfaEnrollmentRequired: requiresMfaActivation && !hasVerifiedMfa,
+      } as const;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   );

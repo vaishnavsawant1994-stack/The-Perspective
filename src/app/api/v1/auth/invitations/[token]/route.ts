@@ -59,7 +59,12 @@ export async function POST(
       return authenticationProblem(400, "Invitation is unavailable.", "AUTH_INVITATION_INVALID");
     }
     const response = NextResponse.json(
-      { status: "accepted", surface: result.session.surface },
+      {
+        status: "accepted",
+        surface: result.session.surface,
+        requiresMfaActivation: result.requiresMfaActivation,
+        mfaEnrollmentRequired: result.mfaEnrollmentRequired,
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
     setSessionCookie(response, result.token, result.session.expiresAt);

@@ -531,6 +531,94 @@ describe("R3 PostgreSQL authentication boundary", () => {
     expect(existingAccepted.kind).toBe("accepted");
   });
 
+  it("defers the R01 grant until a fresh password plus TOTP login and revokes the invite session", async () => {
+    const organization = await createOrganization("TEAM");
+    const role = await database.role.create({
+      data: {
+        id: randomUUID(),
+        organizationId: organization.id,
+        key: "R01",
+        name: "Super Admin",
+        systemRole: true,
+        defaultScope: RoleScope.ORG,
+        status: RecordStatus.ACTIVE,
+      },
+    });
+    const token = createOpaqueToken();
+    const email = `first-owner-${randomUUID()}@example.test`;
+    await database.invitation.create({
+      data: {
+        id: randomUUID(),
+        organizationId: organization.id,
+        emailNormalized: email,
+        intendedRoleId: role.id,
+        tokenHash: hashOpaqueToken(token),
+        expiresAt: new Date(Date.now() + 60 * 60_000),
+      },
+    });
+
+    const accepted = await acceptInvitation(
+      {
+        token,
+        displayName: "First Owner",
+        password: "First Owner Secure Passphrase 2026!",
+        termsAccepted: true,
+      },
+      metadata("first-owner-accept"),
+      database,
+    );
+    expect(accepted).toMatchObject({
+      kind: "accepted",
+      requiresMfaActivation: true,
+      mfaEnrollmentRequired: true,
+    });
+    if (accepted.kind !== "accepted") throw new Error("Expected invitation acceptance.");
+    const membership = await database.organizationMembership.findFirstOrThrow({
+      where: { organizationId: organization.id, userAccountId: accepted.session.userAccountId },
+    });
+    expect(await database.membershipRole.count({ where: { membershipId: membership.id } })).toBe(0);
+
+    const enrollment = await beginTotpEnrollment(
+      accepted.token,
+      email,
+      metadata("first-owner-enroll"),
+      database,
+    );
+    if (!enrollment) throw new Error("Expected TOTP enrollment.");
+    await expect(
+      confirmTotpEnrollment(
+        accepted.token,
+        enrollment.challengeToken,
+        generateTotpCode(enrollment.secret),
+        metadata("first-owner-confirm"),
+        database,
+      ),
+    ).resolves.toBe(true);
+    expect(await database.membershipRole.count({ where: { membershipId: membership.id } })).toBe(0);
+
+    const passwordLogin = await authenticatePassword(
+      { email, password: "First Owner Secure Passphrase 2026!", surface: "TEAM" },
+      metadata("first-owner-password"),
+      database,
+    );
+    if (passwordLogin.kind !== "mfa-required") throw new Error("Expected MFA challenge.");
+    const mfaLogin = await verifyMfaLogin(
+      passwordLogin.challengeToken,
+      generateTotpCode(enrollment.secret),
+      metadata("first-owner-mfa-login"),
+      database,
+    );
+    if (mfaLogin.kind !== "authenticated") throw new Error("Expected MFA-authenticated session.");
+
+    expect(await database.membershipRole.count({ where: { membershipId: membership.id, roleId: role.id } })).toBe(1);
+    expect(await verifySessionToken(accepted.token, "TEAM", database)).toBeNull();
+    expect(await verifySessionToken(mfaLogin.token, "TEAM", database)).toMatchObject({
+      mfaVerifiedAt: expect.any(Date),
+      membershipId: membership.id,
+      organizationId: organization.id,
+    });
+  });
+
   it("enrolls encrypted TOTP and requires a one-time challenge before session creation", async () => {
     const user = await createPasswordUser(
       "CLIENT",
