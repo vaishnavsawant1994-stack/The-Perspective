@@ -15,6 +15,7 @@ import { LAUNCH_ROLES } from "../../src/modules/authorization/launch-roles";
 import { PERMISSION_DEFINITIONS } from "../../src/modules/authorization/registry";
 import { createOpaqueToken, hashOpaqueToken, normalizeLoginIdentifier } from "../../src/modules/authentication/crypto/tokens";
 import { requireAuthenticationConfiguration } from "../../src/modules/authentication/configuration";
+import { assertProductionDatabaseTarget } from "../../src/modules/authentication/production-database-target";
 
 const PLATFORM_SLUG = "the-perspective";
 const BOOTSTRAP_ROLE_KEY = "R01";
@@ -29,13 +30,7 @@ function databaseUrl() {
     throw new Error("Explicit production target and sessions auth mode are required; test fixtures must be disabled.");
   }
   const configuration = requireAuthenticationConfiguration(process.env);
-  const url = new URL(configuration.databaseUrl);
-  if (!url.hostname.endsWith(".neon.tech")) {
-    throw new Error("The production bootstrap command only accepts the configured Neon production database.");
-  }
-  if (url.searchParams.get("sslmode") !== "verify-full") {
-    throw new Error("The production database connection must enforce sslmode=verify-full.");
-  }
+  assertProductionDatabaseTarget(configuration.databaseUrl);
   if (new URL(configuration.publicOrigin).protocol !== "https:") {
     throw new Error("A production HTTPS app origin is required.");
   }

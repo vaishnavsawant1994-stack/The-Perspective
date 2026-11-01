@@ -57,6 +57,7 @@ import {
 
 const LOGIN_WINDOW_MS = 15 * 60_000;
 const RECOVERY_WINDOW_MS = 60 * 60_000;
+const MFA_VERIFY_WINDOW_MS = 15 * 60_000;
 const MFA_CHALLENGE_MS = 5 * 60_000;
 const RECOVERY_CHALLENGE_MS = 60 * 60_000;
 const STANDARD_SESSION_MS = 12 * 60 * 60_000;
@@ -709,7 +710,31 @@ export async function verifyMfaLogin(
     include: { mfaMethod: true },
   });
   const surface = challenge?.surface === AuthSurface.TEAM ? "TEAM" : "CLIENT";
-  const signals = hashRequestSignals(tokenHash, metadata, configuration.dataKey);
+  // Use a stable, keyed account signal so a fresh challenge cannot reset the
+  // identifier-based MFA attempt budget. Unknown tokens remain IP-throttled.
+  const signals = hashRequestSignals(
+    challenge?.userAccountId ?? tokenHash,
+    metadata,
+    configuration.dataKey,
+  );
+  const throttled = await isThrottled(
+    database,
+    "MFA_VERIFY",
+    signals.identifierHash,
+    signals.ipHash,
+    MFA_VERIFY_WINDOW_MS,
+  );
+  if (throttled) {
+    await recordAttempt(database, {
+      surface,
+      kind: "MFA_VERIFY",
+      outcome: "THROTTLED",
+      ...signals,
+      userAccountId: challenge?.userAccountId,
+      metadata,
+    });
+    return { kind: "throttled" };
+  }
   const method = challenge?.mfaMethod;
   const secret = method?.secretReference
     ? await database.authenticationSecret.findUnique({
