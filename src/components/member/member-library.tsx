@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 type Issue = { id: string; slug: string; title: string };
 
 export function MemberLibrary() {
-  const [message, setMessage] = useState("Reading the library.");
+  const [message, setMessage] = useState("Sign in to see issues you are entitled to. This page grants nothing.");
   const [issues, setIssues] = useState<Issue[]>([]);
   const [signedIn, setSignedIn] = useState(false);
 

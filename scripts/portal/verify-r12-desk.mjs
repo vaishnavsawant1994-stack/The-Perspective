@@ -14,6 +14,8 @@ try {
   const anonymous = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const denied = await anonymous.goto(new URL("/client/desk", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   assert.equal(new URL(denied?.url() ?? baseUrl).pathname, "/client/login");
+  const anonymousLibraryApi = await anonymous.request.get(new URL("/api/v1/r12/member/library", baseUrl).toString());
+  assert.equal(anonymousLibraryApi.status(), 401, "anonymous member library requests must be denied by the API");
   const library = await anonymous.goto(new URL("/my-perspective/library", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   assert.equal(library?.status(), 200);
   await anonymous.getByRole("status").filter({ hasText: "Sign in to see issues you are entitled to." }).waitFor();
