@@ -20,6 +20,7 @@
     "db:seed": "prisma db seed",
     "db:seed:assert": "tsx scripts/database/assert-seed.ts",
     "db:verify": "tsx scripts/database/verify-database.ts",
+    "auth:first-owner": "node --conditions=react-server --import tsx scripts/auth/first-owner.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

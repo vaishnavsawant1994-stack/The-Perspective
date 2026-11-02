@@ -12,6 +12,7 @@ function request(path: string, cookie?: string) {
 describe("R1 proxy security boundary", () => {
   it.each([
     ["/app", "/login?next=%2Fapp"],
+    ["/security/mfa/setup", "/login"],
     [
       "/app/sales/leads/an-arbitrary-id?tab=activity",
       "/login?next=%2Fapp%2Fsales%2Fleads%2Fan-arbitrary-id%3Ftab%3Dactivity",

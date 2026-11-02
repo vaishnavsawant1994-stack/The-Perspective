@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readSessionCookie } from "@/modules/authentication/http/session-cookie";
 import { verifyIdentitySessionToken } from "@/modules/authentication/service";
+import { getPrismaClient } from "@/modules/persistence/client";
 
 export async function GET(request: Request) {
   const token = readSessionCookie(request);
@@ -14,6 +15,34 @@ export async function GET(request: Request) {
         { status: 401, headers: { "Cache-Control": "no-store" } },
       );
     }
+    let mfaEnrollmentRequired = false;
+    let mfaReauthenticationRequired = false;
+    if (
+      session.surface === "TEAM" &&
+      session.contextState === "selected"
+    ) {
+      const database = getPrismaClient();
+      const privilegedGrant = await database.membershipRole.findFirst({
+        where: {
+          membershipId: session.membershipId,
+          validUntil: null,
+          role: { key: "R01", status: "ACTIVE" },
+        },
+        select: { id: true },
+      });
+      if (privilegedGrant && !session.mfaVerifiedAt) {
+        const verifiedMethod = await database.mfaMethod.findFirst({
+          where: {
+            userAccountId: session.userAccountId,
+            verifiedAt: { not: null },
+            disabledAt: null,
+          },
+          select: { id: true },
+        });
+        mfaEnrollmentRequired = !verifiedMethod;
+        mfaReauthenticationRequired = Boolean(verifiedMethod);
+      }
+    }
     return NextResponse.json(
       {
         authenticated: true,
@@ -21,6 +50,8 @@ export async function GET(request: Request) {
         contextSelected: session.contextState === "selected",
         expiresAt: session.expiresAt,
         mfaVerified: Boolean(session.mfaVerifiedAt),
+        mfaEnrollmentRequired,
+        mfaReauthenticationRequired,
       },
       { headers: { "Cache-Control": "no-store" } },
     );

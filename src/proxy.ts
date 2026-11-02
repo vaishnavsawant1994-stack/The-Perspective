@@ -115,6 +115,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/app/:path*",
+    "/security/mfa/setup",
     "/my/:path*",
     "/client/:path*",
     "/magazine/read/:slug",
