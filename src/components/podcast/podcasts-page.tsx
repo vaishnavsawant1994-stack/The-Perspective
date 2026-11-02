@@ -104,7 +104,7 @@ function PodcastHero() {
           <span className={styles.miniPortrait}><Image alt="Naveen Malhotra" fill sizes="48px" src="/images/articles/marcus-chen.png" /></span>
           <div><small>Latest episode</small><b>Building India’s Global Tech Future with Naveen Malhotra</b><p>Co-founder & Chairman, Infinitas</p><span><CirclePlay aria-hidden="true" />48 min <i /> May 10, 2026</span></div>
         </div>
-        <div className={styles.heroActions}><Link className={styles.primaryButton} href="/article/human-purpose-ai-world"><CirclePlay aria-hidden="true" />Play episode</Link><Link className={styles.secondaryButton} href="#latest-episodes">View all episodes</Link></div>
+        <div className={styles.heroActions}><Link className={styles.primaryButton} href="#latest-episodes"><CirclePlay aria-hidden="true" />Play episode</Link><Link className={styles.secondaryButton} href="#latest-episodes">View all episodes</Link></div>
       </div>
       <div className={styles.heroPortrait}>
         <Image alt="Naveen Malhotra in conversation at The Perspective podcast studio" fill priority sizes="(max-width: 767px) 88vw, (max-width: 1100px) 46vw, 550px" src="/images/podcasts/naveen-malhotra-hero-final.png" />
@@ -113,7 +113,7 @@ function PodcastHero() {
       <aside className={styles.conversation}>
         <h2>In this conversation</h2>
         <ul><li><Headphones />The next decade of technology in India</li><li><Headphones />Building for a billion users: lessons from Infosys</li><li><Headphones />AI, talent, and the future of work</li><li><Headphones />Advice for young entrepreneurs</li></ul>
-        <Link href="/article/human-purpose-ai-world">Listen now<ArrowRight aria-hidden="true" /></Link>
+        <Link href="#latest-episodes">Listen now<ArrowRight aria-hidden="true" /></Link>
       </aside>
     </div>
   </section>;
