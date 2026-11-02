@@ -97,7 +97,7 @@ export const personalMagazines = [
     gallery: [
       { id: "sophia-gallery-capital", articleId: "article-purpose-capital", caption: "The long view: how investors are reconsidering the tyranny of the quarterly horizon." },
       { id: "sophia-gallery-partnership", articleId: "article-private-markets-financing", caption: "Private capital creates new choices—and a deeper responsibility for stewardship." },
-      { id: "sophia-gallery-leadership", articleId: "article-50-leaders", caption: "Leadership across institutions, generations and changing markets." },
+      { id: "sophia-gallery-leadership", articleId: "article-new-architecture-global-leadership", caption: "Leadership across institutions, generations and changing markets." },
     ],
   },
   {

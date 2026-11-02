@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArticleReader } from "@/components/article/article-reader";
 import { siteConfig } from "@/config/site";
 import { getArticleDetailBySlug, getRelatedArticles } from "@/data/mock/article-details";
-import { articles } from "@/data/mock/articles";
+import { articles, unpublishedFictionalArticleSlugs } from "@/data/mock/articles";
 import { homeContent } from "@/data/mock/homepage";
 import { magazineIssues } from "@/data/mock/magazines";
 import { readPublic } from "@/modules/r9/commands";
@@ -26,6 +26,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { slug } = await params;
+  if (unpublishedFictionalArticleSlugs.has(slug)) notFound();
   const published = await publishedArticle(slug);
   if (published) {
     return { title: published.title, description: published.summary, alternates: { canonical: `/article/${published.slug}` }, robots: { index: true, follow: true } };
@@ -38,6 +39,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
+  if (unpublishedFictionalArticleSlugs.has(slug)) notFound();
   const published = await publishedArticle(slug);
   if (published) {
     return <article className="mx-auto max-w-3xl px-4 py-10">

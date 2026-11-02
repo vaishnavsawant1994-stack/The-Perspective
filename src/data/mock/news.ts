@@ -68,7 +68,7 @@ export const newsContent: NewsLandingContent = {
     { label: "Cybersecurity", href: "/topic/cybersecurity" },
   ],
   analysis: selectArticles(["article-forces-global-economy", "article-infrastructure-ai-economy", "article-new-executive-mandate", "article-opinion-productivity"]),
-  mostRead: selectArticles(["article-50-leaders", "article-ai-infrastructure-race", "article-investor-networks", "article-family-businesses", "article-cities-executives"]),
+  mostRead: selectArticles(["article-new-architecture-global-leadership", "article-ai-infrastructure-race", "article-investor-networks", "article-family-businesses", "article-cities-executives"]),
   latestUpdates: articles
     .filter((article) => article.category.slug !== "opinion")
     .sort((left, right) => (right.publishedAt ?? right.updatedAt).localeCompare(left.publishedAt ?? left.updatedAt))
