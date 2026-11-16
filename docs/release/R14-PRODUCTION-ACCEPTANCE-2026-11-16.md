@@ -9,6 +9,7 @@
 | Field | Evidence |
 | --- | --- |
 | Current production source | `main` at `531d8198dc3e1758ffcc15e130a9a3ffa3e2812c` (PR #55 squash merge) |
+| GitHub source visibility | Public; confirmed 2026-11-16 after the repository owner changed visibility |
 | Production host probed | `https://the-perspective-liart.vercel.app` |
 | Main Vercel status | GitHub reports the deployment completed successfully; Vercel deployment detail API is inaccessible to the connected Vercel account |
 | Live HTTP evidence | `/api/health/live` returned 200; homepage returned 200 |
@@ -49,7 +50,7 @@ The R2 baseline seed is guarded by `PERSPECTIVE_ALLOW_DEMO_SEED=true` and refuse
 
 The UI audit tested Chromium at desktop and 390px mobile widths, accessible names, focusability, overflow, route responses, browser console errors and API 5xx responses. It does not provide Firefox or WebKit coverage, screen-reader testing, full keyboard task completion, or independent accessibility certification.
 
-The preview deployment status from Vercel is failed with “Deployment was blocked.” A prior branch alias responded to HTTP probes, but the connected Vercel API cannot establish that alias's source SHA; it is not treated as verified staging for the current head. The connected Vercel account lists team `team-vs`, while the deployment status targets `vishnu26`. Deployment readback returned 403; the consent-link tool returned 404 for that team. No exact-head Vercel preview acceptance is established.
+The Vercel status for PR head `60ae517` is failed with “Deployment was blocked.” The repository is now public, but no fresh deployment result after that visibility change is available yet. A prior branch alias responded to HTTP probes, but the connected Vercel API cannot establish that alias's source SHA; it is not treated as verified staging for the current head. The connected Vercel account lists team `team-vs`, while the deployment status targets `vishnu26`. Deployment readback returned 403; the consent-link tool returned 404 for that team. No exact-head Vercel preview acceptance is established.
 
 ## Local qualification
 
