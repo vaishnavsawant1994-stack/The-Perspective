@@ -23,15 +23,31 @@ Production headers include HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Opt
 | Field | Evidence |
 | --- | --- |
 | PR | [#56](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/56) |
-| Current head | `473ac229d89e6f78856416d86020e23aef510ddd` |
+| Fully qualified application/evidence head | `1ac34c7f53cad33832d9c1dcf9e1309a5e5300ff` |
 | Current base | `531d8198dc3e1758ffcc15e130a9a3ffa3e2812c` |
 | State | Open; not merged |
 | GitHub check runs | 24/24 successful at this head |
 | Combined Vercel status | **FAIL: deployment was blocked** |
 
-PR #56 incorporates the Ubuntu 24.04 runner compatibility fix after PR #55 merged. The exact head passed all 24 GitHub checks. This includes the R14 technical workflow with disposable PostgreSQL 16 migrations, schema/drift/seed checks, live database tests, backup/restore verification, inventory and secret scans, lint, typecheck, production build, and dependency audit. The R14 production-server smoke built and exercised a local app with a disposable PostgreSQL database and Chromium.
+PR #56 incorporates the Ubuntu 24.04 runner compatibility fix after PR #55 merged. Head `1ac34c7` passed all 24 GitHub check runs; the combined Vercel status remains failed because preview deployment was blocked. This includes the R14 technical workflow with disposable PostgreSQL 16 migrations, schema/drift/seed checks, live database tests, backup/restore verification, inventory and secret scans, lint, typecheck, production build, and dependency audit. The R14 production-server smoke built and exercised a local app with a disposable PostgreSQL database and Chromium.
 
 The separate V1 UI-control workflow created temporary synthetic team/client identities and invitation fixtures in its disposable PostgreSQL service, signed in through the application, and audited authenticated Team, Client and Member routes. Its uploaded run output reports **167 routes, 12,185 controls, 12,153 focusable controls, and 0 failures**. These are nonproduction fixtures, not production user accounts.
+
+### Demo fixture inventory and journey coverage
+
+The R2 baseline seed is guarded by `PERSPECTIVE_ALLOW_DEMO_SEED=true` and refuses databases containing unknown organizations. Its asserted summary is 3 organizations, 3 memberships, 3 resource records, 1 audit event, 2 outbox attempts and 2 automation runs. The browser fixture adds 3 ephemeral organizations, 2 active synthetic users (one Team and one Client), 1 invitation, and a restricted Team role with 6 permissions. Test passwords/tokens are generated per workflow run and exist only in the disposable CI job. This is repeatable CI test data, not a persistent staging/demo account set or a complete CRM/editorial/finance catalogue.
+
+| Journey / area | Database or route qualification | Complete browser action journey |
+| --- | --- | --- |
+| Reader and publishing | PASS: R9 publishing and reader qualification; R14 public route smoke | NOT TESTED end-to-end from category through search, article and magazine archive |
+| Editorial | PASS: R8, R9, R10 and R11 module/desk qualification | NOT TESTED through draft, revision, approval and publication in one browser journey |
+| CRM | PASS: R6 platform qualification and database tests | NOT TESTED through lead creation, qualification, pipeline and reporting in one browser journey |
+| Commercial and finance | PASS: R7 platform qualification on disposable PostgreSQL | NOT TESTED as one browser journey; no live charge/signature provider action was made |
+| Client/member | PASS: authenticated Client fixture and route audit; R4 tenancy and R12 member qualification | NOT TESTED through all service-request and cross-tenant browser actions |
+| Administration | PASS: authenticated Team fixture and route audit; R13 enterprise qualification | NOT TESTED through the complete user/role/revocation browser workflow |
+| Tenant isolation | PASS: R4 database-backed tenancy qualification on disposable PostgreSQL | NOT TESTED in a persistent staging site |
+
+The UI audit tested Chromium at desktop and 390px mobile widths, accessible names, focusability, overflow, route responses, browser console errors and API 5xx responses. It does not provide Firefox or WebKit coverage, screen-reader testing, full keyboard task completion, or independent accessibility certification.
 
 The preview deployment status from Vercel is failed with “Deployment was blocked.” A prior branch alias responded to HTTP probes, but the connected Vercel API cannot establish that alias's source SHA; it is not treated as verified staging for the current head. The connected Vercel account lists team `team-vs`, while the deployment status targets `vishnu26`. Deployment readback returned 403; the consent-link tool returned 404 for that team. No exact-head Vercel preview acceptance is established.
 
@@ -62,7 +78,7 @@ The hourly production health workflow checks liveness, database readiness and ho
 | Gate | Status | Evidence needed to close |
 | --- | --- | --- |
 | Production authentication and tenant isolation | BLOCKED | Authorized production principal and positive login/session/tenant plus negative cross-tenant, role and revocation tests |
-| Persistent staging URL and exact Vercel candidate | BLOCKED | Vercel access to deployment team `vishnu26`; current preview status says deployment blocked |
+| Persistent staging URL and exact Vercel candidate | BLOCKED | Vercel access to deployment team `vishnu26`; current preview status says deployment blocked. The accessible branch alias is not proven to match the exact head. |
 | Durable recovery | PARTIAL | Current automated encrypted backup and isolated restore verified; independent account/provider protection and production recovery objectives remain |
 | Monitoring and human alert | BLOCKED | Configured automated destination, controlled end-to-end delivery and human acknowledgment |
 | Rollback | NOT TESTED | Isolated rehearsal with previous deployment and data-compatibility evidence |
