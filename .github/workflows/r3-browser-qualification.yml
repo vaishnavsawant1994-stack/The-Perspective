@@ -19,7 +19,7 @@ concurrency:
 jobs:
   browser-qualify:
     name: R3 browser qualification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
       postgres:
