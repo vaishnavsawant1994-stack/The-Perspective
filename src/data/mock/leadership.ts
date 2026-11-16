@@ -85,7 +85,7 @@ export const leadershipPageConfig = {
       href: "/leadership/future-leaders",
       actionLabel: "More Future Leaders",
       layout: "feature-list",
-      featureId: "article-50-leaders",
+      featureId: "article-new-architecture-global-leadership",
       supportingIds: ["article-younger-executives-ambition", "article-operator-investors", "article-leadership-pipelines", "article-mission-driven-founders"],
     },
   ],
@@ -94,7 +94,7 @@ export const leadershipPageConfig = {
     "article-boards-succession",
     "article-decisions-pressure",
     "article-professional-founder-archetype",
-    "article-50-leaders",
+    "article-new-architecture-global-leadership",
   ],
 } as const;
 
