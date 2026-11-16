@@ -96,3 +96,72 @@ The hourly production health workflow checks liveness, database readiness and ho
 ## Release conclusion
 
 Exact-head GitHub qualification and the disposable PostgreSQL/authenticated Chromium UI-control suite now pass. Public production health is responsive, and recurring encrypted backups restore successfully in isolation. Production authentication ownership, exact Vercel preview/deployment access, automated human alerting, rollback rehearsal, some browser/accessibility coverage, governance readback, and independent review remain incomplete. Keep V1.0 **NOT CERTIFIED** and do not create a release tag.
+
+## Current-state correction — 2026-11-16 (supersedes stale PR #56 status above)
+
+This addendum records the state after PR #56 was merged. Earlier references in this file describing PR #56 as open, Vercel as blocked, or `531d8198...` as the current production source are historical checkpoints and are not the current state.
+
+| Field | Updated evidence |
+| --- | --- |
+| Current production source | `main` at `caf439f196f3fd71893202af38ed7272667aa262` (PR #56 squash merge) |
+| PR #56 candidate | Head `c04588037077e2d03315082384b6c1fc859ca400`; 17/17 GitHub Actions workflows passed; Vercel status succeeded |
+| Production deployment | Vercel reported the main deployment successful for the merged source |
+| Production HTTP probes | Homepage, `/api/health/live`, and `/api/health/ready` returned HTTP 200 on 2026-11-16 |
+| Production headers | HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, strict-origin referrer policy, and restrictive permissions policy present; `X-Powered-By` absent |
+| Source visibility | GitHub repository is public, confirmed 2026-11-16 |
+
+Production probes establish availability and readiness at the probe time. They do not establish complete browser acceptance, authentication ownership, tenant isolation, or R14 certification.
+
+### Local isolated staging evidence
+
+An empty PostgreSQL 16 project was created under the Neon Free account specifically for staging (`the-perspective-staging-20261116`, project `aged-breeze-02168533`, branch `br-shiny-frog-ba6l0nu5`). It is separate from production. No production database URL or data was used for these checks.
+
+- Prisma schema validation and client generation passed.
+- All 24 migrations deployed; the resulting database contained 146 application tables.
+- Database verification passed: 31 foundation tables, 27 immutable triggers, runtime bypass-RLS disabled, resource RLS enabled and forced, runtime select permitted and mutation denied, and R10–R13 checks passed.
+- Guarded synthetic seed passed: 3 organizations, 3 memberships, 3 resource records, 1 audit event, 2 outbox attempts and 2 automation runs.
+- A separate synthetic browser fixture created Team and Client identities plus an invitation. Chromium completed Team and Client sign-in, cross-surface denial, invitation acceptance, generic recovery, mobile visual checks and anonymous protection. The run captured 13 local screenshots, with zero unexpected network failures or console errors.
+- Local production build served on `http://127.0.0.1:3000`; homepage and live/ready health endpoints returned HTTP 200.
+- `npm run db:migrate:status` returned a generic Prisma schema-engine error even though `db:migrate:deploy`, direct migration ledger verification, and `db:verify` passed. This status command remains an explicit tooling limitation.
+
+The local staging database and synthetic credentials are for isolated review only. The app is not exposed through a persistent staging URL. The connected Vercel account still cannot inspect the project team `vishnu26` or configure the staging database environment there.
+
+### Updated local qualification
+
+| Check | Result |
+| --- | --- |
+| Unit tests | PASS; 628/628 tests across 81 files |
+| Lint | PASS; 0 errors, 3 existing unused-variable warnings |
+| TypeScript typecheck | PASS |
+| Production build | PASS; Next.js 16.4.3 generated 469 pages |
+| Staging migrations and database verification | PASS, with the `db:migrate:status` limitation noted above |
+| Chromium R3 browser workflow | PASS; invitation acceptance and all other listed journeys completed |
+
+### Current pending pull requests
+
+- **PR #57** — [Make R3 browser fixture creation atomic](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/57), head `4a3b58136bdd9a3ae650febc568a1ab960dfa57a`. This changes one fixture script only. Local lint/typecheck and browser acceptance pass; Vercel status is successful. At the time of this addendum, all associated GitHub workflows except the long-running V1 UI-control audit had completed successfully; that audit was still running. Do not treat it as merged until the audit completes.
+- **PR #49** remains draft and unmerged. The requested review from `omgaj` was rejected by GitHub (HTTP 422): review requests can only target repository collaborators. Public repository visibility does not grant review-request eligibility. The previous supplemental AI peer review is not independent human review.
+
+### Current R14 blockers (V1.0 remains NOT CERTIFIED)
+
+1. **Independent security review:** no independent human reviewer has completed review of the exact final production candidate. `omgaj` cannot be requested until made a repository collaborator by an owner.
+2. **Production authentication and tenant isolation:** no authorized production owner principal or exact-production positive login/session plus negative cross-tenant, role and revocation evidence.
+3. **Human alerting:** hourly health checks run, but end-to-end automated alert delivery and human acknowledgement are unverified.
+4. **Rollback rehearsal:** no isolated rollback rehearsal with data-compatibility evidence.
+5. **Browser and accessibility:** staging Chromium desktop/mobile flows passed, but production browser acceptance, Firefox/WebKit, screen-reader testing and complete keyboard task testing are outstanding.
+6. **Recovery independence:** automated encrypted backups and isolated restore exist, but the backup and production database are in the same Neon account/provider; independent-account recovery and production recovery objectives remain unverified.
+7. **Governance readback:** branch protections, required checks and production environment controls have not been independently verified from authorized GitHub settings.
+8. **Persistent preview with database:** the current accepted staging path is local-only. The connected Vercel account lacks access to the `vishnu26` project team, so an exact-head preview wired to the isolated staging database has not been established.
+
+Keep the V1.0 release uncertified and do not create a release tag until the required evidence closes these gates.
+
+## Follow-up after PR #57 merge — 2026-11-16
+
+| Field | Current evidence |
+| --- | --- |
+| Current `main` source | `a9e7fedab1dac7f1c9f423bdddc54f03ed5ac2b4` (PR #57 squash merge) |
+| PR #57 | Merged at `a9e7fedab1dac7f1c9f423bdddc54f03ed5ac2b4`; exact head `4a3b58136bdd9a3ae650febc568a1ab960dfa57a`; all 17/17 GitHub workflows passed; Vercel status succeeded |
+| Production HTTP verification after merge | Homepage, `/api/health/live`, and `/api/health/ready` each returned HTTP 200 |
+| PR #58 | Open documentation-only R14 evidence refresh; this branch includes the latest `main` source |
+
+PR #57 changed only the synthetic browser-fixture script. Its merge did not modify application runtime or database behavior. The latest production verification still does not close the R14 certification gates listed above.
