@@ -16,7 +16,7 @@ concurrency:
 jobs:
   qualify:
     name: R9 publishing platform qualification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     services:
@@ -97,7 +97,7 @@ jobs:
 
   reader:
     name: R9 reader qualification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     services:
