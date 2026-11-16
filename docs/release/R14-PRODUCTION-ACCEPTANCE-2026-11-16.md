@@ -196,3 +196,19 @@ This read-only audit supersedes any earlier statements above that say PR #56 is 
 6. Complete the outstanding production-owner identity/tenant tests and browser/accessibility acceptance with authorized accounts.
 
 **Decision remains V1.0 NOT CERTIFIED.** Do not create a release tag until all mandatory gates have current evidence and the release is authorized.
+
+
+## Owner-side update — 2026-11-16 (GitHub ruleset and Vercel access)
+
+This addendum records the owner-side changes and access check performed after the audit above. It does not change the NOT CERTIFIED decision.
+
+| Area | Current evidence |
+| --- | --- |
+| GitHub main ruleset | Saved and verified active repository ruleset **Protect main**, ID `27392549`, targeting `~DEFAULT_BRANCH` (currently `main`). No bypass actors are configured and the connected account cannot bypass it. |
+| Main branch requirements | Pull request required; one approving review; stale approvals dismissed after new pushes; latest reviewable push approval required; conversation resolution required; branch must be up to date; force pushes and deletions blocked. |
+| Required status checks | `R14 full qualification`, `R14 production smoke`, and `browser-qualify` are required. The latest inspected check-run list also contains a successful `R4 tenant isolation qualification`, but that check was not added to the ruleset and remains an action for the authorized GitHub owner. |
+| Vercel account/team | The connected account lists only team `team-vs` (`TEAM VS`). Project search did not find `the-perspective-staging-r14`; project readback by its earlier ID returned 404. Creating/linking a staging project was rejected with 403. Authorizing team slug `vishnu26` returned 404. No staging database URL or other secret was saved to Vercel. |
+| Neon staging | Separate Neon staging project `aged-breeze-02168533` exists in the same Neon organization/provider as production. It has not been connected to an accessible Vercel staging project. |
+| Alerts, rollback, acceptance | Automated alert destination and delivery/acknowledgment remain unverified. No staging rollback rehearsal or current-candidate browser acceptance was possible without a working persistent staging deployment. |
+
+The independent human security review for PR #49 remains outstanding. Keep V1.0 **NOT CERTIFIED** and do not create a release tag.
