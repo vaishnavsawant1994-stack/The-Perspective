@@ -154,3 +154,14 @@ The local staging database and synthetic credentials are for isolated review onl
 8. **Persistent preview with database:** the current accepted staging path is local-only. The connected Vercel account lacks access to the `vishnu26` project team, so an exact-head preview wired to the isolated staging database has not been established.
 
 Keep the V1.0 release uncertified and do not create a release tag until the required evidence closes these gates.
+
+## Follow-up after PR #57 merge — 2026-11-16
+
+| Field | Current evidence |
+| --- | --- |
+| Current `main` source | `a9e7fedab1dac7f1c9f423bdddc54f03ed5ac2b4` (PR #57 squash merge) |
+| PR #57 | Merged at `a9e7fedab1dac7f1c9f423bdddc54f03ed5ac2b4`; exact head `4a3b58136bdd9a3ae650febc568a1ab960dfa57a`; all 17/17 GitHub workflows passed; Vercel status succeeded |
+| Production HTTP verification after merge | Homepage, `/api/health/live`, and `/api/health/ready` each returned HTTP 200 |
+| PR #58 | Open documentation-only R14 evidence refresh; this branch includes the latest `main` source |
+
+PR #57 changed only the synthetic browser-fixture script. Its merge did not modify application runtime or database behavior. The latest production verification still does not close the R14 certification gates listed above.
