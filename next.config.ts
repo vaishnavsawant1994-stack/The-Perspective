@@ -7,6 +7,7 @@ import {
 } from "./src/modules/foundation/routing/r14-production-aliases";
 
 const nextConfig: NextConfig = {
+  experimental: { cpus: 2 },
   poweredByHeader: false,
   async redirects() {
     return [
