@@ -1,3 +1,5 @@
+> **2026-11-17 GOVERNANCE SUPERSESSION:** This 3 October technical-only authorization is a preserved historical checkpoint. [GOV-REVIEW-02](../release/OWNER-REVIEW-WAIVER-2026-11-17.md) supersedes its compulsory independent review criterion; the actual owner authorization and technical/production acceptance gates remain. This amendment does not authorize production cutover or V1.0 certification. **V1.0 NOT CERTIFIED**.
+
 # R14 certification authorization
 
 STATUS: **TECHNICAL WORK AUTHORIZED — V1.0 NOT CERTIFIED — PRODUCTION DEPLOYMENT NOT AUTHORIZED**
