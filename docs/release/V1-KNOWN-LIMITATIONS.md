@@ -1,3 +1,5 @@
+> **CURRENT GOVERNANCE NOTE — 2026-11-17:** Under [GOV-REVIEW-02](./OWNER-REVIEW-WAIVER-2026-11-17.md) independent review is optional, not a V1.0 prerequisite. Earlier language below demanding an independent review is a historical checkpoint. No independent review was performed. Actual Hostinger staging readiness, schema migrations, authenticated/browser acceptance, alerting and rollback remain open, and **V1.0 is NOT CERTIFIED**.
+
 # V1 known limitations
 
 **STATUS: PRODUCTION DEPLOYED — V1.0 NOT CERTIFIED**
