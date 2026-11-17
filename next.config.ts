@@ -8,6 +8,7 @@ import {
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: { cpus: 2 },
   async redirects() {
     return [
       ...r14ProductionAliases.map((alias) => ({
