@@ -48,6 +48,14 @@ function problem(status: number, title: string, code: string) {
   );
 }
 
+function privilegedMfaRequired(context: AuthorizedRequestContext) {
+  return (
+    context.membership.surface === "TEAM" &&
+    context.authorization.roleKeys.includes("R01") &&
+    !context.session.mfaVerifiedAt
+  );
+}
+
 export function authorizationProblem(
   status: 401 | 403 | 404 | 503,
   code:
@@ -115,6 +123,16 @@ export async function resolveAuthorizedHttpRequest(
     }
 
     if (context.scope === "authorized") {
+      if (privilegedMfaRequired(context)) {
+        return {
+          kind: "response",
+          response: problem(
+            403,
+            "Multi-factor authentication is required for this account.",
+            "AUTHZ_MFA_REQUIRED",
+          ),
+        };
+      }
       return { kind: "authorized", context };
     }
 
@@ -123,6 +141,17 @@ export async function resolveAuthorizedHttpRequest(
       return {
         kind: "response",
         response: authorizationProblem(403, "AUTHZ_DENIED"),
+      };
+    }
+
+    if (privilegedMfaRequired(resolved.context)) {
+      return {
+        kind: "response",
+        response: problem(
+          403,
+          "Multi-factor authentication is required for this account.",
+          "AUTHZ_MFA_REQUIRED",
+        ),
       };
     }
 

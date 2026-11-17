@@ -127,6 +127,43 @@ describe("R5 HTTP authorization guard", () => {
     });
   });
 
+  it("blocks an R01 session until that session has completed MFA", async () => {
+    const base = tenantContext("TEAM");
+    const context = {
+      ...base,
+      scope: "authorized" as const,
+      authorization: {
+        roleKeys: ["R01"],
+        permissions: new Set(),
+        blockedPermissions: new Set(),
+        grantPaths: [],
+        actorDepartmentId: null,
+      },
+    };
+    const resolveAuthenticationContext = vi
+      .fn()
+      .mockResolvedValueOnce(context)
+      .mockResolvedValueOnce({
+        ...context,
+        session: { ...context.session, mfaVerifiedAt: new Date() },
+      });
+
+    const blocked = await resolveAuthorizedHttpRequest(request(), "TEAM", {
+      resolveAuthenticationContext,
+    });
+    expect(blocked.kind).toBe("response");
+    if (blocked.kind !== "response") throw new Error("Expected MFA denial");
+    expect(blocked.response.status).toBe(403);
+    await expect(blocked.response.json()).resolves.toMatchObject({
+      code: "AUTHZ_MFA_REQUIRED",
+    });
+
+    const allowed = await resolveAuthorizedHttpRequest(request(), "TEAM", {
+      resolveAuthenticationContext,
+    });
+    expect(allowed.kind).toBe("authorized");
+  });
+
   it("collapses resource-level policy denials to 404 when concealment is requested", async () => {
     const decision: AuthorizationDecision<"team.view"> = {
       decision: "DENY",
