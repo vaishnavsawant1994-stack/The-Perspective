@@ -14,6 +14,7 @@ describe("health", () => {
       body: { status: "not-ready" },
     });
   });
+
   it("categorizes failure codes without exposing error messages", () => {
     expect(readinessFailureCategory({ code: "DATABASE_URL_UNSET" })).toBe("missing-database-url");
     expect(readinessFailureCategory({ code: "ENOTFOUND", message: "secret" })).toBe("dns");
@@ -33,5 +34,4 @@ describe("health", () => {
       ),
     ).resolves.toEqual({ httpStatus: 503, body: { status: "not-ready" } });
   });
-
 });
