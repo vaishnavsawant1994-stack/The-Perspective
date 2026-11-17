@@ -1,3 +1,5 @@
+> **2026-11-17 OWNER SUPERSESSION:** [GOV-REVIEW-02](../release/OWNER-REVIEW-WAIVER-2026-11-17.md) removes the independent-human-review gate listed in the historical matrix below. Read the 'Independent review' column and related BLOCKER row as **OWNER-WAIVED / OPTIONAL**, not PASS or performed. Every remaining technical, production, authorization, recovery and operational gate still requires actual proof. **V1.0 NOT CERTIFIED**.
+
 # R14 / V1 certification matrix
 
 STATUS: **CRITERIA — NOT A CERTIFICATION**

@@ -1,3 +1,5 @@
+> **OWNER POLICY SUPERSESSION (2026-11-17):** [GOV-REVIEW-02](../release/OWNER-REVIEW-WAIVER-2026-11-17.md) expressly supersedes this document's historic prohibition on owner waiver of compulsory R14 independent review. External human review is optional, not performed or claimed. **All hostile security tests, exact-head proof, real owner/MFA and other technical protections below remain mandatory. V1.0 NOT CERTIFIED.**
+
 # R14 security certification contract
 
 STATUS: **CONTRACT — NOT A COMPLETED REVIEW**

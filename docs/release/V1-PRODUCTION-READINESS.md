@@ -1,3 +1,5 @@
+> **RELEASE-GATE POLICY UPDATE — 2026-11-17:** The owner removed compulsory independent human security review as an R14/V1.0 requirement in [GOV-REVIEW-02](./OWNER-REVIEW-WAIVER-2026-11-17.md). The historical status and table below predate this amendment. All technical security, production acceptance, alert, staging and rollback gates are still required. The active GitHub ruleset requires an approval until an authorized administrator changes it. **V1.0 NOT CERTIFIED.**
+
 # V1 production readiness
 
 **STATUS: PRODUCTION DEPLOYED — V1.0 NOT CERTIFIED**
