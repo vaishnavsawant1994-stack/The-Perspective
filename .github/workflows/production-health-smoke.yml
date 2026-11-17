@@ -15,6 +15,7 @@ concurrency:
 jobs:
   health:
     name: Check public production health
+    if: ${{ vars.PERSPECTIVE_PRODUCTION_ORIGIN != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -23,9 +24,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          origin="${PERSPECTIVE_PRODUCTION_ORIGIN%/}"
+
           for path in /api/health/live /api/health/ready /; do
             status="$(curl --silent --show-error --location --retry 2 --retry-delay 2 --max-time 15 \
-              --output /dev/null --write-out '%{http_code}' "https://the-perspective-vishnu26.vercel.app${path}")"
+              --output /dev/null --write-out '%{http_code}' "$origin${path}")"
             printf '%s %s\n' "$status" "$path"
             if [[ "$status" != "200" ]]; then
               echo "Production health check failed for ${path}." >&2
