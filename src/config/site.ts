@@ -7,6 +7,19 @@ export type MegaMenuConfig = {
 };
 export type NavItem = NavLink & { shortLabel?: string; megaMenu?: MegaMenuConfig };
 
+const configuredPublicOrigin = process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN;
+const publicAppOrigin = (() => {
+  if (!configuredPublicOrigin) return "https://daily-limegreen-woodcock-36.hostingersite.com";
+  try {
+    const configuredHostname = new URL(configuredPublicOrigin).hostname.toLowerCase();
+    return configuredHostname === "expansive-darkslategray-raccoon-18.hostingersite.com"
+      ? "https://www.thetimesofperspective.com"
+      : configuredPublicOrigin;
+  } catch {
+    return configuredPublicOrigin;
+  }
+})();
+
 const editorialPromo = {
   eyebrow: "The Quarterly",
   title: "The New Public Square",
@@ -18,7 +31,7 @@ export const siteConfig = {
   name: "The Perspective",
   shortName: "TP",
   description: "Independent ideas, reporting, and culture for a wider point of view.",
-  url: process.env.PERSPECTIVE_PUBLIC_APP_ORIGIN ?? "https://daily-limegreen-woodcock-36.hostingersite.com",
+  url: publicAppOrigin,
   email: "editorial@theperspective.example",
   edition: "India Edition",
   utilityLinks: [{ label: "News", href: "/news" }, { label: "Newsletters", href: "/newsletter" }, { label: "Podcasts", href: "/podcasts" }],
