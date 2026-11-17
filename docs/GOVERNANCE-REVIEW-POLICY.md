@@ -1,3 +1,5 @@
+> **CURRENT OWNER DECISION (GOV-REVIEW-02, 2026-11-17):** R14/V1.0's compulsory independent-review requirement is **owner-waived**. Independent review remains optional. The historical September 2026 R14 exception and absolute requirement below are superseded by [the owner's R14 waiver](release/OWNER-REVIEW-WAIVER-2026-11-17.md). Mandatory exact-head CI, production readiness, MFA/tenant security tests, rollback, alerting and release evidence are **not** waived; V1.0 remains **NOT CERTIFIED**. GitHub's mandatory PR-approval ruleset remains active until an authorized administrator actually edits it. See the waiver for the precise scope and residual-risk acceptance.
+
 # The Perspective — Review Governance Amendment
 
 **Record:** GOV-REVIEW-01  

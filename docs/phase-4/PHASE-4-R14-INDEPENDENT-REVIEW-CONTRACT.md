@@ -1,3 +1,5 @@
+> **SUPERSEDED REQUIREMENT (2026-11-17):** The owner's [GOV-REVIEW-02 waiver](../release/OWNER-REVIEW-WAIVER-2026-11-17.md) makes independent R14/V1.0 human review optional rather than compulsory. This original contract remains as a historical record; its mandatory-review statements do not control releases after the owner waiver. All technical, authenticated production-owner, operational, recovery, CI and release-acceptance gates remain mandatory. V1.0 remains **NOT CERTIFIED**.
+
 # R14 independent-review contract
 
 STATUS: **CONTRACT — REVIEW NOT PERFORMED**

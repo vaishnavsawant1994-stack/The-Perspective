@@ -64,12 +64,7 @@ async function main() {
     password: string,
     displayName: string,
   ) {
-    const organization = await createOrganization(
-      surface,
-      surface === "TEAM"
-        ? "R3 Browser Team Workspace"
-        : "R3 Browser Client Workspace",
-    );
+    const organizationId = randomUUID();
     const personId = randomUUID();
     const userAccountId = randomUUID();
     const identityId = randomUUID();
@@ -77,6 +72,20 @@ async function main() {
     const membershipId = randomUUID();
 
     await database.$transaction(async (transaction) => {
+      await transaction.organization.create({
+        data: {
+          id: organizationId,
+          organizationType:
+            surface === "TEAM" ? OrganizationType.PLATFORM : OrganizationType.CLIENT,
+          legalName: `${displayName} Legal`,
+          displayName:
+            surface === "TEAM"
+              ? "R3 Browser Team Workspace"
+              : "R3 Browser Client Workspace",
+          slug: `r3-browser-${surface.toLowerCase()}-${organizationId}`,
+          status: RecordStatus.ACTIVE,
+        },
+      });
       await transaction.person.create({
         data: {
           id: personId,
@@ -113,7 +122,7 @@ async function main() {
       await transaction.organizationMembership.create({
         data: {
           id: membershipId,
-          organizationId: organization.id,
+          organizationId,
           userAccountId,
           membershipType:
             surface === "TEAM" ? MembershipType.STAFF : MembershipType.CLIENT,
@@ -126,7 +135,7 @@ async function main() {
         await transaction.role.create({
           data: {
             id: roleId,
-            organizationId: organization.id,
+            organizationId,
             key: `r3-browser-readonly-${randomUUID()}`,
             name: "R3 Browser Read Only",
             defaultScope: RoleScope.ORG,
@@ -174,7 +183,7 @@ async function main() {
           },
         });
       }
-    });
+    }, { maxWait: 10_000, timeout: 30_000 });
   }
 
   try {

@@ -6,14 +6,14 @@ export const homeContent = {
   breaking: select(["article-asian-markets-advance","article-manufacturers-invest","article-enterprise-ai-phase","article-modern-success"]),
   hero: { main:getArticleById("article-new-architecture-global-leadership")!, secondary:select(["article-companies-rewriting-global-growth","article-ai-infrastructure-race"]) },
   latest: { feature:getArticleById("article-market-memory")!, rows:select(["article-asian-markets-advance","article-manufacturers-invest","article-boards-succession","article-private-markets-record","article-enterprise-ai-phase"]) },
-  editorsPicks: select(["article-50-leaders","article-investor-networks","article-long-term-boardroom"]),
+  editorsPicks: select(["article-new-architecture-global-leadership","article-investor-networks","article-long-term-boardroom"]),
   business: { feature:getArticleById("article-companies-growth-cycle")!, supporting:select(["article-industrial-strategy","article-private-companies-scale","article-family-businesses","article-geography-entrepreneurship"]) },
   leadership: { person:getPersonById("person-elena-rossi")!, supporting:select(["article-decisions-pressure","article-professional-founder","article-boards-accountability"]) },
   technology: { feature:getArticleById("article-ai-infrastructure")!, supporting:select(["article-ai-native","article-data-centers-strategic","article-cyber-spending","article-next-platform"]) },
   finance: select(["article-markets-optimism","article-private-credit","article-emerging-markets","article-wealth-technology"]),
   interview: getPersonById("person-marcus-chen")!,
   culture: select(["article-quiet-luxury","article-cities-executives","article-collecting-personal","article-modern-success","article-five-books"]),
-  mostRead: select(["article-50-leaders","article-ai-infrastructure-race","article-investor-networks","article-family-businesses","article-cities-executives"]),
+  mostRead: select(["article-new-architecture-global-leadership","article-ai-infrastructure-race","article-investor-networks","article-family-businesses","article-cities-executives"]),
 } as const;
 
 export const markets = [

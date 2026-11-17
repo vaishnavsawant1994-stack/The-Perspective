@@ -3,7 +3,7 @@ import type { MagazinePremiumPageConfig } from "@/types";
 export const magazinePremiumPageConfig: MagazinePremiumPageConfig = {
   heroIssueId: "issue-global-leaders-special-2026",
   featuredArticleIds: [
-    "article-50-leaders",
+    "article-new-architecture-global-leadership",
     "article-new-architecture-global-leadership",
     "article-leaders-certainty-disappears",
     "article-organizational-trust",

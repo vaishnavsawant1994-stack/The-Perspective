@@ -210,7 +210,11 @@ const seeds: ArticleSeed[] = [
   { id:"article-opinion-ai-adoption-patience", title:"The Economics Still Reward Patience", excerpt:"Adoption creates value only when complementary systems, skills and accountability are ready to carry it.", category:"opinion", subcategory:"Business & Economy", author:"author-maya-patel", image:"leadership", minutes:8 },
   { id:"article-opinion-globalization-regional", title:"Why the Next Phase of Globalization Will Be Regional", excerpt:"The future of interdependence will be organized through denser regional systems connected by selective global ties.", category:"opinion", subcategory:"Global Affairs", author:"author-amara-okafor", image:"growth", minutes:11, featured:true },
 ];
-export const articles: Article[] = seeds.map(makeArticle);
+/** These seeded articles explicitly describe fictional reporting and stay unpublished. */
+export const unpublishedFictionalArticleSlugs = new Set(["human-purpose-ai-world", "50-leaders"]);
+export const articles: Article[] = seeds
+  .filter((seed) => !unpublishedFictionalArticleSlugs.has(seed.id.replace("article-", "")))
+  .map(makeArticle);
 export const getArticleById = (id: string) => articles.find((article) => article.id === id);
 export const getArticleBySlug = (slug: string) => articles.find((article) => article.slug === slug);
 export const getArticlesByAuthor = (authorId: string) => articles

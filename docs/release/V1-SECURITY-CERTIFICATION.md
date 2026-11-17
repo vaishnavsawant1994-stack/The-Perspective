@@ -1,3 +1,5 @@
+> **CURRENT REVIEW POLICY (2026-11-17):** Independent human security review is no longer a compulsory R14/V1.0 certification gate under [GOV-REVIEW-02](./OWNER-REVIEW-WAIVER-2026-11-17.md). It has not been performed; no review is claimed. Technical security and production acceptance requirements remain outstanding, so V1.0 is still **NOT CERTIFIED**. Historical wording below about a compulsory independent-review file is superseded.
+
 # V1 security certification
 
 STATUS: **TECHNICAL RECORD — NOT CERTIFIED**

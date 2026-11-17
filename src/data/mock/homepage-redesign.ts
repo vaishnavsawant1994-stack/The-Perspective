@@ -49,7 +49,7 @@ export const homepageRedesignConfig = {
     { id: "podcast-building", series: "Builders", episode: "Ep. 31", duration: "29:14", articleId: "article-business-interview-arjun-mehta" },
     { id: "podcast-capital", series: "The Future of Capital", episode: "Ep. 22", duration: "31:08", articleId: "article-purpose-capital" },
     { id: "podcast-markets", series: "Market Outlook", episode: "Ep. 17", duration: "26:45", articleId: "article-markets-investors-watching" },
-    { id: "podcast-women", series: "Women Who Lead", episode: "Ep. 14", duration: "33:20", articleId: "article-50-leaders" },
+    { id: "podcast-women", series: "Women Who Lead", episode: "Ep. 14", duration: "33:20", articleId: "article-new-architecture-global-leadership" },
     { id: "podcast-india", series: "Inside Strategy", episode: "Ep. 09", duration: "28:54", articleId: "article-indian-companies-global" },
     { id: "podcast-future", series: "The Builder's Mind", episode: "Ep. 06", duration: "25:18", articleId: "article-founders-second-act" },
     { id: "podcast-decisions", series: "The Executive Brief", episode: "Ep. 05", duration: "30:42", articleId: "article-ai-augmented-decisions" },

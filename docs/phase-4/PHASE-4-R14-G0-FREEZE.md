@@ -1,3 +1,5 @@
+> **OWNER POLICY SUPERSESSION (2026-11-17):** This 3 October freeze is preserved as a historical record. [GOV-REVIEW-02](../release/OWNER-REVIEW-WAIVER-2026-11-17.md) supersedes only its compulsory independent R14 review/stamp dependency. Owner-waived review is not a performed review, and all production and security acceptance gates remain mandatory. V1.0 remains **NOT CERTIFIED**.
+
 # R14 G0 freeze
 
 STATUS: **FROZEN FOR ACCEPTANCE — IMPLEMENTATION NOT AUTHORIZED BY THIS FILE — V1.0 NOT CERTIFIED**
