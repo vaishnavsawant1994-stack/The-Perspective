@@ -15,11 +15,10 @@ concurrency:
 jobs:
   health:
     name: Check public production health
-    if: ${{ vars.PERSPECTIVE_PRODUCTION_ORIGIN != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
-      PERSPECTIVE_PRODUCTION_ORIGIN: ${{ vars.PERSPECTIVE_PRODUCTION_ORIGIN }}
+      PERSPECTIVE_PRODUCTION_ORIGIN: https://www.thetimesofperspective.com
     steps:
       - name: Check liveness, database readiness and public response
         shell: bash
@@ -31,7 +30,7 @@ jobs:
           for path in /api/health/live /api/health/ready /; do
             status="$(curl --silent --show-error --location --retry 2 --retry-delay 2 --max-time 15 \
               --output /dev/null --write-out '%{http_code}' "$origin${path}")"
-            printf '%s %s\n' "$status" "$path"
+            printf '%s %s\\n' "$status" "$path"
             if [[ "$status" != "200" ]]; then
               echo "Production health check failed for ${path}." >&2
               exit 1
