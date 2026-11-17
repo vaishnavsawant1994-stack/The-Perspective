@@ -1,3 +1,5 @@
+> **LATEST GOVERNANCE ADDENDUM — 2026-11-17:** The owner waived the compulsory R14/V1.0 independent human-review obligation; see [GOV-REVIEW-02](./OWNER-REVIEW-WAIVER-2026-11-17.md). The waiver does not mean the review was performed, does not change the still-active GitHub one-approval requirement, and does not authorize certification or production cutover. The Hostinger staging checkpoint reported `/api/health/live` 200 and `/api/health/ready` 503; the intended separate Neon project `hidden-haze-29775614` has zero application tables and no migration ledger. Hostinger deployment environment and logs have **not** been verified against that project. Staging migrations, authenticated acceptance, alerts/acknowledgement and rollback remain open. **V1.0 NOT CERTIFIED.**
+
 # R14 Production Acceptance Evidence â€” 2026-11-16
 
 ## Decision
