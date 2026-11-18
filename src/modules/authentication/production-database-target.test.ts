@@ -5,10 +5,15 @@ import {
 } from "./production-database-target";
 
 describe("first-owner production database target", () => {
-  it("accepts only the pinned production Neon endpoint with full TLS verification", () => {
+  it("accepts the pinned production Neon endpoint and its pooler with full TLS verification", () => {
     expect(() =>
       assertProductionDatabaseTarget(
         `postgresql://operator:placeholder@${PRODUCTION_NEON_HOST}/neondb?sslmode=verify-full`,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertProductionDatabaseTarget(
+        "postgresql://operator:placeholder@ep-cool-waterfall-bavwtqv2-pooler.c-8.eu-central-1.aws.neon.tech/neondb?sslmode=verify-full",
       ),
     ).not.toThrow();
   });
@@ -23,3 +28,4 @@ describe("first-owner production database target", () => {
     );
   });
 });
+
