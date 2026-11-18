@@ -27,19 +27,19 @@ describe("V1.1 PN-03 team-only editorial command lifecycle", () => {
     await client.query("BEGIN");
     try {
       await client.query(
-        "INSERT INTO iam.organizations(id,organization_type,legal_name,display_name,slug,status) VALUES ($1,'PLATFORM',$2,$2,$3,'ACTIVE'),($4,'CLIENT',$5,$5,$6,'ACTIVE')",
+        "INSERT INTO iam.organizations(id,organization_type,legal_name,display_name,slug,status,updated_at) VALUES ($1,'PLATFORM',$2,$2,$3,'ACTIVE',now()),($4,'CLIENT',$5,$5,$6,'ACTIVE',now())",
         [org,"V11 Test Platform",`pn03-org-${org.slice(0,8)}`,clientOrg,"V11 Test Client",`pn03-client-${clientOrg.slice(0,8)}`],
       );
       await client.query(
-        "INSERT INTO iam.people(id,display_name) VALUES ($1,'V11 Author'),($2,'V11 Reviewer'),($3,'V11 Client')",
+        "INSERT INTO iam.people(id,display_name,updated_at) VALUES ($1,'V11 Author',now()),($2,'V11 Reviewer',now()),($3,'V11 Client',now())",
         [personA,personB,personClient],
       );
       await client.query(
-        "INSERT INTO iam.user_accounts(id,person_id,account_state) VALUES ($1,$2,'ACTIVE'),($3,$4,'ACTIVE'),($5,$6,'ACTIVE')",
+        "INSERT INTO iam.user_accounts(id,person_id,account_state,updated_at) VALUES ($1,$2,'ACTIVE',now()),($3,$4,'ACTIVE',now()),($5,$6,'ACTIVE',now())",
         [userA,personA,userB,personB,userClient,personClient],
       );
       await client.query(
-        "INSERT INTO iam.organization_memberships(id,organization_id,user_account_id,membership_type,status,joined_at) VALUES ($1,$2,$3,'STAFF','ACTIVE',now()),($4,$2,$5,'STAFF','ACTIVE',now()),($6,$7,$8,'STAFF','ACTIVE',now())",
+        "INSERT INTO iam.organization_memberships(id,organization_id,user_account_id,membership_type,status,joined_at,updated_at) VALUES ($1,$2,$3,'STAFF','ACTIVE',now(),now()),($4,$2,$5,'STAFF','ACTIVE',now(),now()),($6,$7,$8,'STAFF','ACTIVE',now(),now())",
         [author,org,userA,reviewer,userB,clientMember,clientOrg,userClient],
       );
       await client.query("SET LOCAL ROLE perspective_runtime");
