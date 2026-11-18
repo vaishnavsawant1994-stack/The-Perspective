@@ -11,7 +11,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | --- | --- | --- |
 | `main` | `3fa80397963761d29d4e972fadf4f098e50e8c75` | Production code baseline |
 | PR #73 — Profile Network | Head `9fd5ba19faec91a421b9345e420d9eee33949287`; open, draft, unmerged; 17 exact-head Actions runs passed | CI-qualified code only; not accepted or released |
-| PR #74 — R7 UTC timestamp repair | Repair commit `2c7ae7252b8a102de43bbdebbd6e1e069db26c68`; open draft | Local qualification passed; GitHub qualification must pass before closure |
+| PR #74 — R7 UTC timestamp repair | Code repair commit `2c7ae7252b8a102de43bbdebbd6e1e069db26c68`; current head `6c77fcda5451b55f412c1e8cf062b50ff25ea33b`; open, ready for review, unmerged | Current exact head passed 17/17 Actions workflows and V1 UI Control Qualification; Vercel status success; required human approval remains outstanding |
 
 ## Production and staging
 
@@ -26,6 +26,8 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | Production tenant runtime role switch | `perspective_hostinger_runtime` can now `SET ROLE perspective_runtime` without inheriting privileges; read-only transaction confirmed the restricted role and denied direct resource INSERT | Database prerequisite repaired; Hostinger deployment mapping and authenticated workflow verification remain open |
 
 ## Qualification completed locally for PR #74 patch
+
+GitHub exact-head qualification passed 17/17 workflows on docs-only follow-up `90e553b0e797f64cdd470faadeaa3d127b8d2cbe` and again on current head `6c77fcda5451b55f412c1e8cf062b50ff25ea33b`. The current-head V1 UI Control Qualification inspected 167 authenticated routes and 12,185 visible controls; 12,153 accepted focus and there were zero scanner failures. It is not a click-through test of every business workflow. Vercel's combined status is success. The PR still requires a human approval under the repository rules.
 
 - Unit: 647/647 across 85 files.
 - Database integration: 266/266 across 40 files on a clean, migrated, guarded synthetic PostgreSQL 17 database.
