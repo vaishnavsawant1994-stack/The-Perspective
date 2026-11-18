@@ -112,7 +112,7 @@ AS $sources$
       WHERE jsonb_typeof(src.item) <> 'object'
         OR char_length(coalesce(src.item->>'label','')) NOT BETWEEN 2 AND 180
         OR coalesce(src.item->>'url','') !~ '^https://[^[:space:]@/]+'
-        OR coalesce(src.item->>'capturedAt','') !~ '^\\d{4}-\\d{2}-\\d{2}T'
+        OR coalesce(src.item->>'capturedAt','') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
     )
 $sources$;
 
