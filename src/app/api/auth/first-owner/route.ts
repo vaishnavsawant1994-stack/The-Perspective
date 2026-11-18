@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createFirstOwnerInvitation, requireProductionBootstrapConfiguration } from "@/modules/authentication/first-owner-bootstrap";
-import { getPrismaClient } from "@/modules/persistence/client";
+import { createPrismaClient } from "@/modules/persistence/client";
 import { parseAuthenticationJson, requireSameOrigin } from "@/modules/authentication/http/request-security";
 
 export const runtime = "nodejs";
@@ -32,15 +32,18 @@ export async function POST(request: Request) {
     return noStoreJson({ message: "The setup key is incorrect or setup is unavailable." }, 403);
   }
 
+  let client: ReturnType<typeof createPrismaClient> | undefined;
   try {
-    requireProductionBootstrapConfiguration();
-    const invitationUrl = await createFirstOwnerInvitation(getPrismaClient(), input.email);
+    const configuration = requireProductionBootstrapConfiguration();
+    client = createPrismaClient(configuration.connectionString);
+    const invitationUrl = await createFirstOwnerInvitation(client, input.email);
     return noStoreJson({ invitationUrl });
   } catch (error) {
     if (error instanceof Error && error.message.includes("database is not empty")) {
       return noStoreJson({ message: "The first-owner setup has already been used or the database is not empty." }, 409);
     }
     return noStoreJson({ message: "Setup could not be completed. Check the production settings and try again." }, 503);
+  } finally {
+    await client?.$disconnect().catch(() => undefined);
   }
 }
-
