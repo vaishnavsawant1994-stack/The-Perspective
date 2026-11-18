@@ -81,7 +81,7 @@ export default async function CompanyProfilePage({ params }: Props) {
             </li>
           ))}
         </ol>
-        <p className="mt-8 text-sm text-muted">Found an error, outdated information or a privacy concern? <Link className="font-semibold text-accent underline" href="/contact">Request a correction or removal</Link>.</p>
+        <p className="mt-8 text-sm text-muted">Found an error, outdated information or a privacy concern? <Link className="font-semibold text-accent underline" href={`/profile-requests?subjectKind=COMPANY&subjectSlug=${company.slug}`}>Request a correction or removal</Link>.</p>
       </section>
     </main>
   );
