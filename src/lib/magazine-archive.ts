@@ -98,6 +98,13 @@ export function parseMagazineArchiveQuery(value: string | string[] | undefined) 
   return normalizeSearchQuery(displayQuery) ? displayQuery : "";
 }
 
+export function resolveMagazineArchiveQuery(query: string | string[] | undefined, issueSlug: string | string[] | undefined) {
+  const explicitQuery = parseMagazineArchiveQuery(query);
+  if (explicitQuery) return explicitQuery;
+  const slug = readSearchParameter(issueSlug).trim();
+  return getMagazineIssues().find((issue) => issue.slug === slug)?.title ?? "";
+}
+
 export function buildMagazineArchiveUrl(state: MagazineArchiveState, changes: Partial<{ query: string | null; year: number | null; type: MagazineArchiveFilter | null }> = {}) {
   const query = changes.query === undefined ? state.query : changes.query ?? "";
   const year = changes.year === undefined ? state.year : changes.year ?? undefined;
