@@ -24,6 +24,18 @@ function validSetupKey(candidate: string, configured: string | undefined) {
   return candidateBytes.length === configuredBytes.length && timingSafeEqual(candidateBytes, configuredBytes);
 }
 
+function safeErrorDetails(error: unknown) {
+  if (!error || typeof error !== "object") return {};
+  const candidate = error as { name?: unknown; code?: unknown };
+  const name = typeof candidate.name === "string" && /^[A-Za-z][A-Za-z0-9_]{0,63}$/u.test(candidate.name)
+    ? candidate.name
+    : undefined;
+  const code = typeof candidate.code === "string" && /^(?:P[0-9]{4}|[0-9A-Z]{5})$/u.test(candidate.code)
+    ? candidate.code
+    : undefined;
+  return { ...(name ? { errorName: name } : {}), ...(code ? { errorCode: code } : {}) };
+}
+
 export async function POST(request: Request) {
   if (!requireSameOrigin(request)) return noStoreJson({ message: "Request denied." }, 403);
   const input = await parseAuthenticationJson(request, inputSchema);
@@ -33,16 +45,21 @@ export async function POST(request: Request) {
   }
 
   let client: ReturnType<typeof createPrismaClient> | undefined;
+  let failureStage = "production_configuration";
   try {
     const configuration = requireProductionBootstrapConfiguration();
     client = createPrismaClient(configuration.connectionString);
+    failureStage = "database_connectivity";
+    await client.$queryRaw`SELECT 1`;
+    failureStage = "first_owner_transaction";
     const invitationUrl = await createFirstOwnerInvitation(client, input.email);
     return noStoreJson({ invitationUrl });
   } catch (error) {
     if (error instanceof Error && error.message.includes("database is not empty")) {
       return noStoreJson({ message: "The first-owner setup has already been used or the database is not empty." }, 409);
     }
-    return noStoreJson({ message: "Setup could not be completed. Check the production settings and try again." }, 503);
+    console.error("First-owner setup failed", JSON.stringify({ stage: failureStage, ...safeErrorDetails(error) }));
+    return noStoreJson({ message: "Setup could not be completed. The production team can now identify the failing setup step safely." }, 503);
   } finally {
     await client?.$disconnect().catch(() => undefined);
   }
