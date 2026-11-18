@@ -50,7 +50,7 @@ A separate read-only crawl tested 300 URLs discovered through the production sit
 
 ## Database and security evidence
 
-On 2026-11-19, Neon readback showed production branch `br-icy-mountain-bak8ooxk` in project `nameless-surf-82295602` and staging branch `br-cold-hat-ba18b0tj` in project `hidden-haze-29775614` are both `ready` and `protected=false`. Neither was modified.
+On 2026-11-19, Neon readback showed production branch `br-icy-mountain-bak8ooxk` in project `nameless-surf-82295602` and staging branch `br-cold-hat-ba18b0tj` in project `hidden-haze-29775614` are both `ready` and `protected=false`. Neither branch protection state or database schema was changed. The production role membership change is recorded below.
 
 Read-only production catalog inspection on 2026-11-19 confirmed three idle PgBouncer sessions under login role `perspective_hostinger_runtime`. Although it is `NOSUPERUSER`, `NOCREATEROLE`, `NOCREATEDB`, and `NOBYPASSRLS`, this login has `SELECT`, `INSERT`, `UPDATE`, and `DELETE` on all 18 `iam` tables, all 11 `platform` tables, and `audit.audit_events`. RLS is disabled on 30 of those 31 tables; only `platform.resources` has RLS enabled and forced. This is a high-severity least-privilege and database-containment gap: compromise of this credential or a suitable injection path would not be contained by table-level RLS/grant restrictions on those 30 tables. The catalog finding alone does not demonstrate a breach or an exploitable injection path, and these grants may support current application queries.
 
