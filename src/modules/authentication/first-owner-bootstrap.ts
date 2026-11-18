@@ -53,7 +53,8 @@ function canonicalRole() {
 }
 
 async function takeBootstrapLock(transaction: Prisma.TransactionClient) {
-  await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('the-perspective:first-owner-bootstrap'))`;
+  // Return a supported boolean type to PrismaPg instead of PostgreSQL's void type.
+  await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('the-perspective:first-owner-bootstrap')) IS NULL AS lock_acquired`;
 }
 
 async function assertEmptyDatabase(transaction: Prisma.TransactionClient) {
@@ -170,4 +171,3 @@ export async function createFirstOwnerInvitation(
 
   return `${origin}/invitation/${token}`;
 }
-
