@@ -40,6 +40,7 @@ jobs:
       PERSPECTIVE_AUTH_KEY_VERSION: "1"
       PERSPECTIVE_AUTH_TEST_BASE_URL: http://127.0.0.1:3100
       PERSPECTIVE_BROWSER_TEAM_EMAIL: v1-ui-team@example.test
+      PERSPECTIVE_BROWSER_EDITORIAL_EMAIL: v1-ui-editorial@example.test
       PERSPECTIVE_BROWSER_CLIENT_EMAIL: v1-ui-client@example.test
       PERSPECTIVE_BROWSER_INVITATION_EMAIL: v1-ui-invited@example.test
 
@@ -56,6 +57,7 @@ jobs:
       - name: Generate disposable browser fixture values
         run: |
           echo "PERSPECTIVE_BROWSER_TEAM_PASSWORD=v1-ui-team-${GITHUB_RUN_ID}-Passphrase!" >> "$GITHUB_ENV"
+          echo "PERSPECTIVE_BROWSER_EDITORIAL_PASSWORD=v1-ui-editorial-${GITHUB_RUN_ID}-Passphrase!" >> "$GITHUB_ENV"
           echo "PERSPECTIVE_BROWSER_CLIENT_PASSWORD=v1-ui-client-${GITHUB_RUN_ID}-Passphrase!" >> "$GITHUB_ENV"
           echo "PERSPECTIVE_BROWSER_INVITATION_TOKEN=v1-ui-invitation-${GITHUB_RUN_ID}-token" >> "$GITHUB_ENV"
 

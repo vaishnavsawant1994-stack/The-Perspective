@@ -7,9 +7,11 @@ import { chromium } from "playwright";
 const baseUrl = process.env.PERSPECTIVE_AUTH_TEST_BASE_URL ?? "http://127.0.0.1:3100";
 const teamEmail = process.env.PERSPECTIVE_BROWSER_TEAM_EMAIL;
 const teamPassword = process.env.PERSPECTIVE_BROWSER_TEAM_PASSWORD;
+const editorialEmail = process.env.PERSPECTIVE_BROWSER_EDITORIAL_EMAIL;
+const editorialPassword = process.env.PERSPECTIVE_BROWSER_EDITORIAL_PASSWORD;
 const clientEmail = process.env.PERSPECTIVE_BROWSER_CLIENT_EMAIL;
 const clientPassword = process.env.PERSPECTIVE_BROWSER_CLIENT_PASSWORD;
-for (const [name, value] of Object.entries({ teamEmail, teamPassword, clientEmail, clientPassword })) {
+for (const [name, value] of Object.entries({ teamEmail, teamPassword, editorialEmail, editorialPassword, clientEmail, clientPassword })) {
   if (!value) throw new Error(`${name} is required.`);
 }
 
@@ -49,7 +51,11 @@ async function discoverStaticRoutes(root, prefix) {
   return [...routes].sort();
 }
 
-const teamRoutes = await discoverStaticRoutes("src/app/app", "/app");
+const editorialRoute = "/app/editorial/profile-network";
+const editorialApi = "/api/v1/profile-network/editorial/submissions";
+const discoveredTeamRoutes = await discoverStaticRoutes("src/app/app", "/app");
+assert.ok(discoveredTeamRoutes.includes(editorialRoute), "expected the Profile Network editorial route");
+const teamRoutes = discoveredTeamRoutes.filter((route) => route !== editorialRoute);
 const clientPublicRoots = [
   "/client/activate",
   "/client/login",
@@ -69,7 +75,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   baseUrl,
   surfaces: {},
-  totals: { routes: 0, controls: 0, focusedControls: 0, failures: 0 },
+  totals: { routes: 0, controls: 0, focusedControls: 0, authorizationChecks: 0, failures: 0 },
 };
 
 const controlSelector = [
@@ -253,6 +259,42 @@ async function loginTeam(browser) {
   return { context, page };
 }
 
+async function loginEditorial(browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  await page.goto(absolute("/login?next=%2Fapp%2Feditorial%2Fprofile-network"), { waitUntil: "domcontentloaded" });
+  await page.getByPlaceholder("Enter your work email address").fill(editorialEmail);
+  await page.getByPlaceholder("Enter your password").fill(editorialPassword);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL((url) => url.pathname === editorialRoute);
+  return { context, page };
+}
+
+async function verifyRestrictedEditorialAccess(browser) {
+  const { context, page } = await loginTeam(browser);
+  const failures = [];
+  try {
+    const apiResponsePromise = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === editorialApi && response.request().method() === "GET";
+    });
+    const navigation = await page.goto(absolute(editorialRoute), { waitUntil: "domcontentloaded" });
+    const apiResponse = await apiResponsePromise;
+    await page.getByRole("heading", { name: "Editorial Team access required" }).waitFor();
+    if (navigation?.status() !== 200) failures.push(`restricted page navigation returned ${navigation?.status() ?? 0}`);
+    if (apiResponse.status() !== 403) failures.push(`restricted editorial API returned ${apiResponse.status()}, expected 403`);
+    if (await page.getByRole("heading", { name: "Submit editorial research" }).count() !== 0) {
+      failures.push("restricted Team user can see the editorial submission form");
+    }
+    return { route: editorialRoute, persona: "restricted Team", expectedApiStatus: 403, failures };
+  } catch (error) {
+    failures.push(error instanceof Error ? error.message : "restricted access assertion failed");
+    return { route: editorialRoute, persona: "restricted Team", expectedApiStatus: 403, failures };
+  } finally {
+    await context.close();
+  }
+}
+
 async function loginClient(browser) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
@@ -275,6 +317,7 @@ try {
   for (const [surface, routes, openSession] of surfaces) {
     const { context, page } = await openSession(browser);
     const results = [];
+    const authorizationResults = [];
     try {
       for (const route of routes) {
         const result = await auditRoute(page, surface, route);
@@ -284,10 +327,31 @@ try {
         report.totals.focusedControls += result.focusedControls;
         report.totals.failures += result.failures.length;
       }
+      if (surface === "team") {
+        const restricted = await verifyRestrictedEditorialAccess(browser);
+        authorizationResults.push(restricted);
+        report.totals.authorizationChecks += 1;
+        report.totals.failures += restricted.failures.length;
+
+        const { context: editorialContext, page: editorialPage } = await loginEditorial(browser);
+        try {
+          const editorialResult = await auditRoute(editorialPage, surface, editorialRoute);
+          if (await editorialPage.getByRole("heading", { name: "Submit editorial research" }).count() === 0) {
+            editorialResult.failures.push("authorized editorial fixture cannot see the submission workspace");
+          }
+          results.push(editorialResult);
+          report.totals.routes += 1;
+          report.totals.controls += editorialResult.controls;
+          report.totals.focusedControls += editorialResult.focusedControls;
+          report.totals.failures += editorialResult.failures.length;
+        } finally {
+          await editorialContext.close();
+        }
+      }
     } finally {
       await context.close();
     }
-    report.surfaces[surface] = { routes: routes.length, results };
+    report.surfaces[surface] = { routes: results.length, results, authorizationResults };
   }
 } finally {
   await browser.close();
@@ -296,7 +360,10 @@ try {
 await writeFile(path.join(evidenceDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
 const failures = Object.entries(report.surfaces).flatMap(([surface, details]) =>
-  details.results.flatMap((result) => result.failures.map((failure) => `${surface} ${result.route}: ${failure}`)),
+  [
+    ...details.results.map((result) => ({ ...result, identity: surface })),
+    ...(details.authorizationResults ?? []).map((result) => ({ ...result, identity: `${surface} ${result.persona}` })),
+  ].flatMap((result) => result.failures.map((failure) => `${result.identity} ${result.route}: ${failure}`)),
 );
 
 process.stdout.write(`${JSON.stringify({
