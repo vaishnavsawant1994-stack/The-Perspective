@@ -150,7 +150,7 @@ BEGIN
     OR p_kind NOT IN ('COMPANY','PROFESSIONAL','EDITOR')
     OR p_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$'
     OR char_length(p_slug) NOT BETWEEN 2 AND 100
-    OR NOT profiles.pn03_validate_payload(p_payload)
+    OR NOT coalesce(profiles.pn03_validate_payload(p_payload),false)
   THEN RETURN jsonb_build_object('kind','error','code','INVALID'); END IF;
   v_hash := md5(p_kind || ':' || p_slug || ':' || p_payload::text);
   v_replay := profiles.pn03_replay(v_owner,p_actor,p_key,v_hash);
@@ -204,7 +204,7 @@ BEGIN
     RETURN jsonb_build_object('kind','error','code','CONFLICT');
   END IF;
   IF p_decision='APPROVE' THEN
-    IF NOT profiles.pn03_sources_valid(v_submission.payload->'sources') THEN
+    IF NOT coalesce(profiles.pn03_sources_valid(v_submission.payload->'sources'),false) THEN
       RETURN jsonb_build_object('kind','error','code','INELIGIBLE');
     END IF;
     v_version_id := gen_random_uuid();
