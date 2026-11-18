@@ -11,8 +11,8 @@ This is the current status record. Older dated release reports remain historical
 | Area | Status | Evidence |
 | --- | --- | --- |
 | `main` | PASS | `3fa80397963761d29d4e972fadf4f098e50e8c75` |
-| PR #73 — Profile Network | PASS for automated qualification only; NOT ACCEPTED / NOT RELEASED | Open, draft, mergeable; head `8c16a27215e58f9a9096f2a3630c444cff719e16`; base is current `main`. [PR #73](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/73) |
-| PR #73 checks | PASS | GitHub reports 24/24 check runs completed successfully on the exact head; all 17 associated Actions workflow runs and the combined commit status are green. The focused UI-control/browser qualification completed successfully. |
+| PR #73 — Profile Network | PASS for code qualification only; NOT ACCEPTED / NOT RELEASED | Open, draft, mergeable, based on current `main`. Application/test-fixture commit `8c16a27215e58f9a9096f2a3630c444cff719e16` passed its exact-head qualification; subsequent commits on the PR branch are documentation-only. The linked PR shows the live head. [PR #73](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/73) |
+| PR #73 checks | PASS on qualified application code | GitHub reported 24/24 successful checks, all 17 associated Actions workflow runs and combined status, on application commit `8c16a27215e58f9a9096f2a3630c444cff719e16`. The focused UI-control/browser qualification completed successfully. Recheck the linked PR for current exact-head checks after documentation updates. |
 | Local qualification | PASS with warnings | On PR #73 head: 647 unit tests across 85 files, TypeScript, diff check, and lint with zero errors and three existing warnings. Local Docker was unavailable, so the browser/database workflow ran in GitHub Actions. |
 | PR promotion / merge | BLOCKED | Keep V1.1 isolated until V1.0 is stable and its own final acceptance is complete. No merge or production deployment was performed. |
 
