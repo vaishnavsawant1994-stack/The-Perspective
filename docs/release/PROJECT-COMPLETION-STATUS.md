@@ -22,7 +22,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | Staging Profile Network routes | `/companies`, `/professionals`, `/editors` returned HTTP 404 | V1.1 preview acceptance blocked |
 | Hostinger deployment SHA, IDs, environment variables, runtime role/logs | Connector configured locally but tools unavailable in this session; browser access host unavailable | Not verified |
 | Neon production and staging branches | Both ready; `protected=false` on 2026-11-19 | Production protection gate open; no Neon setting changed |
-| Production application database login | Read-only catalog check on 2026-11-19: `perspective_hostinger_runtime` has full DML on 30 tables without RLS (18 IAM, 11 platform, 1 audit); only `platform.resources` among 31 inspected tables has forced RLS | **Critical blocker**; no production table contents or grants were changed |
+| Production application database login | Read-only catalog check on 2026-11-19: `perspective_hostinger_runtime` has full DML on 30 tables without RLS (18 IAM, 11 platform, 1 audit); only `platform.resources` among 31 inspected tables has forced RLS | **High-severity release gate**; no breach established, no production table contents or grants changed |
 
 ## Qualification completed locally for PR #74 patch
 
@@ -40,7 +40,7 @@ These tests did not write to Neon or production. The disposable local server has
 ## Open release gates
 
 - Identify the actual Hostinger staging and production deployment commits and database roles through hPanel readback.
-- Resolve the critical production runtime overgrant through an evidence-based, reviewed least-privilege change; then requalify authentication, MFA, tenancy, and application workflows.
+- Map the production runtime's direct database grants to legitimate application/migration operations, review the least-privilege boundary, then requalify authentication, MFA, tenancy, and application workflows.
 - Run authenticated owner/MFA and positive/negative tenant-isolation acceptance against the exact deployed candidate.
 - Run a safe alert and observe human acknowledgement.
 - Repeat backup recovery and rollback rehearsal in verified nonproduction; record recovery objectives.
