@@ -1882,3 +1882,64 @@ model PublicCompanyProfileVersion {
   @@map("company_versions")
   @@schema("profiles")
 }
+
+/**
+ * V1.1 PN-02: public editorial profiles of people, not IAM account identities.
+ * Professional subject and editor/byline roles remain explicitly separate.
+ */
+model PublicPersonProfile {
+  id                 String                       @id @db.Uuid
+  slug               String                       @unique
+  kind               String
+  state              String                       @default("DRAFT")
+  publishedVersionId String?                      @map("published_version_id") @db.Uuid
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  versions           PublicPersonProfileVersion[] @relation("PersonProfileVersions")
+  publishedVersion   PublicPersonProfileVersion?  @relation("PublishedPersonVersion", fields: [publishedVersionId], references: [id], onDelete: Restrict)
+  companies          PublicProfileRelationship[]
+
+  @@index([kind, state, slug])
+  @@map("person_profiles")
+  @@schema("profiles")
+}
+
+model PublicPersonProfileVersion {
+  id               String                 @id @db.Uuid
+  personProfileId  String                 @map("person_profile_id") @db.Uuid
+  version          Int
+  name             String
+  headline         String?
+  summary          String
+  biography        String?
+  organizationName String?                @map("organization_name")
+  websiteUrl       String?                @map("website_url")
+  disclosureKind   String                 @default("NONE") @map("disclosure_kind")
+  disclosureText   String?                @map("disclosure_text")
+  sources          Json                   @default("[]")
+  coverage         Json                   @default("[]")
+  approvedAt       DateTime?              @map("approved_at") @db.Timestamptz(6)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile          PublicPersonProfile    @relation("PersonProfileVersions", fields: [personProfileId], references: [id], onDelete: Restrict)
+  featuredOn       PublicPersonProfile[]  @relation("PublishedPersonVersion")
+
+  @@unique([personProfileId, version])
+  @@index([personProfileId, approvedAt])
+  @@map("person_versions")
+  @@schema("profiles")
+}
+
+model PublicProfileRelationship {
+  id              String               @id @db.Uuid
+  personProfileId String               @map("person_profile_id") @db.Uuid
+  companyProfileId String              @map("company_profile_id") @db.Uuid
+  role            String
+  sourceUrl       String               @map("source_url")
+  reviewedAt      DateTime             @map("reviewed_at") @db.Timestamptz(6)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  person          PublicPersonProfile  @relation(fields: [personProfileId], references: [id], onDelete: Restrict)
+
+  @@unique([personProfileId, companyProfileId, role])
+  @@map("public_relationships")
+  @@schema("profiles")
+}
