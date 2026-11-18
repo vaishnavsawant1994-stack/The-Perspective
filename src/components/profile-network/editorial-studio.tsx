@@ -78,7 +78,7 @@ export function ProfileEditorialStudio() {
     }
   }, []);
 
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => { void Promise.resolve().then(reload); }, [reload]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
