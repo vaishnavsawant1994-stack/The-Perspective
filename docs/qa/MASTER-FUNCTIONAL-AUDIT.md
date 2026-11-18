@@ -76,8 +76,8 @@ The local database qualification used a disposable PostgreSQL 17 cluster on loop
 | Production tenant isolation | Not accepted | Run positive and cross-tenant denial journeys with authorized production/staging test identities on the exact verified release candidate |
 | Human alert delivery and acknowledgement | Not tested | Trigger a safe synthetic alert and observe an authorized human notification and acknowledgement |
 | Backup recovery and rollback | Blocked / partial historical | No automatic snapshot schedule is configured; the listed manual snapshot expires 2026-11-24 and history retention is six hours. Repeat encrypted backup, isolated restore, and rollback rehearsal in verified nonproduction and document recovery objectives |
-| Neon production branch protection | Blocked | Production remains unprotected due to the reported plan limit; resolve without weakening another branch or purchasing an unapproved upgrade |
-| Independent review | Blocked | The required separate reviewer is not available through the connected GitHub account; an `omgaj` review request was rejected because that account is not a repository collaborator. No self-approval was used |
+| Neon production branch protection | Blocked | A 2026-11-19 attempt to protect `production` returned HTTP 422: the plan has reached its protected-branch limit. No other branch was unprotected and no plan upgrade was made |
+| Independent external review | Optional under owner waiver | `GOV-REVIEW-02` (2026-11-17) waives mandatory independent review for R14/V1.0. No independent review is claimed. The separate GitHub ruleset still requires one PR approval, so PRs remain subject to that active merge rule until an administrator changes it under the waiver while retaining required checks |
 | V1.1 final acceptance | Blocked | Complete exact Hostinger source/config verification, editorial end-to-end workflow, accessibility/responsive browser acceptance and approved content/source review |
 | Final release certification | Not eligible | Close required technical/operational gates, verify final deployed SHA, then make the release decision; V1.0 remains uncertified and V1.1 remains unreleased |
 

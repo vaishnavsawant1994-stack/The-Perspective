@@ -46,5 +46,6 @@ These tests did not write to Neon or production. The disposable local server has
 - Run a safe alert and observe human acknowledgement.
 - Repeat backup recovery and rollback rehearsal in verified nonproduction; record recovery objectives.
 - Resolve production Neon branch protection without removing protection elsewhere or making an unapproved paid upgrade.
+- GitHub PR approvals remain required by the active ruleset; GOV-REVIEW-02 waives independent review for R14/V1.0 but does not itself edit or disable GitHub's approval rule.
 - Complete V1.1 editorial/publication, dynamic-route, responsive and accessibility acceptance before considering PR #73 for merge.
 - Make a V1.0 certification decision only after its production gates are evidenced. No release tag or certification is authorized by passing CI alone.
