@@ -22,7 +22,9 @@ The checked V1.1 candidate was `9fd5ba19faec91a421b9345e420d9eee33949287` in [PR
 
 The per-route evidence is in [ROUTE-AND-CONTROL-MATRIX.csv](./ROUTE-AND-CONTROL-MATRIX.csv). The GitHub artifact is retained through 2026-12-02. It records route-level counts and outcomes, not screenshots or proof that each action was activated.
 
-The current PR #73 head is still open and draft. Its 17 exact-head Actions runs passed at `9fd5ba1…`; the PR remains unmerged. A separate timezone repair is in [PR #74](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/74), repair commit `2c7ae7252b8a102de43bbdebbd6e1e069db26c68`. On 2026-11-19, local qualification of that patch passed 647 unit tests, 266 database tests, TypeScript, production build, migration status, schema drift, and database contract verification. Confirm GitHub qualification on PR #74's latest exact head before closing the defect or merging.
+A later exact-head V1 UI Control Qualification on PR #75 head `1c9ced0c11209bc1841abd6ef7df4bb8a7b3187c` passed 17/17 GitHub workflows. Its retained artifact reports 167 authenticated routes, 12,185 visible controls, 12,153 controls accepting focus, zero scanner failures, and no desktop or mobile overflow. This run is a separate V1.0 route-fix candidate; it does not supersede the PR #73 V1.1 result above. It still does not activate each control or verify every persisted workflow.
+
+The current PR #73 head is still open and draft. Its 17 exact-head Actions runs passed at `9fd5ba1…`; the PR remains unmerged. A separate timezone repair is in [PR #74](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/74), whose current exact head is `90e553b0e797f64cdd470faadeaa3d127b8d2cbe`. On 2026-11-19, GitHub qualification passed 17/17 runs on that exact head. Local qualification passed 647 unit tests, 266 database tests, TypeScript, production build, migration status, schema drift, and database contract verification. PR #74 is open and awaits its required human review.
 
 ## Live endpoint probes
 
@@ -40,9 +42,21 @@ Read-only HTTP probes were made on 2026-11-19:
 
 The Hostinger connector is configured and enabled in local Codex configuration, but its tools were not loaded into this session. The computer-use browser host was unavailable. Therefore hPanel deployment IDs/source SHA, environment variables, runtime logs, and staging database role were not independently read back. No hosting, database, DNS, or production settings were changed.
 
+### Production public-route probe
+
+Against `main@3fa80397963761d29d4e972fadf4f098e50e8c75`, the source contains 240 page files. Removing route groups and deduplicating yielded 222 static URL paths; 18 dynamic page files were excluded from this probe. All 222 static paths were requested on production: 39 returned HTTP 200, 168 returned the expected login redirect (307), 14 returned canonical redirects (308), and `/500` returned its intentional error response. This establishes route reachability only, not content correctness or interaction behavior.
+
+A separate read-only crawl tested 300 URLs discovered through the production sitemap and homepage links. It found no HTTP 4xx responses or transport errors and recorded 12 redirects. The crawl was capped at 300 URLs and is not exhaustive. Independently, the eight production targets repaired by [PR #75](https://github.com/vaishnavsawant1994-stack/The-Perspective/pull/75) returned HTTP 404: `/travel`, `/books`, `/strategy`, `/opinion`, `/design`, and the three legacy magazine issue URLs. PR #75 is open, unmerged, and its 17/17 required workflow runs passed on head `1c9ced0c11209bc1841abd6ef7df4bb8a7b3187c`. Its local qualification passed 649 unit tests, TypeScript, changed-file lint, and a production build; its Hostinger preview verified the repaired routes. Production does not yet contain that repair.
+
 ## Database and security evidence
 
 On 2026-11-19, Neon readback showed production branch `br-icy-mountain-bak8ooxk` in project `nameless-surf-82295602` and staging branch `br-cold-hat-ba18b0tj` in project `hidden-haze-29775614` are both `ready` and `protected=false`. Neither was modified.
+
+Read-only production session inspection on 2026-11-19 observed three idle PgBouncer sessions under login role `perspective_hostinger_runtime`. That role is `NOSUPERUSER`, `NOCREATEROLE`, `NOCREATEDB`, and `NOBYPASSRLS`; it has no inherited role memberships in the inspected catalog. This supports that a restricted runtime identity is connected to production, but does not by itself prove which Hostinger deployment uses it or prove tenant isolation. A separate elevated database login had no active session in this sample; its purpose and credential custody remain to be confirmed privately.
+
+The staging database is not empty: read-only inspection found 24 migration records, 146 application tables, and approximately 1,372 estimated rows. The data provenance has not been confirmed as synthetic, so no test writes were made. The staging login role has elevated role/database creation and RLS-bypass attributes and was not seen in active application sessions during the sample.
+
+The production branch has no automatic snapshot schedule. Neon lists one manual snapshot, `production-safety-check-2026-11-17`, expiring 2026-11-24; project history retention is six hours. No restore or rollback drill was performed in this session.
 
 The local database qualification used a disposable PostgreSQL 17 cluster on loopback in `Asia/Calcutta`, applied all 28 migrations for the tested V1.1 worktree, and used guarded synthetic seed data. It verified migration status, no schema drift using a fresh shadow database, catalog/RLS contracts, and 266 database tests. No Neon or production database was used for test writes. The temporary PostgreSQL server was stopped after qualification.
 
@@ -50,16 +64,19 @@ The local database qualification used a disposable PostgreSQL 17 cluster on loop
 
 | Gate | Status | What is still needed |
 | --- | --- | --- |
-| Hostinger source identity and runtime configuration | Blocked | Load the already authorized Hostinger connector or restore browser access; read back deployment SHA/ID, runtime logs, database target and role without exposing secret values |
+| Hostinger source identity and runtime configuration | Partial / blocked | Neon shows a restricted Hostinger-named runtime login with active pooled sessions, but hPanel deployment SHA/ID, environment variables, runtime logs, and database-target mapping remain unverified because Hostinger tools and reliable browser control were unavailable |
+| Production routes repaired by PR #75 | Blocked | Eight current production URLs still return 404; merge requires a human review under the active branch protection, and the repair is not deployed |
+| Staging data provenance and role safety | Blocked | Staging contains 24 migrations, 146 tables and estimated rows; confirm data is synthetic and replace/disable the elevated app login before using the database for fixtures |
 | Staging Profile Network acceptance | Blocked | Deploy an approved candidate to staging after verifying its target; then run authenticated editorial and public directory workflows, including unknown-slug behavior |
 | Production owner login and MFA | Not tested | Legitimate owner performs the real authentication/MFA flow against the verified production source |
 | Production tenant isolation | Not accepted | Run positive and cross-tenant denial journeys with authorized production/staging test identities on the exact verified release candidate |
 | Human alert delivery and acknowledgement | Not tested | Trigger a safe synthetic alert and observe an authorized human notification and acknowledgement |
-| Backup recovery and rollback | Partial/historical | The 2026-11-18 status record reports encrypted dump restore evidence; repeat current restore/rollback rehearsal in verified nonproduction and document recovery objectives |
+| Backup recovery and rollback | Blocked / partial historical | No automatic snapshot schedule is configured; the listed manual snapshot expires 2026-11-24 and history retention is six hours. Repeat encrypted backup, isolated restore, and rollback rehearsal in verified nonproduction and document recovery objectives |
 | Neon production branch protection | Blocked | Production remains unprotected due to the reported plan limit; resolve without weakening another branch or purchasing an unapproved upgrade |
+| Independent review | Blocked | The required separate reviewer is not available through the connected GitHub account; an `omgaj` review request was rejected because that account is not a repository collaborator. No self-approval was used |
 | V1.1 final acceptance | Blocked | Complete exact Hostinger source/config verification, editorial end-to-end workflow, accessibility/responsive browser acceptance and approved content/source review |
 | Final release certification | Not eligible | Close required technical/operational gates, verify final deployed SHA, then make the release decision; V1.0 remains uncertified and V1.1 remains unreleased |
 
 ## Evidence limits
 
-The 168-route CI scanner is valuable authenticated UI evidence, but it is not a manual click-through of every route in the repository. It does not exercise every state-changing control, test every successful and denied API mutation, inspect every public route or dynamic slug, verify production persistence, validate journalism, or prove Hostinger is running the tested source. A passing CI or HTTP health probe must not be presented as full product acceptance.
+The 168-route and 167-route CI scans are authenticated UI evidence, but neither is a manual click-through of every route in the repository. They do not exercise every state-changing control, test every successful and denied API mutation, inspect every public route or dynamic slug, verify production persistence, validate journalism, or prove Hostinger is running the tested source. A passing CI or HTTP health probe must not be presented as full product acceptance.
