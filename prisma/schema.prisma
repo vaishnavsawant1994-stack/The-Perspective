@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["iam", "platform", "audit", "crm", "comms", "commercial"]
+  schemas  = ["iam", "platform", "audit", "crm", "comms", "commercial", "profiles"]
 }
 
 enum OrganizationType {
@@ -1839,3 +1839,46 @@ model CommercialClientRelationship {
   @@schema("commercial")
 }
 
+
+/**
+ * V1.1 PN-01: public editorial identity, entirely separate from CRM companies.
+ * There are no write routes for these models in PN-01.
+ */
+model PublicCompanyProfile {
+  id                 String                       @id @db.Uuid
+  slug               String                       @unique
+  state              String                       @default("DRAFT")
+  publishedVersionId String?                      @map("published_version_id") @db.Uuid
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  versions           PublicCompanyProfileVersion[] @relation("ProfileVersions")
+  publishedVersion   PublicCompanyProfileVersion?  @relation("PublishedCompanyVersion", fields: [publishedVersionId], references: [id], onDelete: Restrict)
+
+  @@index([state, slug])
+  @@map("company_profiles")
+  @@schema("profiles")
+}
+
+model PublicCompanyProfileVersion {
+  id               String                @id @db.Uuid
+  companyProfileId String                @map("company_profile_id") @db.Uuid
+  version          Int
+  name             String
+  summary          String
+  industry         String?
+  headquarters     String?
+  websiteUrl       String?               @map("website_url")
+  overview         String?
+  disclosureKind   String                @default("NONE") @map("disclosure_kind")
+  disclosureText   String?               @map("disclosure_text")
+  sources          Json                  @default("[]")
+  approvedAt       DateTime?             @map("approved_at") @db.Timestamptz(6)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile          PublicCompanyProfile  @relation("ProfileVersions", fields: [companyProfileId], references: [id], onDelete: Restrict)
+  featuredOn       PublicCompanyProfile[] @relation("PublishedCompanyVersion")
+
+  @@unique([companyProfileId, version])
+  @@index([companyProfileId, approvedAt])
+  @@map("company_versions")
+  @@schema("profiles")
+}
