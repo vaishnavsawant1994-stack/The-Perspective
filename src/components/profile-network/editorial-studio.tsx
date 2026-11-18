@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { ProfileRequestInbox } from "./request-inbox";
 
 type Kind = "COMPANY" | "PROFESSIONAL" | "EDITOR";
 type State = "SUBMITTED" | "APPROVED" | "REJECTED";
@@ -263,5 +264,6 @@ export function ProfileEditorialStudio() {
             </li>)}</ul>}
         </section>
       </div>}
+    {authorized ? <ProfileRequestInbox /> : null}
   </main>;
 }
