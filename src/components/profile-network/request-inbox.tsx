@@ -37,7 +37,7 @@ export function ProfileRequestInbox() {
     }catch{ setPermission(false);setNotice("The private request inbox could not be loaded."); }
   },[]);
 
-  useEffect(()=>{void reload();},[reload]);
+  useEffect(()=>{ void Promise.resolve().then(reload); },[reload]);
 
   async function decide(item:PendingProfileRequest,decision:"NEEDS_EVIDENCE"|"CLOSED"|"DECLINED"){
     const reason=(notes[item.id]||"").trim();
