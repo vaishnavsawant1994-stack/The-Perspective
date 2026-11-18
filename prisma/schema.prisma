@@ -1986,3 +1986,29 @@ model PublicProfileAuditEvent {
   @@map("profile_audit_events")
   @@schema("profiles")
 }
+
+/**
+ * V1.1 PN-04: private correction, removal, and claim intake.
+ * Claims do not create a verification badge, linked account, or publish rights.
+ */
+model PublicProfileRequest {
+  id                        String    @id @db.Uuid
+  requestKind               String    @map("request_kind")
+  subjectKind               String    @map("subject_kind")
+  subjectSlug               String    @map("subject_slug")
+  description               String
+  sourceUrl                 String?   @map("source_url")
+  contactEmail              String?   @map("contact_email")
+  rateKey                   String    @map("rate_key")
+  state                     String    @default("PENDING")
+  reviewedByMembershipId    String?   @map("reviewed_by_membership_id") @db.Uuid
+  decisionNote              String?   @map("decision_note")
+  submittedAt               DateTime  @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  reviewedAt                DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  expiresAt                 DateTime  @map("expires_at") @db.Timestamptz(6)
+
+  @@index([state, submittedAt])
+  @@index([rateKey, submittedAt])
+  @@map("profile_requests")
+  @@schema("profiles")
+}
