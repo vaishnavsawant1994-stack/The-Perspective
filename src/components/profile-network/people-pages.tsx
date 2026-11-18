@@ -78,7 +78,7 @@ export async function PublicPeopleDirectory({ kind, searchParams }: {
       </section>}
     <p className="mt-14 max-w-3xl border-t border-border pt-7 text-sm leading-relaxed text-muted">
       These independently curated editorial profiles do not establish personal identity, employment or organizational endorsement.
-      <Link href="/contact" className="ml-1 font-semibold text-accent underline">Request a correction or removal</Link>.
+      <Link href="/profile-requests" className="ml-1 font-semibold text-accent underline">Request a correction or removal</Link>.
     </p>
   </main>;
 }
@@ -162,7 +162,7 @@ export async function PublicPersonDetail({ kind, params }: { kind: PublicPersonK
           <span className="ml-2 text-sm text-muted">Accessed <time dateTime={source.capturedAt}>{new Date(source.capturedAt).toLocaleDateString("en-IN")}</time></span>
         </li>)}
       </ol>
-      <p className="mt-7 text-sm text-muted">To request a correction, removal, or other privacy review, <Link href="/contact" className="font-semibold text-accent underline">contact the editorial team</Link>.</p>
+      <p className="mt-7 text-sm text-muted">To request a correction, removal, or other privacy review, <Link href={`/profile-requests?subjectKind=${kind}&subjectSlug=${person.slug}`} className="font-semibold text-accent underline">contact the editorial team</Link>.</p>
     </section>
   </main>;
 }
