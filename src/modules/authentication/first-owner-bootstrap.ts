@@ -14,7 +14,7 @@ import { LAUNCH_ROLES } from "@/modules/authorization/launch-roles";
 import { PERMISSION_DEFINITIONS } from "@/modules/authorization/registry";
 import { createOpaqueToken, hashOpaqueToken } from "./crypto/tokens";
 import { requireAuthenticationConfiguration } from "./configuration";
-import { assertProductionDatabaseTarget } from "./production-database-target";
+import { productionBootstrapDatabaseUrl } from "./production-database-target";
 
 const PLATFORM_SLUG = "the-perspective";
 const BOOTSTRAP_ROLE_KEY = "R01";
@@ -29,11 +29,11 @@ export function requireProductionBootstrapConfiguration() {
     throw new Error("Explicit production target and sessions auth mode are required; test fixtures must be disabled.");
   }
   const configuration = requireAuthenticationConfiguration(process.env);
-  assertProductionDatabaseTarget(configuration.databaseUrl);
+  const connectionString = productionBootstrapDatabaseUrl(configuration.databaseUrl);
   if (new URL(configuration.publicOrigin).protocol !== "https:") {
     throw new Error("A production HTTPS app origin is required.");
   }
-  return { connectionString: configuration.databaseUrl, origin: configuration.publicOrigin };
+  return { connectionString, origin: configuration.publicOrigin };
 }
 
 function emailInput(value: string) {
