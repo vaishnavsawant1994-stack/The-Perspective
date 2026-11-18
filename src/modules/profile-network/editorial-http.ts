@@ -94,6 +94,7 @@ async function authorized(
   permissionKey: "editorial.view" | "editorial.review" | "editorial.approve" | "publication.publish",
   action: "list" | "create" | "approve" | "publish" | "archive",
   mutation: boolean,
+  operationReason?: string,
 ) {
   if (mutation && !requireSameOrigin(request)) return { response: authorizationProblem(403,"AUTHZ_DENIED") } as const;
   const r = await resolveAuthorizedHttpRequest(request, "TEAM");
@@ -109,6 +110,7 @@ async function authorized(
     resource: { resourceType, ownerOrganizationId: r.context.tenant.organizationId, visibility: "INTERNAL", sensitivity: "STANDARD" },
     command: {
       action, requestedFields: [], workflowSatisfied: true, exactVersionMatches: true,
+      reason: operationReason,
       separationOfDutySatisfied: true,
       mfaSatisfied: mutation ? r6MfaSatisfied(r.context.session,now) : undefined,
       recentAuthenticationSatisfied: mutation ? r6RecentAuthenticationSatisfied(r.context.session,now) : undefined,
@@ -208,7 +210,7 @@ export async function publishProfile(request: Request, id: string) {
   const parsed = await parseBody(request,publishBody);
   if ("response" in parsed) return parsed.response;
   const action = parsed.value.action === "PUBLISH" ? "publish" : "archive";
-  const auth = await authorized(request,"publication.publish",action,true);
+  const auth = await authorized(request,"publication.publish",action,true,parsed.value.reason);
   if ("response" in auth) return auth.response;
   const idem = idempotency(request);
   if (!idem) return respond({kind:"error",code:"INVALID"});
