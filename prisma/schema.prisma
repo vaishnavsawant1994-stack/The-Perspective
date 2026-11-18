@@ -1945,3 +1945,44 @@ model PublicProfileRelationship {
   @@map("public_relationships")
   @@schema("profiles")
 }
+
+/**
+ * V1.1 PN-03: private platform-editor submission and audit lifecycle.
+ * CRM/client actors are never delegated publication authority.
+ */
+model PublicProfileSubmission {
+  id                    String   @id @db.Uuid
+  ownerOrganizationId   String   @map("owner_organization_id") @db.Uuid
+  kind                  String
+  slug                  String
+  payload               Json
+  state                 String   @default("SUBMITTED")
+  submittedByMembershipId String @map("submitted_by_membership_id") @db.Uuid
+  reviewedByMembershipId String? @map("reviewed_by_membership_id") @db.Uuid
+  reviewReason          String?  @map("review_reason")
+  approvedVersionId     String?  @map("approved_version_id") @db.Uuid
+  submittedAt           DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  reviewedAt            DateTime? @map("reviewed_at") @db.Timestamptz(6)
+
+  @@index([ownerOrganizationId, state, submittedAt])
+  @@map("profile_submissions")
+  @@schema("profiles")
+}
+
+model PublicProfileAuditEvent {
+  id                    String   @id @db.Uuid
+  ownerOrganizationId   String   @map("owner_organization_id") @db.Uuid
+  profileSubmissionId   String?  @map("profile_submission_id") @db.Uuid
+  actorMembershipId     String   @map("actor_membership_id") @db.Uuid
+  action                String
+  reason                String
+  idempotencyKey        String   @map("idempotency_key")
+  requestHash           String   @map("request_hash")
+  result                Json
+  occurredAt            DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@unique([ownerOrganizationId, actorMembershipId, idempotencyKey])
+  @@index([ownerOrganizationId, profileSubmissionId, occurredAt])
+  @@map("profile_audit_events")
+  @@schema("profiles")
+}
