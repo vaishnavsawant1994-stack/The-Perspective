@@ -22,7 +22,8 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | Staging Profile Network routes | `/companies`, `/professionals`, `/editors` returned HTTP 404 | V1.1 preview acceptance blocked |
 | Hostinger deployment SHA, IDs, environment variables, runtime role/logs | Connector configured locally but tools unavailable in this session; browser access host unavailable | Not verified |
 | Neon production and staging branches | Both ready; `protected=false` on 2026-11-19 | Production protection gate open; no Neon setting changed |
-| Production application database login | Read-only catalog check on 2026-11-19: `perspective_hostinger_runtime` has full DML on 30 tables without RLS (18 IAM, 11 platform, 1 audit); only `platform.resources` among 31 inspected tables has forced RLS | **High-severity release gate**; no breach established, no production table contents or grants changed |
+| Production application database login | Read-only catalog check on 2026-11-19: `perspective_hostinger_runtime` has full DML on 30 tables without RLS (18 IAM, 11 platform, 1 audit); only `platform.resources` among 31 inspected tables has forced RLS | **High-severity release gate**; no breach established, no production table contents or table-level grants changed; restricted-role membership was added |
+| Production tenant runtime role switch | `perspective_hostinger_runtime` can now `SET ROLE perspective_runtime` without inheriting privileges; read-only transaction confirmed the restricted role and denied direct resource INSERT | Database prerequisite repaired; Hostinger deployment mapping and authenticated workflow verification remain open |
 
 ## Qualification completed locally for PR #74 patch
 
