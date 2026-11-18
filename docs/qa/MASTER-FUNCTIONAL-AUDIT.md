@@ -1,6 +1,6 @@
 # The Perspective — Functional Audit Snapshot
 
-**Evidence date:** 2026-11-19 UTC
+**Evidence checked:** 2026-11-19 Asia/Kolkata (2026-11-18 UTC)
 
 **Production baseline:** `main@3fa80397963761d29d4e972fadf4f098e50e8c75`
 **Status:** Partial qualification. V1.0 is not certified; V1.1 is not released.
@@ -58,7 +58,7 @@ The production login initially lacked membership in `perspective_runtime`; `pg_h
 
 The staging database is not empty: read-only inspection found 24 migration records, 146 application tables, and approximately 1,372 estimated rows. The data provenance has not been confirmed as synthetic, so no test writes were made. The staging login role has elevated role/database creation and RLS-bypass attributes and was not seen in active application sessions during the sample.
 
-The production branch has no automatic snapshot schedule. Neon lists one manual snapshot, `production-safety-check-2026-11-17`, expiring 2026-11-24; project history retention is six hours. No restore or rollback drill was performed in this session.
+The production branch has no automatic Neon snapshot schedule. Neon lists one manual snapshot, `production-safety-check-2026-11-17`, expiring 2026-11-24; project history retention is six hours. Separately, the daily encrypted dump workflow [run 44283445934](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44283445934) succeeded on 2026-11-18 UTC at `main@3fa80397963761d29d4e972fadf4f098e50e8c75`: the 30-day retention tests passed, the private Neon Object Storage copy was downloaded and verified, AES-256 encrypted data was decrypted and matched to the source dump, and the dump restored into an isolated PostgreSQL service with 146 application tables verified. The workflow expired zero objects because none were older than 30 days. The backup bucket is in the same Neon provider/account, so this is not independent-provider disaster recovery. This session did not rehearse manual recovery/cutover or rollback against a live application.
 
 The local database qualification used a disposable PostgreSQL 17 cluster on loopback in `Asia/Calcutta`, applied all 28 migrations for the tested V1.1 worktree, and used guarded synthetic seed data. It verified migration status, no schema drift using a fresh shadow database, catalog/RLS contracts, and 266 database tests. No Neon or production database was used for test writes. The temporary PostgreSQL server was stopped after qualification.
 
@@ -75,7 +75,7 @@ The local database qualification used a disposable PostgreSQL 17 cluster on loop
 | Production owner login and MFA | Not tested | Legitimate owner performs the real authentication/MFA flow against the verified production source |
 | Production tenant isolation | Not accepted | Run positive and cross-tenant denial journeys with authorized production/staging test identities on the exact verified release candidate |
 | Human alert delivery and acknowledgement | Not tested | Trigger a safe synthetic alert and observe an authorized human notification and acknowledgement |
-| Backup recovery and rollback | Blocked / partial historical | No automatic snapshot schedule is configured; the listed manual snapshot expires 2026-11-24 and history retention is six hours. Repeat encrypted backup, isolated restore, and rollback rehearsal in verified nonproduction and document recovery objectives |
+| Backup recovery and rollback | Partial | Daily encrypted dump workflow and retention tests passed on 2026-11-18 UTC; the remote object was verified and restored in an isolated PostgreSQL service (146 application tables). Neon PITR remains six hours with one manual snapshot expiring 2026-11-24. Backup storage is within the same Neon provider/account. Still rehearse manual restore/cutover and rollback in verified nonproduction, document recovery objectives, and add a second-provider copy if cross-provider disaster recovery is required |
 | Neon production branch protection | Blocked | A 2026-11-19 attempt to protect `production` returned HTTP 422: the plan has reached its protected-branch limit. No other branch was unprotected and no plan upgrade was made |
 | Independent external review | Optional under owner waiver | `GOV-REVIEW-02` (2026-11-17) waives mandatory independent review for R14/V1.0. No independent review is claimed. The separate GitHub ruleset still requires one PR approval, so PRs remain subject to that active merge rule until an administrator changes it under the waiver while retaining required checks |
 | V1.1 final acceptance | Blocked | Complete exact Hostinger source/config verification, editorial end-to-end workflow, accessibility/responsive browser acceptance and approved content/source review |

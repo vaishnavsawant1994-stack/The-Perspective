@@ -1,6 +1,6 @@
 # The Perspective — Project Completion Status
 
-**Evidence checked:** 2026-11-19 UTC
+**Evidence checked:** 2026-11-19 Asia/Kolkata (2026-11-18 UTC)
 **Decision:** V1.0 is **NOT CERTIFIED**. V1.1 is **NOT RELEASED**.
 
 This file is the current status pointer. Detailed route/control counts, live HTTP probes, limitations, and acceptance gates are in [the functional audit snapshot](../qa/MASTER-FUNCTIONAL-AUDIT.md). Historical release reports remain historical evidence.
@@ -17,11 +17,11 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 
 | Area | Current evidence | Status |
 | --- | --- | --- |
-| Production homepage, liveness, readiness | All returned HTTP 200 on 2026-11-19 | Endpoint health only; authenticated acceptance remains open |
+| Production homepage, liveness, readiness | All returned HTTP 200 on 2026-11-19 Asia/Kolkata | Endpoint health only; authenticated acceptance remains open |
 | Hostinger staging homepage/readiness | Both returned HTTP 200 | Endpoint health only |
 | Staging Profile Network routes | `/companies`, `/professionals`, `/editors` returned HTTP 404 | V1.1 preview acceptance blocked |
 | Hostinger deployment SHA, IDs, environment variables, runtime role/logs | Connector configured locally but tools unavailable in this session; browser access host unavailable | Not verified |
-| Neon production and staging branches | Both ready; `protected=false` on 2026-11-19 | Production protection gate open; no branch protection setting changed |
+| Neon production and staging branches | Both ready; `protected=false` on 2026-11-19 Asia/Kolkata | Production protection gate open; no branch protection setting changed |
 | Production application database login | Read-only catalog check on 2026-11-19: `perspective_hostinger_runtime` has full DML on 30 tables without RLS (18 IAM, 11 platform, 1 audit); only `platform.resources` among 31 inspected tables has forced RLS | **High-severity release gate**; no breach established, no production table contents or table-level grants changed; restricted-role membership was added |
 | Production tenant runtime role switch | `perspective_hostinger_runtime` can now `SET ROLE perspective_runtime` without inheriting privileges; read-only transaction confirmed the restricted role and denied direct resource INSERT | Database prerequisite repaired; Hostinger deployment mapping and authenticated workflow verification remain open |
 
@@ -46,7 +46,7 @@ These tests did not write to Neon or production. The disposable local server has
 - Map the production runtime's direct database grants to legitimate application/migration operations, review the least-privilege boundary, then requalify authentication, MFA, tenancy, and application workflows.
 - Run authenticated owner/MFA and positive/negative tenant-isolation acceptance against the exact deployed candidate.
 - Run a safe alert and observe human acknowledgement.
-- Repeat backup recovery and rollback rehearsal in verified nonproduction; record recovery objectives.
+- The daily encrypted dump pipeline and retention tests passed on 2026-11-18 UTC (run [44283445934](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44283445934)); it verified the private remote object and restored 146 application tables in an isolated PostgreSQL service. Rehearse manual restore/cutover and rollback in verified nonproduction, document recovery objectives, and add a second-provider copy if cross-provider disaster recovery is required. Neon PITR is six hours and the current manual snapshot expires 2026-11-24.
 - Resolve production Neon branch protection without removing protection elsewhere or making an unapproved paid upgrade.
 - GitHub PR approvals remain required by the active ruleset; GOV-REVIEW-02 waives independent review for R14/V1.0 but does not itself edit or disable GitHub's approval rule.
 - Complete V1.1 editorial/publication, dynamic-route, responsive and accessibility acceptance before considering PR #73 for merge.
