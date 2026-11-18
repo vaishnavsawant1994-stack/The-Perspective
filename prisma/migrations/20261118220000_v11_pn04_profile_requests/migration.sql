@@ -61,6 +61,10 @@ BEGIN
   IF (SELECT count(*) FROM profiles.profile_requests
     WHERE rate_key=p_rate_key AND submitted_at > clock_timestamp()-interval '1 day') >= 3
   THEN RETURN NULL; END IF;
+  -- Global circuit breaker limits volume even if a client spoofs proxy headers.
+  IF (SELECT count(*) FROM profiles.profile_requests
+      WHERE submitted_at > clock_timestamp()-interval '1 day') >= 200
+  THEN RETURN NULL; END IF;
   v_id := gen_random_uuid();
   INSERT INTO profiles.profile_requests(
     id,request_kind,subject_kind,subject_slug,description,source_url,contact_email,
@@ -167,6 +171,5 @@ GRANT EXECUTE ON FUNCTION
   profiles.pn03_publish(uuid,uuid,text,text,text),
   profiles.pn03_team_queue(uuid),
   profiles.pn04_team_queue(uuid),
-  profiles.pn04_decide(uuid,uuid,text,text,text),
-  profiles.pn04_purge_expired(uuid)
+  profiles.pn04_decide(uuid,uuid,text,text,text)
   TO perspective_runtime;
