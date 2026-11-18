@@ -1,6 +1,6 @@
 # The Perspective — Project Completion Status
 
-**Evidence checked:** 2026-11-19 UTC  
+**Evidence checked:** 2026-11-19 UTC
 **Decision:** V1.0 is **NOT CERTIFIED**. V1.1 is **NOT RELEASED**.
 
 This file is the current status pointer. Detailed route/control counts, live HTTP probes, limitations, and acceptance gates are in [the functional audit snapshot](../qa/MASTER-FUNCTIONAL-AUDIT.md). Historical release reports remain historical evidence.

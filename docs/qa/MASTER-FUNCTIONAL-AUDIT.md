@@ -1,7 +1,8 @@
 # The Perspective — Functional Audit Snapshot
 
-**Evidence date:** 2026-11-19 UTC  
-**Production baseline:** `main@3fa80397963761d29d4e972fadf4f098e50e8c75`  
+**Evidence date:** 2026-11-19 UTC
+
+**Production baseline:** `main@3fa80397963761d29d4e972fadf4f098e50e8c75`
 **Status:** Partial qualification. V1.0 is not certified; V1.1 is not released.
 
 This is an evidence snapshot, not a completion claim. Counts are tied to the source and test runs shown below. Historical files may describe different commits or hosting configurations.
