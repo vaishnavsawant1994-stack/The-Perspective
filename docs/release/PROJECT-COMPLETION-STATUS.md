@@ -11,7 +11,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | --- | --- | --- |
 | `main` | `3fa80397963761d29d4e972fadf4f098e50e8c75` | Production code baseline |
 | PR #73 — Profile Network | Head `9fd5ba19faec91a421b9345e420d9eee33949287`; open, draft, unmerged; 17 exact-head Actions runs passed | CI-qualified code only; not accepted or released |
-| PR #74 — R7 UTC timestamp repair | Code repair commit `2c7ae7252b8a102de43bbdebbd6e1e069db26c68`; last fully qualified head `6c77fcda5451b55f412c1e8cf062b50ff25ea33b`; current docs-only head `f51366abcdcb1928cc2145e173bbbe3bdf2a205f`; open, ready for review, unmerged | Last fully qualified head passed 17/17 Actions and V1 UI Control Qualification; current head is 3/17 successful with 14 in progress and Vercel success; required human approval remains outstanding |
+| PR #74 — R7 UTC timestamp repair | Code repair commit `2c7ae7252b8a102de43bbdebbd6e1e069db26c68`; last fully qualified source/audit head `6c77fcda5451b55f412c1e8cf062b50ff25ea33b`; later branch commits are documentation-only; open, ready for review, unmerged | Last fully qualified source/audit head passed 17/17 Actions and V1 UI Control Qualification; check current PR for exact latest head status; required human approval remains outstanding |
 
 ## Production and staging
 
@@ -27,7 +27,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 
 ## Qualification completed locally for PR #74 patch
 
-GitHub exact-head qualification passed 17/17 workflows on docs-only follow-up `90e553b0e797f64cdd470faadeaa3d127b8d2cbe` and again on last fully qualified app/audit head `6c77fcda5451b55f412c1e8cf062b50ff25ea33b`. Current docs-only head `f51366abcdcb1928cc2145e173bbbe3bdf2a205f` has 3 successful and 14 in-progress Actions, with Vercel success at the latest readback. The V1 UI Control Qualification on `6c77fcd` inspected 167 authenticated routes and 12,185 visible controls; 12,153 accepted focus and there were zero scanner failures. It is not a click-through test of every business workflow. The PR still requires a human approval under the repository rules.
+The code repair commit is `2c7ae7252b8a102de43bbdebbd6e1e069db26c68`. The last fully qualified source/audit head is `6c77fcda5451b55f412c1e8cf062b50ff25ea33b`, with 17/17 workflows passed. The UI Control Qualification on that head inspected 167 authenticated routes and 12,185 visible controls; 12,153 accepted focus and there were zero scanner failures. It is not a click-through test of every business workflow. Later branch commits are documentation-only; consult PR #74 for exact latest-head checks. The PR still requires a human approval under the repository rules.
 
 - Unit: 647/647 across 85 files.
 - Database integration: 266/266 across 40 files on a clean, migrated, guarded synthetic PostgreSQL 17 database.
