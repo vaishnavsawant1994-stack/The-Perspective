@@ -10,8 +10,9 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | Item | Current evidence | Status |
 | --- | --- | --- |
 | `main` | `3fa80397963761d29d4e972fadf4f098e50e8c75` | Production code baseline |
-| PR #73 — Profile Network | Head `9fd5ba19faec91a421b9345e420d9eee33949287`; open, draft, unmerged; 17 exact-head Actions runs passed | CI-qualified code only; not accepted or released |
-| PR #74 — R7 UTC timestamp repair | Code repair commit `2c7ae7252b8a102de43bbdebbd6e1e069db26c68`; last fully qualified source/audit head `6c77fcda5451b55f412c1e8cf062b50ff25ea33b`; later branch commits are documentation-only; open, ready for review, unmerged | Last fully qualified source/audit head passed 17/17 Actions and V1 UI Control Qualification; check current PR for exact latest head status; required human approval remains outstanding |
+| PR #73 — Profile Network | Head `9fd5ba19faec91a421b9345e420d9eee33949287`; open, draft, unmerged; 17/17 exact-head Actions runs passed | CI-qualified code only; not accepted or released; no review submitted |
+| PR #74 — R7 UTC timestamp repair | Current head `9616bbdf766e3d5750ae7600e628aaec178966d0`; open, ready, unmerged; 17/17 exact-head Actions runs passed | CI-qualified code; required human approval remains outstanding; no review submitted |
+| PR #75 — broken public route repair | Head `1c9ced0c11209bc1841abd6ef7df4bb8a7b3187c`; open, ready, unmerged; 17/17 exact-head Actions runs passed | Production route repair not deployed; no review submitted |
 
 ## Production and staging
 
@@ -20,10 +21,11 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | Production homepage, liveness, readiness | All returned HTTP 200 on 2026-11-19 Asia/Kolkata | Endpoint health only; authenticated acceptance remains open |
 | Hostinger staging homepage/readiness | Both returned HTTP 200 | Endpoint health only |
 | Staging Profile Network routes | `/companies`, `/professionals`, `/editors` returned HTTP 404 | V1.1 preview acceptance blocked |
-| Hostinger deployment SHA, IDs, environment variables, runtime role/logs | Connector configured locally but tools unavailable in this session; browser access host unavailable | Not verified |
+| Hostinger deployments | hPanel shows both `daily-limegreen-woodcock-36` and `expansive-darkslategray-raccoon-18` on `main@3fa8039…`, Node 24; public domain returns Hostinger/HCDN headers | Exact custom-domain-to-app mapping, production `DATABASE_URL`, and runtime logs remain unverified |
 | Neon production and staging branches | Both ready; `protected=false` on 2026-11-19 Asia/Kolkata | Production protection gate open; no branch protection setting changed |
 | Production application database login | Read-only catalog check on 2026-11-19: `perspective_hostinger_runtime` has full DML on 30 tables without RLS (18 IAM, 11 platform, 1 audit); only `platform.resources` among 31 inspected tables has forced RLS | **High-severity release gate**; no breach established, no production table contents or table-level grants changed; restricted-role membership was added |
 | Production tenant runtime role switch | `perspective_hostinger_runtime` can now `SET ROLE perspective_runtime` without inheriting privileges; read-only transaction confirmed the restricted role and denied direct resource INSERT | Database prerequisite repaired; Hostinger deployment mapping and authenticated workflow verification remain open |
+| Staging application login | Neon readback: `perspective_app` has `CREATEDB`, `CREATEROLE`, `BYPASSRLS`, owns 893 objects, and is a member of `neon_superuser`; staging data provenance remains unknown | **High-severity staging gate**; no role, grant, or data changes made |
 
 ## Qualification completed locally for PR #74 patch
 
@@ -42,12 +44,15 @@ These tests did not write to Neon or production. The disposable local server has
 
 ## Open release gates
 
-- Identify the actual Hostinger staging and production deployment commits and database roles through hPanel readback.
+- Map the live custom domain to the correct Hostinger app and verify its production `DATABASE_URL`, deployment ID, and runtime logs. Both visible hPanel app entries currently deploy `main@3fa8039…` on Node 24.
+- Establish a least-privilege staging application login. The current staging `perspective_app` login is a Neon admin/owner role with RLS bypass; preserve data and validate all required auth and tenant workflows before replacing it.
 - Map the production runtime's direct database grants to legitimate application/migration operations, review the least-privilege boundary, then requalify authentication, MFA, tenancy, and application workflows.
+- Merge the public category route fix only after the required human approval; production still returns 404 for `/travel`, `/books`, `/strategy`, `/opinion`, and `/design`.
 - Run authenticated owner/MFA and positive/negative tenant-isolation acceptance against the exact deployed candidate.
 - Run a safe alert and observe human acknowledgement.
 - The daily encrypted dump pipeline and retention tests passed on 2026-11-18 UTC (run [44283445934](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44283445934)); it verified the private remote object and restored 146 application tables in an isolated PostgreSQL service. Rehearse manual restore/cutover and rollback in verified nonproduction, document recovery objectives, and add a second-provider copy if cross-provider disaster recovery is required. Neon PITR is six hours and the current manual snapshot expires 2026-11-24.
 - Resolve production Neon branch protection without removing protection elsewhere or making an unapproved paid upgrade.
 - GitHub PR approvals remain required by the active ruleset; GOV-REVIEW-02 waives independent review for R14/V1.0 but does not itself edit or disable GitHub's approval rule.
+- A review request to `omgaj` was rejected because GitHub reports that account is not a repository collaborator; `omgaj` currently has read-only access. No collaborator invitation or permission change was made.
 - Complete V1.1 editorial/publication, dynamic-route, responsive and accessibility acceptance before considering PR #73 for merge.
 - Make a V1.0 certification decision only after its production gates are evidenced. No release tag or certification is authorized by passing CI alone.
