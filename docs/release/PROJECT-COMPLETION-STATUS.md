@@ -19,7 +19,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | Area | Current evidence | Status |
 | --- | --- | --- |
 | Production homepage, liveness, readiness | All returned HTTP 200 on 2026-11-19 Asia/Kolkata | Endpoint health only; authenticated acceptance remains open |
-| Dynamic public route reachability | On `main@3fa80397963761d29d4e972fadf4f098e50e8c75`, 44 homepage-linked dynamic URLs returned 200; 18 invalid probes produced expected content 404s, Client login redirects, and token-shell/API rejection behavior | Reachability only; no complete client-side hydration, content-authenticity, or protected workflow acceptance |
+| Dynamic public route reachability | On `main@3fa80397963761d29d4e972fadf4f098e50e8c75`, 44 homepage-linked URLs and 213 source-defined dynamic targets returned 200; all 213 had a title and H1, and 16/16 unique image URLs returned 200; 18 invalid probes produced content 404s, Client login redirects, and token-shell/API rejection | Reachability and SSR markup only; no complete client-side hydration, visual acceptance, content-authenticity, or protected workflow acceptance |
 | Hostinger staging homepage/readiness | Both returned HTTP 200 | Endpoint health only |
 | Staging Profile Network routes | `/companies`, `/professionals`, `/editors` returned HTTP 404 | V1.1 preview acceptance blocked |
 | Hostinger deployments | hPanel shows both `daily-limegreen-woodcock-36` and `expansive-darkslategray-raccoon-18` on `main@3fa8039…`, Node 24; public domain returns Hostinger/HCDN headers | Exact custom-domain-to-app mapping, production `DATABASE_URL`, and runtime logs remain unverified |
