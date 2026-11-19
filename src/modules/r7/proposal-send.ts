@@ -79,7 +79,7 @@ async function claim(
 ) {
   const rows = await tx.$queryRawUnsafe<Array<{ status: string }>>(
     `SELECT platform.claim_r7_proposal_send($1::uuid,$2::text,$3::text,$4::timestamptz) AS status`,
-    randomUUID(), key, hash, new Date(Date.now() + 86400000),
+    randomUUID(), key, hash, new Date(Date.now() + 86400000).toISOString(),
   );
   return rows[0]?.status ?? "IN_PROGRESS";
 }
@@ -91,9 +91,9 @@ async function replay(
   const rows = await tx.$queryRawUnsafe<Array<{
     proposal_id: string | null; version_id: string | null; version: number | null;
     row_version: number | null; currency: string | null; total_minor: string | null;
-    sent_at: Date | null;
+    sent_at: string | null;
   }>>(
-    `SELECT proposal_id, version_id, version, row_version, currency, total_minor, sent_at
+    `SELECT proposal_id, version_id, version, row_version, currency, total_minor, sent_at::text AS sent_at
        FROM platform.read_r7_proposal_send_replay($1::text)`,
     key,
   );
@@ -110,7 +110,7 @@ async function replay(
     status: "SENT",
     currency: row.currency.trim(),
     totalMinor: row.total_minor,
-    sentAt: row.sent_at.toISOString(),
+    sentAt: new Date(row.sent_at).toISOString(),
   };
 }
 
@@ -243,7 +243,7 @@ export async function sendProposal(
             WHERE id = $2::uuid AND owner_organization_id = $3::uuid
               AND status = 'DRAFT' AND current_version = $4::int
               AND row_version = $5::int AND archived_at IS NULL`,
-          sentAt, proposal.id, context.tenant.organizationId,
+          sentAt.toISOString(), proposal.id, context.tenant.organizationId,
           input.expectedVersion, input.expectedRowVersion,
         );
         if (proposalReady !== 1) throw new Failure("STALE_WRITE");
@@ -256,7 +256,7 @@ export async function sendProposal(
           WHERE id = $2::uuid AND proposal_id = $3::uuid
             AND owner_organization_id = $4::uuid AND version = $5::int
             AND status = 'READY' AND immutable = FALSE AND issued_at IS NULL`,
-        sentAt, proposal.proposal_version_id, proposal.id,
+        sentAt.toISOString(), proposal.proposal_version_id, proposal.id,
         context.tenant.organizationId, input.expectedVersion,
       );
       if (versionChanged !== 1) throw new Failure("STALE_WRITE");
@@ -266,7 +266,7 @@ export async function sendProposal(
           WHERE id = $2::uuid AND owner_organization_id = $3::uuid
             AND status = 'READY' AND current_version = $4::int
             AND row_version = $5::int AND archived_at IS NULL`,
-        sentAt, proposal.id, context.tenant.organizationId,
+        sentAt.toISOString(), proposal.id, context.tenant.organizationId,
         input.expectedVersion, input.expectedRowVersion,
       );
       if (proposalChanged !== 1) throw new Failure("STALE_WRITE");
@@ -307,7 +307,7 @@ export async function sendProposal(
         proposal.id, proposal.proposal_version_id, context.identity.userId,
         context.membership.membershipId, proposal.version, result.rowVersion,
         context.requestId, afterHash, JSON.stringify(diff), key, result.currency,
-        result.totalMinor, sentAt,
+        result.totalMinor, sentAt.toISOString(),
       );
       return result;
   }, database);
