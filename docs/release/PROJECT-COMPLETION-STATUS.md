@@ -11,7 +11,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | --- | --- | --- |
 | `main` | `3fa80397963761d29d4e972fadf4f098e50e8c75` | Production code baseline |
 | PR #73 — Profile Network | Head `9fd5ba19faec91a421b9345e420d9eee33949287`; open, draft, unmerged; 17/17 exact-head Actions runs passed | CI-qualified code only; not accepted or released; no review submitted |
-| PR #74 — R7 UTC timestamp repair | Current head `9616bbdf766e3d5750ae7600e628aaec178966d0`; open, ready, unmerged; 17/17 exact-head Actions runs passed | CI-qualified code; required human approval remains outstanding; no review submitted |
+| PR #74 — R7 UTC timestamp repair | Before this documentation correction, head `42ba26b2596bc3476db485534f55f9cabe20b861`; open, ready, unmerged; 17/17 exact-head Actions runs passed | The updated documentation correction requires fresh checks; required human approval remains outstanding; no review submitted |
 | PR #75 — broken public route repair | Head `1c9ced0c11209bc1841abd6ef7df4bb8a7b3187c`; open, ready, unmerged; 17/17 exact-head Actions runs passed | Production route repair not deployed; no review submitted |
 
 ## Production and staging
@@ -25,7 +25,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | Neon production and staging branches | Both ready; `protected=false` on 2026-11-19 Asia/Kolkata | Production protection gate open; no branch protection setting changed |
 | Production application database login | Read-only catalog check on 2026-11-19: `perspective_hostinger_runtime` has full DML on 30 tables without RLS (18 IAM, 11 platform, 1 audit); only `platform.resources` among 31 inspected tables has forced RLS | **High-severity release gate**; no breach established, no production table contents or table-level grants changed; restricted-role membership was added |
 | Production tenant runtime role switch | `perspective_hostinger_runtime` can now `SET ROLE perspective_runtime` without inheriting privileges; read-only transaction confirmed the restricted role and denied direct resource INSERT | Database prerequisite repaired; Hostinger deployment mapping and authenticated workflow verification remain open |
-| Staging application login | Neon readback: `perspective_app` has `CREATEDB`, `CREATEROLE`, `BYPASSRLS`, owns 893 objects, and is a member of `neon_superuser`; staging data provenance remains unknown | **High-severity staging gate**; no role, grant, or data changes made |
+| Staging application login | Neon readback: `perspective_app` has `CREATEDB`, `CREATEROLE`, `BYPASSRLS`, owns all 619 catalog relations in non-system schemas (146 tables and 473 indexes), and is a member of `neon_superuser`; staging data provenance remains unknown | **High-severity staging gate**; no role, grant, or data changes made |
 
 ## Qualification completed locally for PR #74 patch
 
