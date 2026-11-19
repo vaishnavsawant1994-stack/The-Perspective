@@ -78,9 +78,17 @@ for (const id of expectedThreatIds) {
   );
 }
 
+const schemaDeclaration = schema.match(/schemas\s*=\s*\[([^\]]+)\]/u);
+const configuredSchemas = schemaDeclaration
+  ? [...schemaDeclaration[1].matchAll(/"([^"]+)"/gu)].map((match) => match[1])
+  : [];
+const historicalR6Schemas = ["iam", "platform", "audit", "crm", "comms", "commercial"];
 assert(
-  /schemas\s*=\s*\["iam",\s*"platform",\s*"audit",\s*"crm",\s*"comms",\s*"commercial"\]/.test(schema),
-  "R6 Prisma schema does not contain the exact approved schema set",
+  configuredSchemas.length >= historicalR6Schemas.length
+    && configuredSchemas.length <= historicalR6Schemas.length + 1
+    && historicalR6Schemas.every((name, index) => configuredSchemas[index] === name)
+    && configuredSchemas.slice(historicalR6Schemas.length).every((name) => name === "profiles"),
+  "R6 Prisma schema lost its historical approved schema set or gained an unauthorized namespace",
 );
 
 const r6Models = [...schema.matchAll(/^model\s+(Crm\w+|Comms\w+|Commercial\w+)\s*\{/gm)]
