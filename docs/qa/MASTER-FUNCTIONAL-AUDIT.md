@@ -62,6 +62,12 @@ A separate read-only crawl tested 300 URLs discovered through the production sit
 
 Follow-up HTTP checks on 2026-11-19 reconfirmed the five category routes return HTTP 404 in production and HTTP 307 to their canonical sections on the PR #75 Hostinger preview. Production `/perspective` and both production health routes return HTTP 200. The two explicitly fictional article slugs withdrawn by merged PR #54 (`/article/human-purpose-ai-world` and `/article/50-leaders`) return HTTP 404 and are absent from the live XML sitemap.
 
+### Dynamic route reachability probe (2026-11-19)
+
+The `main` tree at `3fa80397963761d29d4e972fadf4f098e50e8c75` contains 18 dynamic page-route files. A read-only crawl of the live homepage discovered 44 distinct linked dynamic targets across articles, authors, magazine issues, and personal-magazine profiles; all 44 returned HTTP 200. This checks reachability for the discovered links, not article accuracy, source authenticity, complete page rendering, or interaction behavior.
+
+Eighteen deliberately invalid paths were requested across the dynamic route families. Eleven public content/profile paths returned HTTP 404. Five protected Client resource paths returned HTTP 307 to `/client/login` with the requested path preserved. `/invitation/<invalid-token>` and `/client/activate/<invalid-token>` returned HTTP 200 for their client-rendered shells; the shared read-only `GET /api/v1/auth/invitations/<invalid-token>` returned HTTP 404. The client code maps that non-success response to an unavailable/invalid invitation message, but the hydrated message was not observed in a real browser during this probe. No invitation was accepted and no database write was attempted. This is HTTP behavior evidence, not an authenticated workflow or complete browser acceptance.
+
 ## Database and security evidence
 
 On 2026-11-19, Neon readback showed production branch `br-icy-mountain-bak8ooxk` in project `nameless-surf-82295602` and staging branch `br-cold-hat-ba18b0tj` in project `hidden-haze-29775614` are both `ready` and `protected=false`. Neither branch protection state or database schema was changed. The production role membership change is recorded below.

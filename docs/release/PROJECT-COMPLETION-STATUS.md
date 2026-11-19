@@ -11,7 +11,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | --- | --- | --- |
 | `main` | `3fa80397963761d29d4e972fadf4f098e50e8c75` | Production code baseline |
 | PR #73 — Profile Network | Head `9fd5ba19faec91a421b9345e420d9eee33949287`; open, draft, unmerged; 17/17 exact-head Actions runs passed | CI-qualified code only; not accepted or released; no review submitted |
-| PR #74 — R7 UTC timestamp repair | Before this documentation correction, head `42ba26b2596bc3476db485534f55f9cabe20b861`; open, ready, unmerged; 17/17 exact-head Actions runs passed | The updated documentation correction requires fresh checks; required human approval remains outstanding; no review submitted |
+| PR #74 — R7 UTC timestamp repair | At the start of this route-audit update, head `2fde70fb80fee7ccc3c35ee59d3ab12a099027e1`; open, ready, unmerged; 17/17 exact-head Actions runs passed | This documentation-only route audit requires fresh checks; required human approval remains outstanding; no review submitted |
 | PR #75 — broken public route repair | Head `1c9ced0c11209bc1841abd6ef7df4bb8a7b3187c`; open, ready, unmerged; 17/17 exact-head Actions runs passed | Production route repair not deployed; no review submitted |
 
 ## Production and staging
@@ -19,6 +19,7 @@ This file is the current status pointer. Detailed route/control counts, live HTT
 | Area | Current evidence | Status |
 | --- | --- | --- |
 | Production homepage, liveness, readiness | All returned HTTP 200 on 2026-11-19 Asia/Kolkata | Endpoint health only; authenticated acceptance remains open |
+| Dynamic public route reachability | On `main@3fa80397963761d29d4e972fadf4f098e50e8c75`, 44 homepage-linked dynamic URLs returned 200; 18 invalid probes produced expected content 404s, Client login redirects, and token-shell/API rejection behavior | Reachability only; no complete client-side hydration, content-authenticity, or protected workflow acceptance |
 | Hostinger staging homepage/readiness | Both returned HTTP 200 | Endpoint health only |
 | Staging Profile Network routes | `/companies`, `/professionals`, `/editors` returned HTTP 404 | V1.1 preview acceptance blocked |
 | Hostinger deployments | hPanel shows both `daily-limegreen-woodcock-36` and `expansive-darkslategray-raccoon-18` on `main@3fa8039…`, Node 24; public domain returns Hostinger/HCDN headers | Exact custom-domain-to-app mapping, production `DATABASE_URL`, and runtime logs remain unverified |
