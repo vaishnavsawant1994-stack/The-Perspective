@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { chromium } from "playwright";
@@ -295,6 +295,64 @@ async function verifyRestrictedEditorialAccess(browser) {
   }
 }
 
+async function auditPublicProfileDirectories(browser) {
+  const expected = [
+    ["/companies", "Company profiles"],
+    ["/professionals", "Professional profiles"],
+    ["/editors", "Editor profiles"],
+  ];
+  const sourcePaths = expected.map(([route]) => path.join("src", "app", route.slice(1), "page.tsx"));
+  const present = await Promise.all(sourcePaths.map(async (sourcePath) => {
+    try {
+      await access(sourcePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }));
+  if (!present.some(Boolean)) return { skipped: true, routes: 0, results: [] };
+
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const results = [];
+  try {
+    for (let index = 0; index < expected.length; index += 1) {
+      const [route, expectedHeading] = expected[index];
+      const result = { route, expectedHeading, failures: [] };
+      if (!present[index]) {
+        result.failures.push("Profile Network directory page source is missing");
+        results.push(result);
+        continue;
+      }
+
+      const page = await context.newPage();
+      try {
+        const audit = await auditRoute(page, "public-profile", route);
+        Object.assign(result, audit);
+        const title = await page.title();
+        if (!title.includes(expectedHeading)) result.failures.push(`document title did not include ${JSON.stringify(expectedHeading)}: ${JSON.stringify(title)}`);
+        const heading = page.getByRole("heading", { level: 1, name: expectedHeading, exact: true });
+        await heading.waitFor({ state: "visible", timeout: 20_000 }).catch(() => {
+          result.failures.push(`expected visible h1 ${JSON.stringify(expectedHeading)} was not rendered`);
+        });
+        const loadingFallback = page.locator('#main-content [aria-label="Loading content"][aria-busy="true"]');
+        if (await loadingFallback.count() > 0) result.failures.push("profile directory is still showing the loading fallback");
+        if (result.failures.length > 0) {
+          const screenshotName = `public-profile-${route.slice(1)}.png`;
+          await page.screenshot({ path: path.join(evidenceDir, screenshotName), fullPage: true }).catch(() => {});
+        }
+      } catch (error) {
+        result.failures.push(error instanceof Error ? error.message : "public profile route audit failed");
+      } finally {
+        await page.close();
+      }
+      results.push(result);
+    }
+  } finally {
+    await context.close();
+  }
+  return { skipped: false, routes: results.length, results };
+}
+
 async function loginClient(browser) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
@@ -308,6 +366,15 @@ async function loginClient(browser) {
 
 const browser = await chromium.launch({ headless: true });
 try {
+  const publicProfileResults = await auditPublicProfileDirectories(browser);
+  report.surfaces.publicProfileDirectories = publicProfileResults;
+  for (const result of publicProfileResults.results) {
+    report.totals.routes += 1;
+    report.totals.controls += result.controls ?? 0;
+    report.totals.focusedControls += result.focusedControls ?? 0;
+    report.totals.failures += result.failures.length;
+  }
+
   const surfaces = [
     ["team", teamRoutes, loginTeam],
     ["client", clientRoutes, loginClient],

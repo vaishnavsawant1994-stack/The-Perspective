@@ -102,7 +102,7 @@ jobs:
           cat /tmp/v1-ui-server.log
           exit 1
 
-      - name: Audit all static authenticated UI controls
+      - name: Audit authenticated controls and public profile directories
         run: node scripts/certification/verify-v1-ui-controls.mjs
 
       - name: Upload control audit evidence
