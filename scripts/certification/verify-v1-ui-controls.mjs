@@ -297,9 +297,9 @@ async function verifyRestrictedEditorialAccess(browser) {
 
 async function auditPublicProfileDirectories(browser) {
   const expected = [
-    ["/companies", "Company profiles"],
-    ["/professionals", "Professional profiles"],
-    ["/editors", "Editor profiles"],
+    ["/companies", "Company profiles", "#company-search"],
+    ["/professionals", "Professional profiles", "#profile-search"],
+    ["/editors", "Editor profiles", "#profile-search"],
   ];
   const sourcePaths = expected.map(([route]) => path.join("src", "app", route.slice(1), "page.tsx"));
   const present = await Promise.all(sourcePaths.map(async (sourcePath) => {
@@ -316,7 +316,7 @@ async function auditPublicProfileDirectories(browser) {
   const results = [];
   try {
     for (let index = 0; index < expected.length; index += 1) {
-      const [route, expectedHeading] = expected[index];
+      const [route, expectedHeading, expectedResultsControl] = expected[index];
       const result = { route, expectedHeading, failures: [] };
       if (!present[index]) {
         result.failures.push("Profile Network directory page source is missing");
@@ -333,6 +333,9 @@ async function auditPublicProfileDirectories(browser) {
         const heading = page.getByRole("heading", { level: 1, name: expectedHeading, exact: true });
         await heading.waitFor({ state: "visible", timeout: 20_000 }).catch(() => {
           result.failures.push(`expected visible h1 ${JSON.stringify(expectedHeading)} was not rendered`);
+        });
+        await page.locator(expectedResultsControl).waitFor({ state: "visible", timeout: 20_000 }).catch(() => {
+          result.failures.push("published profile results did not finish loading");
         });
         const loadingFallback = page.locator('#main-content [aria-label="Loading content"][aria-busy="true"]');
         if (await loadingFallback.count() > 0) result.failures.push("profile directory is still showing the loading fallback");

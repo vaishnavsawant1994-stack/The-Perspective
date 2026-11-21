@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { siteConfig } from "@/config/site";
 import { getPublicPerson, getPublicPersonRelationships, searchPublicPeople } from "@/modules/profile-network/person-read";
@@ -30,29 +31,27 @@ function getQuery(params: DirectoryParams) {
 export async function peopleDirectoryMetadata(kind: PublicPersonKind, searchParams: Promise<DirectoryParams>): Promise<Metadata> {
   const config = info[kind];
   const q = getQuery(await searchParams);
-  const published = await searchPublicPeople(kind, q);
   return {
     title: config.title,
     description: config.summary,
     alternates: { canonical: config.base },
-    robots: { index: q.length === 0 && published.length > 0, follow: true },
+    robots: { index: q.length === 0, follow: true },
     openGraph: { title: config.title, description: config.summary, url: config.base, siteName: siteConfig.name, type: "website" },
   };
 }
 
-export async function PublicPeopleDirectory({ kind, searchParams }: {
+function PeopleDirectoryFallback() {
+  return <p role="status" aria-live="polite" className="max-w-2xl rounded-lg border border-border bg-surface p-8 text-muted">Loading approved profiles...</p>;
+}
+
+async function PeopleDirectoryResults({ kind, searchParams }: {
   kind: PublicPersonKind;
   searchParams: Promise<DirectoryParams>;
 }) {
   const config = info[kind];
   const query = getQuery(await searchParams);
   const people = await searchPublicPeople(kind, query);
-  return <main className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-20">
-    <div className="mb-8 text-xs font-semibold uppercase tracking-[0.16em] text-accent">The Perspective / Profile Network</div>
-    <header className="max-w-3xl">
-      <h1 className="type-display-lg">{config.title}</h1>
-      <p className="mt-6 text-lg leading-relaxed text-muted">{config.summary} A listing is not an identity verification or endorsement.</p>
-    </header>
+  return <>
     <form method="get" action={config.base} role="search" className="my-10 flex max-w-xl flex-col gap-3 sm:flex-row">
       <label htmlFor="profile-search" className="sr-only">Search published {config.title.toLowerCase()}</label>
       <input name="q" id="profile-search" type="search" defaultValue={query} maxLength={80} placeholder="Search name or organization" className="min-h-12 flex-1 rounded-md border border-border bg-surface px-4" />
@@ -76,11 +75,28 @@ export async function PublicPeopleDirectory({ kind, searchParams }: {
           </li>)}
         </ul>
       </section>}
+  </>;
+}
+
+export function PublicPeopleDirectory({ kind, searchParams }: {
+  kind: PublicPersonKind;
+  searchParams: Promise<DirectoryParams>;
+}) {
+  const config = info[kind];
+  return <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-20">
+    <div className="mb-8 text-xs font-semibold uppercase tracking-[0.16em] text-accent">The Perspective / Profile Network</div>
+    <header className="max-w-3xl">
+      <h1 className="type-display-lg">{config.title}</h1>
+      <p className="mt-6 text-lg leading-relaxed text-muted">{config.summary} A listing is not an identity verification or endorsement.</p>
+    </header>
+    <Suspense fallback={<PeopleDirectoryFallback />}>
+      <PeopleDirectoryResults kind={kind} searchParams={searchParams} />
+    </Suspense>
     <p className="mt-14 max-w-3xl border-t border-border pt-7 text-sm leading-relaxed text-muted">
       These independently curated editorial profiles do not establish personal identity, employment or organizational endorsement.
       <Link href="/profile-requests" className="ml-1 font-semibold text-accent underline">Request a correction or removal</Link>.
     </p>
-  </main>;
+  </div>;
 }
 
 export async function peopleProfileMetadata(kind: PublicPersonKind, params: Promise<{ slug: string }>): Promise<Metadata> {

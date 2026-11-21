@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { siteConfig } from "@/config/site";
 import { searchPublicCompanies } from "@/modules/profile-network/read";
@@ -14,30 +15,24 @@ function requestedQuery(params: { q?: string | string[] }) {
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const query = requestedQuery(await searchParams);
-  const companies = await searchPublicCompanies(query);
   return {
     title: "Company profiles",
     description: "Source-backed company profiles independently reviewed by The Perspective.",
     alternates: { canonical: "/companies" },
     openGraph: { title: "Company profiles | The Perspective", url: "/companies", type: "website", siteName: siteConfig.name },
-    robots: { index: companies.length > 0 && query.length === 0, follow: true },
+    robots: { index: query.length === 0, follow: true },
   };
 }
 
-export default async function CompanyDirectory({ searchParams }: Props) {
+function CompanyDirectoryFallback() {
+  return <p role="status" aria-live="polite" className="max-w-2xl rounded-lg border border-border bg-surface p-8 text-muted">Loading approved company profiles...</p>;
+}
+
+async function CompanyDirectoryResults({ searchParams }: Props) {
   const query = requestedQuery(await searchParams);
   const companies = await searchPublicCompanies(query);
-
   return (
-    <main className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-20">
-      <div className="mb-8 text-xs font-semibold uppercase tracking-[0.18em] text-accent">The Perspective / Profile Network</div>
-      <header className="mb-10 max-w-3xl">
-        <h1 className="type-display-lg text-foreground">Company profiles</h1>
-        <p className="mt-6 text-lg leading-relaxed text-muted">
-          Independently curated company backgrounds, source references and published perspectives.
-          A listing is not an endorsement or a statement of commercial affiliation.
-        </p>
-      </header>
+    <>
       <form action="/companies" method="get" role="search" className="mb-12 flex max-w-xl flex-col gap-3 sm:flex-row">
         <label htmlFor="company-search" className="sr-only">Search published company profiles</label>
         <input
@@ -78,11 +73,29 @@ export default async function CompanyDirectory({ searchParams }: Props) {
           </ul>
         </section>
       )}
+    </>
+  );
+}
+
+export default function CompanyDirectory({ searchParams }: Props) {
+  return (
+    <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-20">
+      <div className="mb-8 text-xs font-semibold uppercase tracking-[0.18em] text-accent">The Perspective / Profile Network</div>
+      <header className="mb-10 max-w-3xl">
+        <h1 className="type-display-lg text-foreground">Company profiles</h1>
+        <p className="mt-6 text-lg leading-relaxed text-muted">
+          Independently curated company backgrounds, source references and published perspectives.
+          A listing is not an endorsement or a statement of commercial affiliation.
+        </p>
+      </header>
+      <Suspense fallback={<CompanyDirectoryFallback />}>
+        <CompanyDirectoryResults searchParams={searchParams} />
+      </Suspense>
       <aside className="mt-14 max-w-3xl border-t border-border pt-7 text-sm leading-relaxed text-muted">
         About these profiles: every published profile has a reviewed snapshot and attributable citations.
         An identity or business relationship is not independently verified merely by appearing here.
         To request a correction or removal, use our <Link className="font-semibold text-accent underline" href="/contact">contact page</Link>.
       </aside>
-    </main>
+    </div>
   );
 }
