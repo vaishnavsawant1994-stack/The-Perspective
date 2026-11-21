@@ -20,6 +20,7 @@ import {
 import { NewsletterForm } from "@/components/layout/newsletter-form";
 import { MagazineCover } from "@/components/magazine/magazine-cover";
 import { magazineIssues } from "@/data/mock/magazines";
+import { getMagazineIssueDiscoveryHref } from "@/lib/magazine-categories";
 import type { Article, TopicLandingContent } from "@/types";
 import styles from "./topic-detail-redesign.module.css";
 
@@ -129,7 +130,7 @@ export function TopicDetailRedesign({ content }: { content: TopicLandingContent 
 
         <section id="reports">
           <SectionHeader action="View all reports" href="/magazine/archive" title="Featured reports & specials" />
-          <div className={styles.reportGrid}>{reports.map((issue) => <article key={issue.id}><MagazineCover className={styles.reportCover} href={`/magazine/read/${issue.slug}`} issue={issue} variant="compact" /><p>{issue.premium ? "Special edition" : "Research report"}</p><h3><Link href={`/magazine/read/${issue.slug}`}>{issue.title}</Link></h3><span>{issue.description}</span></article>)}</div>
+          <div className={styles.reportGrid}>{reports.map((issue) => <article key={issue.id}><MagazineCover className={styles.reportCover} href={getMagazineIssueDiscoveryHref(issue)} issue={issue} variant="compact" /><p>{issue.premium ? "Special edition" : "Research report"}</p><h3><Link href={getMagazineIssueDiscoveryHref(issue)}>{issue.title}</Link></h3><span>{issue.description}</span></article>)}</div>
         </section>
       </main>
 
