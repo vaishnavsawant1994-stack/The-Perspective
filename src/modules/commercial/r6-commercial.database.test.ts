@@ -3183,12 +3183,12 @@ describe("R6 commercial deeper falsification", () => {
 
     const persisted = await database.$queryRawUnsafe<Array<{
       proposal_status: string; row_version: number; version_status: string;
-      immutable: boolean; issued_at: Date; subtotal_minor: bigint;
+      immutable: boolean; issued_at: string; subtotal_minor: bigint;
       total_minor: bigint; line_total_minor: bigint; quantity: number;
       unit_amount_minor: bigint;
     }>>(
       `SELECT proposal.status AS proposal_status, proposal.row_version,
-              version.status AS version_status, version.immutable, version.issued_at,
+              version.status AS version_status, version.immutable, version.issued_at::text AS issued_at,
               version.subtotal_minor, version.total_minor,
               line.line_total_minor, line.quantity, line.unit_amount_minor
          FROM commercial.proposals AS proposal
@@ -3202,7 +3202,7 @@ describe("R6 commercial deeper falsification", () => {
       proposal_status: "SENT", row_version: 2, version_status: "SENT", immutable: true,
       subtotal_minor: BigInt(2500), total_minor: BigInt(2500),
     });
-    expect(persisted[0]?.issued_at.toISOString()).toBe(first.value.sentAt);
+    expect(Date.parse(persisted[0]?.issued_at ?? "")).toBe(Date.parse(first.value.sentAt));
     const persistedLine = persisted[0];
     if (!persistedLine) throw new Error("sent proposal line missing after send");
     expect(persistedLine.line_total_minor).toBe(

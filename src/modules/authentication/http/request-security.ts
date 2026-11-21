@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { z } from "zod";
-import { requireAuthenticationConfiguration } from "../configuration";
+import { getAuthenticationConfiguration } from "../configuration";
 import type { AuthenticationRequestMetadata } from "../types";
 
 const MAX_AUTH_BODY_BYTES = 16 * 1024;
@@ -24,7 +24,8 @@ export function authenticationProblem(
 }
 
 export function requireSameOrigin(request: Request) {
-  const configuration = requireAuthenticationConfiguration(process.env);
+  const configuration = getAuthenticationConfiguration(process.env);
+  if (configuration.mode !== "sessions" || !configuration.valid) return false;
   const origin = request.headers.get("origin");
   if (!origin) return false;
 

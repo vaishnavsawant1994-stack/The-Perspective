@@ -21,6 +21,21 @@ async function read(fn: "pn02_public_person" | "pn02_public_person_directory" | 
   return rows[0]?.result ?? null;
 }
 
+export async function publicPersonExists(kind: PublicPersonKind, slug: string): Promise<boolean> {
+  if (!companySlug.safeParse(slug).success) return false;
+  const database = getPrismaClient();
+  const rows = await database.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe("SET LOCAL ROLE perspective_public");
+    await tx.$queryRaw`SELECT set_config('app.organization_id', '', true)`;
+    return tx.$queryRawUnsafe<Array<{ exists: boolean }>>(
+      "SELECT profiles.pn02_public_person($1::text,$2::text) IS NOT NULL AS exists",
+      kind,
+      slug,
+    );
+  });
+  return rows[0]?.exists === true;
+}
+
 export async function getPublicPerson(kind: PublicPersonKind, slug: string): Promise<PublicPersonProfile | null> {
   if (!companySlug.safeParse(slug).success) return null;
   const value = await read("pn02_public_person", kind, slug);

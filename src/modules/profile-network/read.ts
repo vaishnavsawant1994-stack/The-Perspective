@@ -19,6 +19,20 @@ async function publicQuery(functionName: "pn01_public_company" | "pn01_public_di
   return rows[0]?.result ?? null;
 }
 
+export async function publicCompanyExists(slug: string): Promise<boolean> {
+  if (!companySlug.safeParse(slug).success) return false;
+  const database = getPrismaClient();
+  const rows = await database.$transaction(async (transaction) => {
+    await transaction.$executeRawUnsafe("SET LOCAL ROLE perspective_public");
+    await transaction.$queryRaw`SELECT set_config('app.organization_id', '', true)`;
+    return transaction.$queryRawUnsafe<Array<{ exists: boolean }>>(
+      "SELECT profiles.pn01_public_company($1::text) IS NOT NULL AS exists",
+      slug,
+    );
+  });
+  return rows[0]?.exists === true;
+}
+
 export async function getPublicCompany(slug: string): Promise<PublicCompanyProfile | null> {
   if (!companySlug.safeParse(slug).success) return null;
   const value = await publicQuery("pn01_public_company", slug);
