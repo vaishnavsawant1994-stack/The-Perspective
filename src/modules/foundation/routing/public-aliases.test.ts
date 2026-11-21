@@ -14,4 +14,14 @@ describe("public navigation aliases", () => {
       expect(existsSync(page), alias.destination).toBe(true);
     }
   });
+
+  it.each([
+    ["/travel", "/perspective"],
+    ["/books", "/perspective"],
+    ["/strategy", "/leadership"],
+    ["/opinion", "/perspective"],
+    ["/design", "/perspective"],
+  ])("routes the article category alias %s to %s", (source, destination) => {
+    expect(publicAliases.find((alias) => alias.source === source)?.destination).toBe(destination);
+  });
 });

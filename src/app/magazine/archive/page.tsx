@@ -4,7 +4,7 @@ import { MagazineArchiveRedesign } from "@/components/magazine/archive/magazine-
 import { PublishedEditionBand } from "@/components/magazine/published/published-projection";
 import { siteConfig } from "@/config/site";
 import { getLatestMagazineIssue } from "@/data/mock/magazines";
-import { filterMagazineIssues, getFeaturedArchiveIssue, getMagazineArchiveCounts, getMagazineArchiveThemes, getMagazineArchiveYears, getMagazineIssues, getPremiumMagazineIssues, getReaderAvailableIssues, parseMagazineArchiveFilter, parseMagazineArchiveQuery, parseMagazineArchiveYear, resolveMagazineArchiveIssues, validateMagazineArchiveData } from "@/lib/magazine-archive";
+import { filterMagazineIssues, getFeaturedArchiveIssue, getMagazineArchiveCounts, getMagazineArchiveThemes, getMagazineArchiveYears, getMagazineIssues, getPremiumMagazineIssues, getReaderAvailableIssues, parseMagazineArchiveFilter, parseMagazineArchiveYear, resolveMagazineArchiveIssues, resolveMagazineArchiveQuery, validateMagazineArchiveData } from "@/lib/magazine-archive";
 import { createMagazineArchiveStructuredData } from "@/lib/magazine-structured-data";
 import { publishedCatalogue } from "@/modules/r9/projection";
 import { readSearchParameter } from "@/lib/search-query";
@@ -15,6 +15,7 @@ type MagazineArchivePageProps = {
     year?: string | string[];
     type?: string | string[];
     sort?: string | string[];
+    issue?: string | string[];
   }>;
 };
 
@@ -22,7 +23,7 @@ const description = "Browse past issues of The Perspective Magazine, including l
 
 export async function generateMetadata({ searchParams }: MagazineArchivePageProps): Promise<Metadata> {
   const parameters = await searchParams;
-  const hasArchiveState = Boolean(readSearchParameter(parameters.q).trim() || readSearchParameter(parameters.year).trim() || readSearchParameter(parameters.type).trim() || readSearchParameter(parameters.sort).trim());
+  const hasArchiveState = Boolean(readSearchParameter(parameters.q).trim() || readSearchParameter(parameters.year).trim() || readSearchParameter(parameters.type).trim() || readSearchParameter(parameters.sort).trim() || readSearchParameter(parameters.issue).trim());
   return {
     title: { absolute: "Magazine Archive | The Perspective" },
     description,
@@ -38,7 +39,7 @@ export const dynamic = "force-dynamic";
 export default async function MagazineArchiveRoute({ searchParams }: MagazineArchivePageProps) {
   const parameters = await searchParams;
   const state = {
-    query: parseMagazineArchiveQuery(parameters.q),
+    query: resolveMagazineArchiveQuery(parameters.q, parameters.issue),
     year: parseMagazineArchiveYear(parameters.year),
     type: parseMagazineArchiveFilter(parameters.type),
   } as const;
