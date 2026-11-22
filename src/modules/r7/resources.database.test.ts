@@ -423,12 +423,12 @@ describe("R7 trusted resource loaders", () => {
 
     const persisted = await database.$queryRawUnsafe<Array<{
       proposal_status: string; row_version: number; version_status: string; immutable: boolean;
-      accepted_at: Date; expected_row_version: number; accepted_row_version: number;
+      accepted_at: string; expected_row_version: number; accepted_row_version: number;
       actor_user_id: string; actor_membership_id: string;
     }>>(
       `SELECT proposal.status AS proposal_status, proposal.row_version,
               version.status AS version_status, version.immutable,
-              evidence.accepted_at, evidence.expected_row_version, evidence.accepted_row_version,
+              evidence.accepted_at::text AS accepted_at, evidence.expected_row_version, evidence.accepted_row_version,
               evidence.actor_user_id, evidence.actor_membership_id
          FROM commercial.proposals AS proposal
          JOIN commercial.proposal_versions AS version
@@ -443,7 +443,7 @@ describe("R7 trusted resource loaders", () => {
       expected_row_version: 3, accepted_row_version: 4,
       actor_user_id: seedIds.user.asteriaAdmin, actor_membership_id: customerMembershipId,
     });
-    expect(persisted[0]?.accepted_at.toISOString()).toBe(first.value.acceptedAt);
+    expect(Date.parse(persisted[0]?.accepted_at ?? "")).toBe(Date.parse(first.value.acceptedAt));
     expect(await count(
       `SELECT count(*)::bigint AS count FROM commercial.proposal_acceptances WHERE proposal_id=$1::uuid`,
       customerProposalId,
