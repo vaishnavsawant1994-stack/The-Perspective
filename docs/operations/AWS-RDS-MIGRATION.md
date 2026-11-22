@@ -26,9 +26,13 @@ Recommended production RDS requirements: encrypted storage, private subnets and 
 
 scripts/database/aws_rds_migrate.py is a standalone, conservative command-line tool. It NEVER changes source DB, never drops/replaces target tables, refuses identical source/target, and refuses a target containing application tables. All database credentials come from environment variables and are not written to logs.
 
+### Rehearsal data boundary
+
+Do not copy the production Neon database into an AWS **staging** or rehearsal database. It contains real account, contact, client and business records, and the current utility does not anonymize or redact rows. A rehearsal source must be synthetic or irreversibly de-identified, and the target must have staging-only credentials and access controls. If a rehearsal requires production-derived data, stop until an approved, tested anonymization process and data-handling approval exist. The production cutover section below is a separate controlled migration into a dedicated production target; it is not permission to put production data into staging.
+
 The runner needs **psql, pg_dump and pg_restore** (PostgreSQL 17 client recommended), Python 3.11+, source Neon access, and a tested private path to AWS RDS. Inject SOURCE_DATABASE_URL and TARGET_DATABASE_URL from a secret manager, not a pasted command. Use TLS with sslmode=verify-full and a trusted root certificate. Keep the output directory on encrypted private storage: pg_dump contains sensitive data.
 
-1. Confirm SOURCE_DATABASE_URL is production Neon and TARGET_DATABASE_URL is an independently created **empty** isolated AWS rehearsal database.
+1. Confirm SOURCE_DATABASE_URL points to a synthetic or irreversibly de-identified rehearsal source and TARGET_DATABASE_URL points to an independently created **empty** isolated AWS rehearsal database. Never set the rehearsal source to production Neon.
 2. Run: python3 scripts/database/aws_rds_migrate.py --mode preflight
 3. Run: python3 scripts/database/aws_rds_migrate.py --mode copy --output-dir /secure/unique-rehearsal-dir --apply --confirm-target-db perspective_rehearsal
 4. Run: python3 scripts/database/aws_rds_migrate.py --mode verify --output-dir /secure/unique-rehearsal-dir
