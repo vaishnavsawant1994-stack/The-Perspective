@@ -10,7 +10,7 @@ export function PublishedEditionBand({ issues, heading }: { issues: readonly Pub
       <h2 className="text-2xl font-semibold">{heading}</h2>
       <ul className="mt-4 grid gap-4">
         {issues.map((issue) => (
-          <li className="rounded border p-4" key={issue.slug}>
+          <li className="min-w-0 break-words rounded border p-4" key={issue.slug}>
             <p className="text-sm uppercase tracking-wide">{issue.availability === "PREMIUM" ? "Premium" : "Public"} · Edition {issue.editionNumber} · {issue.state === "ISSUE_ARCHIVED" ? "Archived" : "Published"}</p>
             <h3 className="mt-1 text-xl font-semibold"><Link href={`/magazine/read/${issue.slug}`}>{issue.title}</Link></h3>
             <p className="mt-2">{issue.cover.headline}</p>
