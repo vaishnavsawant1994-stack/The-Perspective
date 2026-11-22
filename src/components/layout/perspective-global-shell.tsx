@@ -28,7 +28,7 @@ export function GlobalMembershipNewsletter() {
       </div>
       <div className="home-newsletter-form">
         <NewsletterForm buttonLabel="Subscribe →" label="Email newsletter signup" theme="light" />
-        <p>Join 150,000+ readers worldwide. No spam, unsubscribe anytime.</p>
+        <p>Join readers worldwide. No spam, unsubscribe anytime.</p>
       </div>
     </section>
   );

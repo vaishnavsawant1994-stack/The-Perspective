@@ -66,6 +66,10 @@ export function getMagazineReaderHref(issue: MagazineIssue): string | null {
     : null;
 }
 
+export function getMagazineIssueDiscoveryHref(issue: MagazineIssue) {
+  return getMagazineReaderHref(issue) ?? `/magazine/archive?issue=${encodeURIComponent(issue.slug)}`;
+}
+
 export function scoreMagazineIssueForCategory(issue: MagazineIssue, category: MagazineCategory) {
   let score = category.featuredIssueIds.includes(issue.id) ? 100 : 0;
   const normalizedTheme = normalize(issue.theme);
