@@ -1,5 +1,30 @@
 # The Perspective — Functional Audit Snapshot
 
+## Latest verification update — 2026-11-22
+
+This section supersedes older **current-state** labels below where they conflict; the dated evidence that follows remains historical.
+
+### Exact V1.1 candidate
+
+- PR #73 remains open and draft at `2bdd85102bf52f3817ddae466361885bd2c06359`, based on `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`.
+- GitHub Actions: **17/17 workflows passed** on that exact head. The Vercel status check is successful. V1 UI Control Qualification run [44972099398](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44972099398) published artifact [14734092832](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44972099398/artifacts/14734092832), retained through 2026-12-06.
+- The control scanner checks its configured routes and control accessibility/rendering; it does not activate every control or prove all business effects persisted. Exact-head local evidence is recorded in PR #73.
+- No PR review submissions are recorded for PR #73. It remains draft; CI success is not a release or production-acceptance decision.
+
+### Live public endpoint recheck
+
+Read-only HTTP probes on 2026-11-22 against `https://www.thetimesofperspective.com` returned HTTP 200 for `/`, `/api/health/live`, `/api/health/ready`, `/travel`, `/books`, `/strategy`, `/opinion`, and `/design`. The five editorial paths resolve after canonical redirects where applicable. This establishes HTTP reachability only and does not identify the deployed source SHA or prove authenticated workflows.
+
+The historical aliases `the-perspective-liart.vercel.app` and `the-perspective-vishnu26.vercel.app` now return Vercel `404 DEPLOYMENT_NOT_FOUND`. They are not valid current production endpoints. Vercel project listing in the connected accounts returned no matching project. The public production domain is responding, but Hostinger connector access currently requests reauthentication, so its deployed source SHA, runtime logs, app-entry mapping, and production `DATABASE_URL` identity remain unverified.
+
+### Production database security and recovery gates
+
+Read-only Neon checks on 2026-11-22 confirmed production project `nameless-surf-82295602`, branch `br-icy-mountain-bak8ooxk` (`production`), is ready and `protected=false`. Its automatic snapshot schedule is empty. The runtime login is `NOSUPERUSER`, `NOCREATEROLE`, `NOCREATEDB`, and `NOBYPASSRLS`, but it has direct `SELECT`, `INSERT`, `UPDATE`, and `DELETE` privileges on all 18 `iam` tables, all 12 `platform` tables, and the one `audit` table. RLS is enabled and forced on one of the 12 `platform` tables; the other listed tables have RLS disabled. This remains a high-severity least-privilege/containment gate. No grants, branch settings, snapshots, database rows, hosting settings, or DNS were changed.
+
+These facts do not establish a breach or an exploitable injection path. Any privilege repair still requires a complete application privilege map and qualification against an isolated, verified nonproduction database before production use.
+
+**Release status:** V1.0 remains uncertified and V1.1 remains unreleased. Production owner login/MFA, production tenant-isolation journeys, alert delivery/acknowledgement, verified Hostinger source/database mapping, least-privilege remediation, backup recovery/cutover and rollback acceptance, and the V1.1 authenticated staging editorial workflow remain unverified or incomplete.
+
 **Evidence checked:** 2026-11-19 Asia/Kolkata (2026-11-18 UTC)
 
 **Production baseline:** `main@3fa80397963761d29d4e972fadf4f098e50e8c75`
