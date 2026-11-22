@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -9,6 +8,7 @@ import { authorizationProblem, authorizeTrustedHttpOperation, resolveAuthorizedH
 import { withCommercialTenantTransaction } from "@/modules/commercial/persistence";
 import { getPrismaClient } from "@/modules/persistence/client";
 import { r6MfaSatisfied, r6RecentAuthenticationSatisfied } from "@/modules/r6/security";
+import { profileRequestRateKeyFromHeaders } from "./request-rate-key";
 import { companySlug } from "./schema";
 
 const https = z.string().url().refine((value) => {
@@ -47,17 +47,7 @@ function rateKey(request: Request) {
   // The database also applies a global volume ceiling to limit spoofing abuse.
   const rawKey = process.env.PERSPECTIVE_AUTH_DATA_KEY;
   const secret = rawKey ? Buffer.from(rawKey, "base64") : Buffer.alloc(0);
-  if (secret.length < 32) return null;
-  const real = request.headers.get("x-real-ip");
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();
-  const ip = real || forwarded;
-  if (!ip || !/^[0-9a-fA-F:.]{3,45}$/u.test(ip)) return null;
-  return createHmac("sha256", secret)
-    .update("profile-requests:v1|")
-    .update(ip)
-    .update("|")
-    .update((request.headers.get("user-agent") || "").slice(0,80))
-    .digest("hex");
+  return profileRequestRateKeyFromHeaders(request.headers, secret);
 }
 
 export async function submitPublicProfileRequest(request: Request) {
