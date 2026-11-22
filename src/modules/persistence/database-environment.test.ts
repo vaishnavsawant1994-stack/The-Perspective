@@ -18,6 +18,33 @@ describe("database environment boundary", () => {
     });
   });
 
+  it.each(["prefer", "require", "verify-ca"])(
+    "pins the current full-verification behavior for the legacy %s TLS alias",
+    (sslmode) => {
+      const result = getDatabaseEnvironment({
+        DATABASE_URL: `postgresql://user:pass@db.example.test/app?sslmode=${sslmode}&application_name=perspective`,
+      });
+
+      expect(result.valid).toBe(true);
+      if (result.valid) {
+        const normalized = new URL(result.databaseUrl);
+        expect(normalized.searchParams.get("sslmode")).toBe("verify-full");
+        expect(normalized.searchParams.get("application_name")).toBe("perspective");
+      }
+    },
+  );
+
+  it.each(["verify-full", "disable"])(
+    "leaves the explicit %s TLS mode unchanged",
+    (sslmode) => {
+      const databaseUrl = `postgresql://user:pass@db.example.test/app?sslmode=${sslmode}`;
+      expect(getDatabaseEnvironment({ DATABASE_URL: databaseUrl })).toEqual({
+        valid: true,
+        databaseUrl,
+      });
+    },
+  );
+
   it.each([
     {},
     { DATABASE_URL: "" },

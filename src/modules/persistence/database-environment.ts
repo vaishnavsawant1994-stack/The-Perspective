@@ -8,6 +8,24 @@ const postgresUrlSchema = z
     "DATABASE_URL must use the postgresql:// or postgres:// protocol.",
   );
 
+const legacyPostgresSslModes = new Set(["prefer", "require", "verify-ca"]);
+
+/**
+ * pg-connection-string currently treats these aliases as verify-full but warns
+ * that a future major will use weaker libpq semantics. Pin the existing
+ * stricter behavior explicitly while leaving local URLs without sslmode alone.
+ */
+export function normalizePostgresSslMode(databaseUrl: string) {
+  const url = new URL(databaseUrl);
+  const sslModes = url.searchParams.getAll("sslmode");
+  if (!sslModes.some((mode) => legacyPostgresSslModes.has(mode.toLowerCase()))) {
+    return databaseUrl;
+  }
+
+  url.searchParams.set("sslmode", "verify-full");
+  return url.toString();
+}
+
 export type DatabaseEnvironmentResult =
   | { readonly valid: true; readonly databaseUrl: string }
   | { readonly valid: false; readonly issues: readonly string[] };
@@ -18,7 +36,10 @@ export function getDatabaseEnvironment(
   const parsed = postgresUrlSchema.safeParse(environment.DATABASE_URL);
 
   if (parsed.success) {
-    return { valid: true, databaseUrl: parsed.data };
+    return {
+      valid: true,
+      databaseUrl: normalizePostgresSslMode(parsed.data),
+    };
   }
 
   return {
