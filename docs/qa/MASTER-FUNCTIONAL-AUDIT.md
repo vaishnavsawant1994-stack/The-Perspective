@@ -27,6 +27,17 @@ The scheduled encrypted-backup workflow's latest successful run observed on 2026
 
 These facts do not establish a breach or an exploitable injection path. Any privilege repair still requires a complete application privilege map and qualification against an isolated, verified nonproduction database before production use.
 
+### Application privilege map — initial source trace (2026-11-22)
+
+This is a source trace of the high-risk IAM access paths, not yet a complete all-module ACL matrix:
+
+- Authentication in [`service.ts`](../../src/modules/authentication/service.ts#L106) performs root-client reads and writes across `authentication_attempts`, `audit_events`, `organization_memberships`, `sessions`, `user_identities`, `password_credentials`, `mfa_challenges`, `authentication_secrets`, `invitations`, `user_accounts`, `mfa_methods`, `membership_roles`, `people`, and `recovery_challenges`. Its direct transactions do not issue `SET LOCAL ROLE`.
+- Role administration in [`admin.ts`](../../src/modules/authorization/admin.ts#L454) reads and mutates `roles`, `role_permissions`, and `membership_roles`, and checks `organization_memberships`; the root-client transactions in this module do not issue `SET LOCAL ROLE`.
+- [`resolver.ts`](../../src/modules/authorization/resolver.ts#L229) reads a selected membership and related membership roles, role permissions, and permissions through the root Prisma client. [`session/route.ts`](../../src/app/api/v1/auth/session/route.ts#L25) also reads `membership_roles` and `mfa_methods` directly.
+- By comparison, tenant-scoped CRM and commercial work explicitly executes `SET LOCAL ROLE perspective_runtime` before its transaction callback in [`crm/persistence.ts`](../../src/modules/crm/persistence.ts#L25) and [`commercial/persistence.ts`](../../src/modules/commercial/persistence.ts#L39). That boundary is not applied uniformly to authentication and authorization administration.
+
+This trace explains why immediately revoking every direct IAM grant would likely break login, MFA, session, invitation, recovery, role-administration, or authorization-resolution flows. It does not justify the present breadth: the runtime login still has direct DML on tables outside these paths and on tables with RLS disabled. Before changing production grants, complete the full query-to-table/action matrix, introduce and exercise an explicit least-privilege boundary for the direct paths, and run positive and negative authentication, MFA, authorization, and tenant-isolation journeys using the candidate runtime role on an isolated database.
+
 **Release status:** V1.0 remains uncertified and V1.1 remains unreleased. Production owner login/MFA, production tenant-isolation journeys, alert delivery/acknowledgement, verified Hostinger source/database mapping, least-privilege remediation, backup recovery/cutover and rollback acceptance, and the V1.1 authenticated staging editorial workflow remain unverified or incomplete.
 
 **Evidence checked:** 2026-11-19 Asia/Kolkata (2026-11-18 UTC)
