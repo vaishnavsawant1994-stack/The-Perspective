@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Client } from "pg";
 
 import { assertProductionConfiguration } from "@/modules/foundation/config/production-boundary";
+import { normalizePostgresSslMode } from "@/modules/persistence/database-environment";
 import { readinessFailureCategory, readyStatus } from "@/modules/r14/health";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,9 @@ export async function GET() {
   const result = await readyStatus(async () => {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) throw Object.assign(new Error("database unavailable"), { code: "DATABASE_URL_UNSET" });
-    const client = new Client({ connectionString });
+    const client = new Client({
+      connectionString: normalizePostgresSslMode(connectionString),
+    });
     try {
       await client.connect();
       await client.query("SELECT 1");

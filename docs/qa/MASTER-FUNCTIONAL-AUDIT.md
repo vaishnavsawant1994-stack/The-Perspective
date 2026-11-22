@@ -154,3 +154,30 @@ Follow-up local qualification at PR #75 head `1c9ced0c11209bc1841abd6ef7df4bb8a7
 ## Evidence limits
 
 The 168-route and 167-route CI scans are authenticated UI evidence, but neither is a manual click-through of every route in the repository. They do not exercise every state-changing control, test every successful and denied API mutation, inspect every public route or dynamic slug, verify production persistence, validate journalism, or prove Hostinger is running the tested source. A passing CI or HTTP health probe must not be presented as full product acceptance.
+
+## Exact-head and Hostinger follow-up (2026-11-22)
+
+### Repository and qualification
+
+- PR #73 is open, draft, and mergeable at exact head `71ccd925c3e930d70f25e629ca78bd16cf26ec57`, based on `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`. No review submissions are recorded. GitHub reports all 17 pull-request workflows successful for this exact head; the Vercel status is successful. Neither result is production acceptance.
+- The remote PR head passed 17/17 GitHub workflows and the Vercel status check. These checks predate the local TLS compatibility patch below and do not qualify that patch or establish production acceptance.
+- The local uncommitted TLS patch passed 669/669 unit tests, TypeScript, changed-file lint, and a clean-install production build that generated 470 pages. The clean install and `npm audit --audit-level=moderate` reported zero vulnerabilities.
+- A fresh disposable PostgreSQL 17 cluster on loopback received all 28 migrations. Migration status, database contract verification, schema drift, guarded synthetic seed and seed assertions passed. All 266 database tests across 40 files passed. The R14 backup/restore rehearsal reported the dump SHA-256 and restored 28 migration records into a separate database. The database server was stopped afterward. No Neon, AWS RDS, Hostinger or production database was used for these test writes.
+- Read-only local HTTP checks against the running PR worktree returned 200 for `/`, `/companies`, `/professionals`, `/editors`, `/api/health/live`, and `/api/health/ready`; unknown company, professional and editor slugs returned 404. The local server's database identity is unknown, so its readiness response is not used as evidence for any named staging or production database.
+
+### Current Hostinger mapping
+
+| Site | Verified mapping and runtime | Limit |
+| --- | --- | --- |
+| `expansive-darkslategray-raccoon-18.hostingersite.com` | `thetimesofperspective.com` is attached as a parked domain; Node.js 24 build state is completed; auto-deployment branch is `main`; root and readiness returned HTTP 200 | Hostinger's deployment readback did not provide a source SHA or identify the `DATABASE_URL` target. Runtime logs contained 3 `pg-connection-string` TLS-mode compatibility warnings; the URL value is masked, so the specific legacy alias is unknown |
+| `daily-limegreen-woodcock-36.hostingersite.com` | No custom domain is attached; Node.js 24 build state is completed; auto-deployment branch is `main`; root and readiness returned HTTP 200 | This is the likely staging candidate, but its intended role and `DATABASE_URL` target are not proven. The connector masks environment values. The readiness endpoint checks database connectivity with `SELECT 1`; it does not verify migrations or schema |
+
+Both sites currently deploy `main`; the Hostinger evidence does not show PR #73 running on staging. Do not apply migrations or use either database for fixtures until the exact target and data provenance are verified. The listed build state is evidence of a completed Hostinger build, not proof of its source commit.
+
+The local uncommitted TLS repair in `src/modules/persistence/database-environment.ts` normalizes legacy PostgreSQL `sslmode=prefer`, `require`, and `verify-ca` aliases to explicit `verify-full`, preserving the driver's current stricter behavior before a future dependency major changes it. The readiness route now uses the same normalization. Unit, lint, typecheck and production-build checks passed locally; deployment and disappearance of the Hostinger warnings have not been verified.
+
+### AWS staging connection and remaining release gates
+
+The owner-provided AWS CloudShell output for RDS `perspective-staging` reported `PubliclyAccessible=false`, security group `sg-0e3937e5c957ebacc` with only a self-referencing inbound rule, no SSM-managed instance, and no VPC endpoints. This does not provide a network path from Hostinger to the private RDS instance. The local AWS CLI is installed, but this session has no authenticated local AWS identity. No AWS, database, hosting, DNS or production configuration was changed.
+
+V1.0 remains uncertified. Production owner authentication/MFA, tenant-isolation journeys, monitoring and human alert acknowledgement, restore/cutover, rollback and independent review remain open. V1.1 remains unreleased: authenticated staging editorial acceptance, target database/source verification, privacy and abuse-control acceptance, and the required review/release decision remain open. Keep PR #73 draft and do not describe the successful technical checks as production readiness.
