@@ -11,22 +11,27 @@ spec.loader.exec_module(m)
 
 class TestMigration(TestCase):
     def test_tls_required(self):
-        with self.assertRaises(m.MigrationError):
-            m.connection("postgresql://u:p@example.com/perspective?sslmode=disable")
+        for mode in ("disable", "allow", "prefer", "require", "verify-ca"):
+            with self.subTest(sslmode=mode), self.assertRaises(m.MigrationError):
+                m.connection(f"postgresql://u:p@example.com/perspective?sslmode={mode}")
+
+    def test_verify_full_default(self):
+        e = m.connection("postgresql://u:p@example.com/perspective")
+        self.assertEqual(e["PGSSLMODE"], "verify-full")
 
     def test_url_encoded_password(self):
-        e = m.connection("postgresql://user:a%40b@example.com/perspective?sslmode=require")
+        e = m.connection("postgresql://user:a%40b@example.com/perspective?sslmode=verify-full")
         self.assertEqual(e["PGPASSWORD"], "a@b")
-        self.assertEqual(e["PGSSLMODE"], "require")
+        self.assertEqual(e["PGSSLMODE"], "verify-full")
 
     def test_same_database_blocked(self):
-        e = m.connection("postgresql://u:p@example.com/perspective?sslmode=require")
+        e = m.connection("postgresql://u:p@example.com/perspective?sslmode=verify-full")
         with self.assertRaises(m.MigrationError):
             m.preflight(e, e)
 
     def test_nonempty_target_blocked(self):
-        a = m.connection("postgresql://u:p@source.example.com/source?sslmode=require")
-        b = m.connection("postgresql://u:p@target.example.com/target?sslmode=require")
+        a = m.connection("postgresql://u:p@source.example.com/source?sslmode=verify-full")
+        b = m.connection("postgresql://u:p@target.example.com/target?sslmode=verify-full")
         with patch.object(m, "identity", return_value={}):
             with patch.object(m, "tables", side_effect=[[("iam", "users")], [("iam", "existing")]]):
                 with self.assertRaisesRegex(m.MigrationError, "not empty"):

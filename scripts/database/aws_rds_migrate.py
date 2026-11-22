@@ -30,8 +30,8 @@ def connection(url):
         raise MigrationError("URL must contain exactly one database name")
     qs = parse_qs(p.query)
     mode = qs.get("sslmode", ["verify-full"])[0]
-    if mode not in ("verify-full", "verify-ca", "require"):
-        raise MigrationError("TLS is required")
+    if mode != "verify-full":
+        raise MigrationError("TLS with full server identity verification (sslmode=verify-full) is required")
     if not p.username or not p.password:
         raise MigrationError("Database credentials must come from a secret-store URL")
     env = {
