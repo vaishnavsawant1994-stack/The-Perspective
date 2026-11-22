@@ -6,8 +6,8 @@ This section supersedes older **current-state** labels below where they conflict
 
 ### Exact V1.1 candidate
 
-- PR #73 remains open and draft at `2bdd85102bf52f3817ddae466361885bd2c06359`, based on `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`.
-- GitHub Actions: **17/17 workflows passed** on that exact head. The Vercel status check is successful. V1 UI Control Qualification run [44972099398](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44972099398) published artifact [14734092832](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44972099398/artifacts/14734092832), retained through 2026-12-06.
+- PR #73 remains open and draft at current head `8c21b5d92dd51a99bfdec607c6e5b7fffd4de70a`, based on `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`. The new head adds documentation only; its product-code candidate is unchanged from `2bdd85102bf52f3817ddae466361885bd2c06359`.
+- GitHub Actions: **17/17 workflows passed** on both the product-code head and current documentation head. The Vercel status check is successful on the current head. V1 UI Control Qualification run [44973474190](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44973474190) published artifact [14735211241](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44973474190/artifacts/14735211241), retained through 2026-12-06.
 - The control scanner checks its configured routes and control accessibility/rendering; it does not activate every control or prove all business effects persisted. Exact-head local evidence is recorded in PR #73.
 - No PR review submissions are recorded for PR #73. It remains draft; CI success is not a release or production-acceptance decision.
 
@@ -15,11 +15,15 @@ This section supersedes older **current-state** labels below where they conflict
 
 Read-only HTTP probes on 2026-11-22 against `https://www.thetimesofperspective.com` returned HTTP 200 for `/`, `/api/health/live`, `/api/health/ready`, `/travel`, `/books`, `/strategy`, `/opinion`, and `/design`. The five editorial paths resolve after canonical redirects where applicable. This establishes HTTP reachability only and does not identify the deployed source SHA or prove authenticated workflows.
 
+Homepage HTML on that check contained “Independent analysis, worldwide” and “Market data unavailable”; it did not contain the unsupported “150,000+ readers” count or the checked stale NIFTY, SENSEX, and USD/INR figures.
+
 The historical aliases `the-perspective-liart.vercel.app` and `the-perspective-vishnu26.vercel.app` now return Vercel `404 DEPLOYMENT_NOT_FOUND`. They are not valid current production endpoints. Vercel project listing in the connected accounts returned no matching project. The public production domain is responding, but Hostinger connector access currently requests reauthentication, so its deployed source SHA, runtime logs, app-entry mapping, and production `DATABASE_URL` identity remain unverified.
 
 ### Production database security and recovery gates
 
 Read-only Neon checks on 2026-11-22 confirmed production project `nameless-surf-82295602`, branch `br-icy-mountain-bak8ooxk` (`production`), is ready and `protected=false`. Its automatic snapshot schedule is empty. The runtime login is `NOSUPERUSER`, `NOCREATEROLE`, `NOCREATEDB`, and `NOBYPASSRLS`, but it has direct `SELECT`, `INSERT`, `UPDATE`, and `DELETE` privileges on all 18 `iam` tables, all 12 `platform` tables, and the one `audit` table. RLS is enabled and forced on one of the 12 `platform` tables; the other listed tables have RLS disabled. This remains a high-severity least-privilege/containment gate. No grants, branch settings, snapshots, database rows, hosting settings, or DNS were changed.
+
+The scheduled encrypted-backup workflow's latest successful run observed on 2026-11-22 was [run history](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/workflows/neon-database-backup.yml), created 2026-11-21 at `main@3fa80397963761d29d4e972fadf4f098e50e8c75`. The current `main` is `bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`, updated on 2026-11-22; no backup run on that newer main SHA was yet visible at the time of this check. The latest success therefore verifies the backup workflow run and its recorded artifact checks, not a post-merge backup from the current main revision.
 
 These facts do not establish a breach or an exploitable injection path. Any privilege repair still requires a complete application privilege map and qualification against an isolated, verified nonproduction database before production use.
 
