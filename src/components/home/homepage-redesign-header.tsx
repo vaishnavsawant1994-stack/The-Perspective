@@ -49,11 +49,8 @@ export function HomepageRedesignHeader() {
       <header className="home-head home-global-shell">
         <div className="home-utility">
           <div className="home-wrap home-utility-inner">
-            <p>Monday, August 10, 2026</p><span aria-hidden="true" />
-            <p>New Delhi <b>29°</b> ☀️</p><span aria-hidden="true" />
-            <p>NIFTY <b>24,812.40</b> <em>+0.56%</em></p>
-            <p>SENSEX <b>80,604.08</b> <em>+0.42%</em></p>
-            <p>USD/INR <b>83.74</b> <strong>-0.09%</strong></p>
+            <p>Independent analysis, worldwide</p><span aria-hidden="true" />
+            <p>Market data unavailable</p>
             <div className="home-utility-actions">
               <Link href="/search?q=India">Edition: India <ChevronDown aria-hidden="true" /></Link>
               <Link href="/search?q=English">English <ChevronDown aria-hidden="true" /></Link>
