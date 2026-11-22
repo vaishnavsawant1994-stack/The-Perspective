@@ -4,7 +4,6 @@ export const magazinePremiumPageConfig: MagazinePremiumPageConfig = {
   heroIssueId: "issue-global-leaders-special-2026",
   featuredArticleIds: [
     "article-new-architecture-global-leadership",
-    "article-new-architecture-global-leadership",
     "article-leaders-certainty-disappears",
     "article-organizational-trust",
     "article-boards-accountability",
