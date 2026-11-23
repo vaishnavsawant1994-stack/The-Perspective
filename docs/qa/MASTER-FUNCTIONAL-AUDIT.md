@@ -248,3 +248,51 @@ All queries below were read-only catalog/role/schema/migration checks; no applic
 - **V1.1: NOT RELEASED.** PR #73 is open and draft. It has exact-head code/CI and UI-control qualification, but no verified staging source/database mapping, no authenticated editorial workflow against an isolated least-privilege staging database, and no deployment acceptance. The 24-migration staging database is behind the branch's 28-migration schema.
 - Owner waiver `GOV-REVIEW-02` makes independent external review optional for V1.0; no independent review is claimed. The active ruleset no longer requires an approving review. Neither waiver nor green CI certifies a release.
 - No production rows, credentials, DNS records, branch protection settings, role grants, migrations, or deployments were changed during this refresh. No database connection strings or secret values were printed.
+
+## Current production and staging evidence refresh (2026-11-24 IST)
+
+This section supersedes earlier current-state statements where the inspected target or date differs. It records read-only observations from the canonical Hostinger deployment, both Hostinger Node.js sites, AWS staging RDS, and the connected GitHub account `vaishnavsawant1994-stack`. No production deployment, production database, DNS, production secret, or production database role was changed.
+
+### GitHub candidate
+
+- Repository: `vaishnavsawant1994-stack/The-Perspective`; default branch: `main`.
+- PR #73 remains open, draft, and unmerged at exact head `88d99c6ad5a2dc087c1f207844cc74c726e65890`, based on `main@4d3cd9e354028436b2b6b6ff5b3b469865b247d54`.
+- The connected GitHub account reports 17/17 workflow runs completed successfully on this head. The combined commit status reports the Vercel preview check as success. No review submissions are present.
+- These are candidate qualification results. They do not establish deployment or production acceptance.
+
+### Hostinger deployment identity and live behavior
+
+Read-only Hostinger deployment reads show both app entries are Next.js on Node.js 24, auto-deploying the same repository's `main` branch at `4d3cd9e354028436b2b6bff5b3b469865b247d54`:
+
+| Hostinger site | Build | Source | Environment keys |
+| --- | --- | --- | --- |
+| `expansive-darkslategray-raccoon-18.hostingersite.com` (parked domain `thetimesofperspective.com`) | `01a208a9-c5df-71e0-ae04-de4a3c483e19`, completed | `main@4d3cd9e354028436b2b6bff5b3b469865b247d54` | Includes `DATABASE_URL`, auth boundary and auth key variables, first-owner bootstrap variables |
+| `daily-limegreen-woodcock-36.hostingersite.com` (no custom domain) | `01a208a9-c583-7131-9330-6081f5ecd897`, completed | `main@4d3cd9e354028436b2b6bff5b3b469865b247d54` | Includes `DATABASE_URL` and auth boundary/key variables |
+
+The connector masks environment values. It does not reveal either database host, database name, username, or role, so the production and secondary site's database identities remain unverified. The secondary site is not a V1.1 preview: it runs `main`, not PR #73. One-day runtime log reads returned no ERROR or WARN entries, but logs contain only a small number of startup records and are not proof that authenticated workflows work.
+
+Read-only HTTP probes returned HTTP 200 for `/api/health/live` and `/api/health/ready` on both Hostinger hostnames and `www.thetimesofperspective.com`. The ready endpoint body was only `{"status":"ready"}`; it does not disclose target database identity or migration level. The canonical domain returned HTTP 404 for `/companies`, `/professionals`, and `/editors`. This is consistent with PR #73 remaining unreleased; it is not evidence of an unexpected regression on current `main`.
+
+### AWS staging RDS containment and migration
+
+- AWS CLI readback identifies account `595252767784`; the active CLI principal is the account root identity. Use a least-privilege non-root identity for future AWS operations.
+- RDS `perspective-staging` in `us-east-1` is `available`, encrypted, and not publicly accessible. Its security group `sg-0e3937e5c957ebacc` has only the prior self-referencing inbound rule; no public CIDR ingress exists.
+- An EC2 inventory of the RDS VPC returned no pending, running, stopping, or stopped instances. The temporary migration runner has been removed.
+- The encrypted manual snapshot `perspective-staging-pre-v11-20261124` is available.
+- The separately recorded 2026-11-24 migration acceptance applied the four pending PN-01 through PN-04 migrations from PR #73 head `88d99c6ad5a2dc087c1f207844cc74c726e65890`, bringing staging from 24 to 28 migrations. Post-verification found eight `profiles` tables and zero `profiles.profile_requests` rows; `db:verify` passed with `verified=true` and `pn04_verified=true` using TLS certificate and hostname verification. This is AWS staging evidence, not production migration evidence.
+- No Hostinger-to-private-RDS network path has been established. Hostinger sites are outside this RDS VPC and the RDS security group permits only its own group. Therefore the second Hostinger site cannot be accepted as an AWS-RDS-backed V1.1 staging app based on its `ready` response.
+
+### Remaining release gates
+
+| Gate | Current status | Required evidence |
+| --- | --- | --- |
+| Hostinger database target and runtime role | Unverified | Verify each masked `DATABASE_URL` target and least-privilege role without exposing credentials; prove production and staging are isolated |
+| Hostinger V1.1 preview | Not deployed | Establish an isolated staging network/database path, deploy the exact qualified PR #73 SHA to a verified staging target, and record the build SHA |
+| V1.0 owner login/MFA and tenant isolation | Not accepted | Complete positive owner/team/client authentication plus cross-tenant denial against a verified deployment and test identities |
+| Production database least privilege | Open | Map the deployed login role and verify required grants/RLS behavior against current auth/admin code before changing grants |
+| Alert delivery and acknowledgement | Not tested | Deliver a safe synthetic alert to an authorized human destination and record acknowledgement evidence |
+| Recovery and rollback | Partial | Retain existing encrypted dump/snapshot evidence; rehearse isolated restore/cutover and application rollback on verified nonproduction, record RPO/RTO |
+| PR #73 V1.1 workflow acceptance | Partial | Run authenticated editorial submission/review/publish/withdraw, public profile/correction request, abuse controls, privacy/retention, source-rights review, accessibility/mobile and browser acceptance against the verified candidate deployment |
+| Release decisions | Not eligible | Keep PR #73 draft and unmerged until required V1.0 and V1.1 gates are evidenced; do not call V1.0 certified or V1.1 released |
+
+The GitHub settings page still requires account re-authentication before the previously authorized collaborator/reviewer workflow can be resumed. No reviewer was added or requested during this verification. No AWS, Hostinger, production database, DNS, or release setting was changed.
