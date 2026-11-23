@@ -25,7 +25,8 @@ Green PR checks qualify the code and test fixtures. They do not verify Hostinger
 - ESLint completed with **0 errors and 3 warnings** (two unused fixture identifiers in `r6-communications.database.test.ts`; one unused type import in `r7/commands.ts`).
 - Production build passed and generated **470 pages**.
 - Local HTTP smoke returned 200 for the homepage, login routes, company/professional/editor directories, Personal Magazine discovery, and liveness. The database readiness route returned 503 because the smoke server used an intentionally invalid loopback-only database URL. An unknown company detail returned 500 under that same unavailable-database condition; this is not a valid not-found acceptance result.
-- Local PostgreSQL 17 is listening, but credentials were unavailable. No database connection, migration, seed, or row access was attempted.
+- A separate, fresh disposable PostgreSQL 17 cluster on loopback applied all **28 migrations**. The guarded synthetic seed and assertions, database contract verifier, migration status, and Prisma schema drift check passed; **266 database tests across 40 files passed**. The separate existing PostgreSQL service at port 5432 required credentials and was left untouched.
+- With the disposable database connected, readiness returned 200 and unknown Company, Professional, and Editor slugs returned 404. A Playwright check confirmed Company profiles title/H1, labeled search, search submission and Clear search behavior; browser console had zero errors and CSS preload warnings. The database and browser checks used only synthetic local records.
 
 The full route-by-route evidence and exact limitations are in [the master functional audit](../qa/MASTER-FUNCTIONAL-AUDIT.md#local-exact-head-requalification--2026-11-23).
 

@@ -18,6 +18,12 @@ A local production-server HTTP probe returned 200 for `/`, `/login`, `/client/lo
 
 These local checks validate build and public route behavior under the stated isolated configuration. They do not establish database-backed page behavior, authenticated journeys, staging identity, production behavior, or release readiness.
 
+#### Follow-up with a disposable local PostgreSQL database
+
+A new PostgreSQL 17 cluster was initialized under the Windows temporary directory, bound to `127.0.0.1` on a dynamically selected port, and stopped after qualification. Its fresh `perspective_pr73_test` database received all **28** migrations. The explicit synthetic seed, seed assertions, database contract verifier, migration status, and Prisma drift check passed. `npm run test:db` passed **266 tests across 40 files**. This cluster was separate from the existing Windows PostgreSQL service and all cloud databases.
+
+The local production server then used that disposable database. Readiness returned 200; unknown Company, Professional, and Editor slugs returned 404; and anonymous session access returned 401. A Playwright check confirmed the Company profiles page title/H1, its labeled search box, search submission to `?q=Asteria`, the no-match state, and the Clear search link returning to `/companies`. Browser console reported zero errors and CSS preload warnings. This verifies selected local flows against synthetic data only; it does not verify real owner MFA, production tenant isolation, or a Hostinger deployment.
+
 ### Live public endpoint recheck
 
 Read-only HTTP probes on 2026-11-22 against `https://www.thetimesofperspective.com` returned HTTP 200 for `/`, `/api/health/live`, `/api/health/ready`, `/travel`, `/books`, `/strategy`, `/opinion`, and `/design`. The five editorial paths resolve after canonical redirects where applicable. This establishes HTTP reachability only and does not identify the deployed source SHA or prove authenticated workflows.
