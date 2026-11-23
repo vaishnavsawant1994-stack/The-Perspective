@@ -5,7 +5,7 @@ import {
   Lightbulb, Play, Quote, Search, Share2, Sparkles, Target, Video, Volume2,
 } from "lucide-react";
 import { NewsletterForm } from "@/components/layout/newsletter-form";
-import type { Article, ArticleDetail } from "@/types";
+import type { Article } from "@/types";
 import { getVideoSlug, type VideoDetailContent } from "@/lib/video-detail";
 import { VideoPlayerControls } from "./video-player-controls";
 import styles from "./video-detail-page.module.css";
@@ -25,7 +25,7 @@ function SectionHeader({ title, href, action = "View all" }: { title: string; hr
   return <header className={styles.sectionHeader}><h2>{title}</h2>{href && <Link href={href}>{action}<ArrowRight /></Link>}</header>;
 }
 
-function Intro({ article, slug }: { article: ArticleDetail; slug: string }) {
+function Intro({ article, slug }: { article: Article; slug: string }) {
   const isFeatured = slug === "indias-digital-decade-road-ahead";
   return <>
     <nav className={styles.breadcrumb} aria-label="Breadcrumb"><Link href="/">Home</Link><ChevronRight /><Link href="/videos">Videos</Link><ChevronRight /><b>{isFeatured ? featuredTitle : article.title}</b></nav>
@@ -76,7 +76,7 @@ function Newsletter() { return <section className={styles.newsletter}><SectionHe
 
 function BottomCta() { return <section className={styles.bottomCta}><div className={styles.devices}><Video /></div><article><h2>Real conversations. Real impact.</h2><p>Watch more insightful conversations with leaders and changemakers on The Perspective.</p><Link href="/videos">Explore all videos</Link></article><article><h2>Be featured on The Perspective</h2><p>Are you a leader, innovator or changemaker? Share your story with our global audience.</p><Link href="/search?q=be+featured">Apply to be featured</Link></article><div className={styles.studio}><Volume2 /></div></section>; }
 
-export function VideoDetailPage({ article, content, related, slug }: { article: ArticleDetail; content: VideoDetailContent; related: readonly Article[]; slug: string }) {
+export function VideoDetailPage({ article, content, related, slug }: { article: Article; content: VideoDetailContent; related: readonly Article[]; slug: string }) {
   const seriesStories = content.videos.map((story) => story.article).filter((item) => item.id !== article.id);
   return <main className={styles.page}><div className={styles.shell}><Intro article={article} slug={slug} /><div className={styles.mainGrid}><div><Player /><ChaptersInsights /><Transcript /></div><aside className={styles.sideRail}><InVideo /><Speaker /><StoryList stories={related} title="Related articles" /><StoryList stories={seriesStories} title="More from this series" videos /><Shorts content={content} /></aside></div><div className={styles.discovery}><RelatedVideos content={content} /><Newsletter /></div><BottomCta /></div></main>;
 }

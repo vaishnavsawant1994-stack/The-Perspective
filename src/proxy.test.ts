@@ -89,4 +89,26 @@ describe("R1 proxy security boundary", () => {
     );
     expect(exists).toHaveBeenCalled();
   });
+
+  it.each([
+    "/article/new-architecture-global-leadership",
+    "/article/market-memory",
+  ])("allows known public article routes %s", async (path) => {
+    const response = await proxy(request(path));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it.each(["/article/human-purpose-ai-world", "/article/50-leaders"])(
+    "keeps withdrawn fictional article unavailable: %s",
+    async (path) => {
+      const response = await proxy(request(path));
+
+      expect(response.status).toBe(404);
+      expect(response.headers.get("x-middleware-rewrite")).toBe(
+        "https://perspective.example/_not-found",
+      );
+    },
+  );
 });
