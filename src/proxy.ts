@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getArticleDetailBySlug } from "@/data/mock/article-details";
+import { getArticleBySlug, unpublishedFictionalArticleSlugs } from "@/data/mock/articles";
 import { getAuthorProfileBySlug } from "@/data/mock/author-profiles";
 import { getMagazineCategoryBySlug } from "@/lib/magazine-categories";
 import { getReadableMagazineSlugs } from "@/lib/magazine-reader";
@@ -33,7 +34,9 @@ async function publicResourceExists(pathname: string) {
   const articleSlug = routeSlug(pathname, "/article");
   if (articleSlug !== null) {
     if (!articleSlug) return false;
+    if (unpublishedFictionalArticleSlugs.has(articleSlug)) return false;
     if (getArticleDetailBySlug(articleSlug)) return true;
+    if (getArticleBySlug(articleSlug)) return true;
     return (await publishedPaths()).includes(`/article/${articleSlug}`);
   }
 

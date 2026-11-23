@@ -1,5 +1,5 @@
 import type { Article, ArticleContentBlock, ArticleDetail, ImageAsset, Tag } from "@/types";
-import { articles, getArticleById, getArticleBySlug } from "./articles";
+import { articles, getArticleById, getArticleBySlug, unpublishedFictionalArticleSlugs } from "./articles";
 
 const inlineImages = {
   leadership: { src: "/images/articles/global-leadership.png", alt: "Leaders in conversation inside a contemporary civic atrium", width: 1536, height: 1024 },
@@ -286,20 +286,7 @@ const detailSeeds: ArticleDetailSeed[] = [
   },
 ];
 
-function fallbackContent(article: Article): ArticleContentBlock[] {
-  return [
-    { type: "paragraph", text: `${article.excerpt} This story is part of The Perspective's fictional August 2026 editorial edition, examining the decisions, institutions and ideas shaping a changing global landscape.` },
-    { type: "heading", level: 2, text: "Why This Matters" },
-    { type: "paragraph", text: `The immediate development sits inside a larger ${article.category.name.toLowerCase()} story. Leaders are being asked to balance short-term evidence with capabilities that take years to build, while explaining those choices to employees, investors and the public.` },
-    { type: "pullQuote", quote: "The most useful perspective connects today's decision with the system it will shape tomorrow.", attribution: "The Perspective newsroom" },
-    { type: "heading", level: 2, text: "The Wider View" },
-    { type: "paragraph", text: "The details will continue to evolve, but the underlying test is already clear: institutions need enough focus to act and enough flexibility to learn. That combination turns uncertainty from a reason to wait into a reason to build better options." },
-  ];
-}
-
-function fallbackRelatedIds(article: Article) {
-  return articles.filter((candidate) => candidate.id !== article.id && candidate.category.id === article.category.id).slice(0, 3).map((candidate) => candidate.id);
-}
+const editorialArticleIds = new Set(detailSeeds.map((detail) => detail.articleId));
 
 export function getArticleTags(article: Article): readonly Tag[] {
   const detail = detailSeeds.find((candidate) => candidate.articleId === article.id);
@@ -307,15 +294,18 @@ export function getArticleTags(article: Article): readonly Tag[] {
 }
 
 export function getArticleDetailBySlug(slug: string): ArticleDetail | undefined {
+  if (unpublishedFictionalArticleSlugs.has(slug)) return undefined;
   const article = getArticleBySlug(slug);
   if (!article) return undefined;
   const detail = detailSeeds.find((candidate) => candidate.articleId === article.id);
-  return { ...article, tags: [...getArticleTags(article)], relatedArticleIds: detail?.relatedArticleIds ?? fallbackRelatedIds(article), content: detail?.content ?? fallbackContent(article) };
+  if (!detail) return undefined;
+  return { ...article, tags: [...getArticleTags(article)], relatedArticleIds: detail.relatedArticleIds, content: detail.content };
 }
 
 export function getRelatedArticles(article: Article, limit = 3) {
-  const explicit = (article.relatedArticleIds ?? []).map(getArticleById).filter((candidate): candidate is Article => candidate !== undefined && candidate.id !== article.id);
-  const sameCategory = articles.filter((candidate) => candidate.id !== article.id && candidate.category.id === article.category.id);
-  const combined = [...explicit, ...sameCategory, ...articles.filter((candidate) => candidate.id !== article.id)];
+  const isPublicEditorial = (candidate: Article | undefined): candidate is Article => candidate !== undefined && candidate.id !== article.id && editorialArticleIds.has(candidate.id) && !unpublishedFictionalArticleSlugs.has(candidate.slug);
+  const explicit = (article.relatedArticleIds ?? []).map(getArticleById).filter(isPublicEditorial);
+  const sameCategory = articles.filter((candidate) => candidate.id !== article.id && candidate.category.id === article.category.id && isPublicEditorial(candidate));
+  const combined = [...explicit, ...sameCategory, ...articles.filter((candidate) => candidate.id !== article.id && isPublicEditorial(candidate))];
   return combined.filter((candidate, index) => combined.findIndex((item) => item.id === candidate.id) === index).slice(0, limit);
 }
