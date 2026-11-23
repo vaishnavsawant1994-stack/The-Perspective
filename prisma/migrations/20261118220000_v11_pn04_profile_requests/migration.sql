@@ -58,6 +58,12 @@ BEGIN
   ELSE
     IF profiles.pn02_public_person(p_subject_kind,p_slug) IS NULL THEN RETURN NULL; END IF;
   END IF;
+  -- The per-IP and global caps are checked then written in one critical
+  -- section. Without a transaction-scoped lock, concurrent requests could
+  -- all observe the same count and exceed both limits.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('perspective.profile_requests.global.v1', 0)
+  );
   IF (SELECT count(*) FROM profiles.profile_requests
     WHERE rate_key=p_rate_key AND submitted_at > clock_timestamp()-interval '1 day') >= 3
   THEN RETURN NULL; END IF;
@@ -171,5 +177,6 @@ GRANT EXECUTE ON FUNCTION
   profiles.pn03_publish(uuid,uuid,text,text,text),
   profiles.pn03_team_queue(uuid),
   profiles.pn04_team_queue(uuid),
-  profiles.pn04_decide(uuid,uuid,text,text,text)
+  profiles.pn04_decide(uuid,uuid,text,text,text),
+  profiles.pn04_purge_expired(uuid)
   TO perspective_runtime;
