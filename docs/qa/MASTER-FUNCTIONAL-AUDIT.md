@@ -6,10 +6,17 @@ The [2026-11-23 exact-head and infrastructure refresh](#exact-head-and-infrastru
 
 ### Exact V1.1 candidate
 
-- PR #73 remains open and draft at current head `8c21b5d92dd51a99bfdec607c6e5b7fffd4de70a`, based on `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`. The new head adds documentation only; its product-code candidate is unchanged from `2bdd85102bf52f3817ddae466361885bd2c06359`.
-- GitHub Actions: **17/17 workflows passed** on both the product-code head and current documentation head. The Vercel status check is successful on the current head. V1 UI Control Qualification run [44973474190](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44973474190) published artifact [14735211241](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/44973474190/artifacts/14735211241), retained through 2026-12-06.
-- The control scanner checks its configured routes and control accessibility/rendering; it does not activate every control or prove all business effects persisted. Exact-head local evidence is recorded in PR #73.
+- The product-code checkpoint tested in this refresh is `e7bcd7e37843bc5040013208f9784153b0d83e79`, based on `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804`. PR #73 remains open and draft. GitHub reports **17/17 workflow runs successful** and Vercel success on that code checkpoint; the [V1 UI Control Qualification](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45092178546) published artifact [14782093865](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45092178546/artifacts/14782093865), retained through 2026-12-07. The dated audit update below is documentation only; consult PR #73 for its live branch-head SHA and checks.
+- The control scanner checks configured routes and control accessibility/rendering; it does not activate every control or prove all business effects persisted. Fresh local exact-head evidence is recorded below.
 - No PR review submissions are recorded for PR #73. It remains draft; CI success is not a release or production-acceptance decision.
+
+### Local exact-head requalification — 2026-11-23
+
+On `e7bcd7e37843bc5040013208f9784153b0d83e79`, `npm test -- --reporter=dot` passed **679 tests across 92 files**; TypeScript passed; Prisma schema validation passed; ESLint completed with **0 errors and 3 warnings** (two unused fixture identifiers in `r6-communications.database.test.ts`, one unused type import in `r7/commands.ts`). The production build passed and generated **470 pages**. The build and local server used an intentionally invalid loopback-only PostgreSQL URL; no cloud database was contacted.
+
+A local production-server HTTP probe returned 200 for `/`, `/login`, `/client/login`, `/companies`, `/professionals`, `/editors`, `/personal-magazines/discover`, and `/api/health/live`; `/travel` and `/books` returned 307 redirects; an unknown article slug returned 404; anonymous `GET /api/v1/auth/session` returned 401; `GET /api/v1/profile-network/requests` returned 405. `/api/health/ready` returned 503 because the intentionally invalid local database URL cannot authenticate. An unknown company detail slug returned 500 for the same unavailable-database condition, so it is **not** a valid 404 acceptance result. The PostgreSQL 17 Windows service is running locally, but local database authentication requires credentials unavailable to this session; no schema, seed, or data changes were attempted.
+
+These local checks validate build and public route behavior under the stated isolated configuration. They do not establish database-backed page behavior, authenticated journeys, staging identity, production behavior, or release readiness.
 
 ### Live public endpoint recheck
 

@@ -12,11 +12,22 @@ This is the current release-status pointer. The detailed, evidence-based audit i
 | --- | --- |
 | Production `main` | `ce7c1513bb61e45cb0f9081bf672befa2a4e6804` |
 | Hostinger production and secondary app | Both run Node 24 from `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804`; homepage/readiness checks returned HTTP 200 |
-| PR #73 — Profile Network | Open, draft, unmerged; exact head `dad3f21a371d92be0d6ed7e09eb578abfbfadab3` |
-| PR #73 qualification | 17/17 exact-head GitHub Actions workflows passed; Vercel status passed; R3 browser and 171-route UI control audit passed |
+| PR #73 — Profile Network | Open and draft; product-code checkpoint tested in this refresh: `e7bcd7e37843bc5040013208f9784153b0d83e79`; use the live PR for the current branch head |
+| PR #73 qualification | 17/17 GitHub Actions workflow runs and Vercel passed on product-code checkpoint `e7bcd7e`; V1 UI artifact retained through 2026-12-07; any later documentation commit needs exact-head requalification |
 | Main protection | Active `Protect main` ruleset; pull requests, three required checks, up-to-date checks and resolved conversations required; approving reviews waived at owner direction |
 
 Green PR checks qualify the code and test fixtures. They do not verify Hostinger's masked database connection, production authentication, tenant isolation, recovery, or release readiness. PR #73 remains isolated from both live Hostinger apps.
+
+## Local requalification on the exact PR head
+
+- Unit tests: **679/679 across 92 files passed**.
+- TypeScript and Prisma schema validation passed.
+- ESLint completed with **0 errors and 3 warnings** (two unused fixture identifiers in `r6-communications.database.test.ts`; one unused type import in `r7/commands.ts`).
+- Production build passed and generated **470 pages**.
+- Local HTTP smoke returned 200 for the homepage, login routes, company/professional/editor directories, Personal Magazine discovery, and liveness. The database readiness route returned 503 because the smoke server used an intentionally invalid loopback-only database URL. An unknown company detail returned 500 under that same unavailable-database condition; this is not a valid not-found acceptance result.
+- Local PostgreSQL 17 is listening, but credentials were unavailable. No database connection, migration, seed, or row access was attempted.
+
+The full route-by-route evidence and exact limitations are in [the master functional audit](../qa/MASTER-FUNCTIONAL-AUDIT.md#local-exact-head-requalification--2026-11-23).
 
 ## Production and staging gates
 
