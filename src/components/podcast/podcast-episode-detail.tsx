@@ -5,7 +5,7 @@ import {
   Mic2, Play, Quote, Radio, Search, Share2, Sparkles, Tag, Video,
 } from "lucide-react";
 import { NewsletterForm } from "@/components/layout/newsletter-form";
-import type { Article, ArticleDetail } from "@/types";
+import type { Article } from "@/types";
 import type { PodcastEpisodeContent } from "@/lib/podcast-shows";
 import { PodcastAudioPlayer } from "./podcast-audio-player";
 import styles from "./podcast-episode-detail.module.css";
@@ -45,7 +45,7 @@ function Person({ type, name, role, image, href }: { type: string; name: string;
   return <Link className={styles.person} href={href}><span><Image alt={name} fill sizes="54px" src={image} /></span><div><small>{type}</small><b>{name}</b><p>{role}</p></div></Link>;
 }
 
-function EpisodeHero({ article, content }: { article: ArticleDetail; content: PodcastEpisodeContent }) {
+function EpisodeHero({ article, content }: { article: Article; content: PodcastEpisodeContent }) {
   const { show } = content;
   return <>
     <nav aria-label="Breadcrumb" className={styles.breadcrumb}><Link href="/">Home</Link><ChevronRight /><Link href="/podcasts">Podcasts</Link><ChevronRight /><Link href={`/podcasts/${show.slug}`}>{show.title}</Link><ChevronRight /><b>Episode 48</b></nav>
@@ -92,7 +92,7 @@ function ProfileCard({ label, name, role, image, href }: { label: string; name: 
   return <section className={styles.profileCard}><SectionHeader title={label} /><div><span><Image alt={name} fill sizes="80px" src={image} /></span><p><b>{name}</b><small>{role}</small></p></div><Link href={href}>View profile<ArrowRight /></Link></section>;
 }
 
-function SideRail({ article, content, related }: { article: ArticleDetail; content: PodcastEpisodeContent; related: readonly Article[] }) {
+function SideRail({ article, content, related }: { article: Article; content: PodcastEpisodeContent; related: readonly Article[] }) {
   const { show, episodes } = content;
   return <aside className={styles.sideRail}>
     <section className={styles.about}><SectionHeader title="About this episode" /><p>Arjun Mehta, Founder & CEO of NextSphere Technologies, joins Ananya Mehta for an in-depth conversation about building ventures that scale, leading with empathy, and how technology can be a force for good.</p><small>Topics</small><div>{["Leadership", "Innovation", "AI", "Strategy", "Entrepreneurship", "Purpose"].map((topic) => <Link href={`/search?q=${topic}`} key={topic}>{topic}</Link>)}</div></section>
@@ -103,7 +103,7 @@ function SideRail({ article, content, related }: { article: ArticleDetail; conte
   </aside>;
 }
 
-function Clips({ article, related }: { article: ArticleDetail; related: readonly Article[] }) {
+function Clips({ article, related }: { article: Article; related: readonly Article[] }) {
   const clips = [article, ...related].slice(0, 3);
   const labels = ["The biggest leadership lesson I learned the hard way", "Why India has the talent to build global companies", "AI will amplify human potential, not replace it"];
   return <section className={styles.clips}><SectionHeader action="View all clips" href="/videos" title="Featured clips" /><div>{clips.map((story, index) => <article key={story.id}><Link href={`/article/${story.slug}`}><span><Image alt={story.heroImage?.alt ?? story.title} fill sizes="230px" src={index === 0 ? guestImage : imageOf(story)} /><i><Play /></i><small>1:{32 - index * 14}</small></span><h3>{labels[index]}</h3><p>{2421 + index * 387} views</p></Link></article>)}</div></section>;
@@ -118,7 +118,7 @@ function EpisodeNewsletter() {
   return <section className={styles.newsletter}><div className={styles.newsletterImage}><Image alt="Podcast studio conversation" fill sizes="260px" src={guestImage} /></div><div><h2>Never miss an episode.</h2><p>Subscribe for new episode alerts, exclusive insights and show notes.</p></div><NewsletterForm buttonLabel="Subscribe" label="Podcast episode updates" theme="light" /><aside><Mic2 /><b>Interested in being a guest?</b><p>Share your story and insights with our global audience.</p><Link href="/search?q=podcast+guest">Apply now<ArrowRight /></Link></aside></section>;
 }
 
-export function PodcastEpisodeDetail({ article, content, related }: { article: ArticleDetail; content: PodcastEpisodeContent; related: readonly Article[] }) {
+export function PodcastEpisodeDetail({ article, content, related }: { article: Article; content: PodcastEpisodeContent; related: readonly Article[] }) {
   return <main className={styles.page}>
     <EpisodeHero article={article} content={content} />
     <div className={styles.shell}>

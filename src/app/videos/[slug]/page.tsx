@@ -4,6 +4,7 @@ import { ArticleReader } from "@/components/article/article-reader";
 import { VideoDetailPage } from "@/components/video/video-detail-page";
 import { siteConfig } from "@/config/site";
 import { getArticleDetailBySlug, getRelatedArticles } from "@/data/mock/article-details";
+import { getArticleBySlug } from "@/data/mock/articles";
 import { homeContent } from "@/data/mock/homepage";
 import { magazineIssues } from "@/data/mock/magazines";
 import { getVideoDetailContent, getVideoDetailParams } from "@/lib/video-detail";
@@ -31,14 +32,15 @@ export default async function VideoDetailRoute({ params }: RouteProps) {
   const { slug } = await params;
   const content = getVideoDetailContent(slug);
   if (!content) notFound();
-  const article = getArticleDetailBySlug(content.story.article.slug);
+  const article = getArticleBySlug(content.story.article.slug);
   if (!article) notFound();
+  const detail = getArticleDetailBySlug(article.slug);
   const related = getRelatedArticles(article);
   return <>
     <VideoDetailPage article={article} content={content} related={related} slug={slug} />
-    <section aria-labelledby="existing-video-content" style={{ borderTop: "1px solid #e5ddd3", marginTop: "48px", paddingTop: "44px" }}>
+    {detail ? <section aria-labelledby="existing-video-content" style={{ borderTop: "1px solid #e5ddd3", marginTop: "48px", paddingTop: "44px" }}>
       <div style={{ margin: "0 auto 30px", maxWidth: "1440px", padding: "0 clamp(20px,4vw,64px)" }}><p style={{ color: "#a75c13", fontSize: "12px", fontWeight: 800, letterSpacing: ".1em", margin: "0 0 8px", textTransform: "uppercase" }}>Original editorial experience</p><h2 id="existing-video-content" style={{ fontFamily: "Georgia,serif", fontSize: "clamp(30px,4vw,52px)", margin: 0 }}>Continue with the complete long-form story</h2></div>
-      <ArticleReader article={article} magazineIssue={magazineIssues[0]} mostRead={homeContent.mostRead} relatedStories={related} />
-    </section>
+      <ArticleReader article={detail} magazineIssue={magazineIssues[0]} mostRead={homeContent.mostRead} relatedStories={related} />
+    </section> : null}
   </>;
 }
