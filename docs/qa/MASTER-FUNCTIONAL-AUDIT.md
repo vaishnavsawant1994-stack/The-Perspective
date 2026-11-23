@@ -326,3 +326,9 @@ The current documentation candidate is PR #73 head `e0e18d605ddf73a5322e0f9fd8ee
 - The disposable PostgreSQL container and local app server were stopped after acceptance. No production data, cloud database, host configuration, DNS, or deployment was changed.
 
 These results qualify the local code/database candidate. They do not verify a Hostinger V1.1 deployment, authenticated editorial actions, production owner/MFA, monitoring acknowledgement, production recovery/rollback, or independent review. PR #73 remains open and draft; V1.0 remains uncertified and V1.1 remains unreleased.
+
+## Protect main ruleset recheck (2026-11-24 IST)
+
+The repository owner's active `Protect main` ruleset (ID `27392549`) now requires the exact `R4 tenant isolation qualification` check in addition to `R14 full qualification`, `R14 production smoke`, and `browser-qualify`. This check context is emitted by the R4 workflow on pull requests targeting `main`. The ruleset still requires pull requests, up-to-date status checks, and resolved review conversations; branch deletion and non-fast-forward updates remain blocked; no bypass actors are configured.
+
+The existing owner waiver is preserved: the ruleset still requires **zero approving reviews**. Only the missing R4 status-check requirement was added. This records stronger automated tenant-isolation qualification without claiming independent human review or release certification.
