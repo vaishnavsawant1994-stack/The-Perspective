@@ -296,3 +296,20 @@ Read-only HTTP probes returned HTTP 200 for `/api/health/live` and `/api/health/
 | Release decisions | Not eligible | Keep PR #73 draft and unmerged until required V1.0 and V1.1 gates are evidenced; do not call V1.0 certified or V1.1 released |
 
 The GitHub settings page still requires account re-authentication before the previously authorized collaborator/reviewer workflow can be resumed. No reviewer was added or requested during this verification. No AWS, Hostinger, production database, DNS, or release setting was changed.
+
+## Backup and first-owner production safety follow-up (2026-11-24 IST)
+
+### Production backup freshness
+
+- Read-only Neon metadata recheck confirms the production branch `br-icy-mountain-bak8ooxk` has no automatic snapshot schedule. Its only manual snapshot, `production-safety-check-2026-11-17`, remains listed with expiry `2026-11-24T00:00:00Z`; this timestamp is near-term, not a 30-day retention policy.
+- The active GitHub workflow `Neon encrypted database backup` completed successfully on 2026-11-23 at run [45159729670](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45159729670), using source SHA `ce7c1513bb61e45cb0f9081bf672befa2a4e6804`. GitHub reports success for both the 30-day retention-selection test and the step that creates an encrypted backup, verifies a remote copy, and restores it to an isolated PostgreSQL service.
+- Read-only object-storage listing confirms a private bucket `daily-encrypted-database-backups` in Neon project `the-perspective-backups` (`fragrant-math-28933654`), with daily encrypted `.dump.gpg` objects through 2026-11-23. The latest object is 138,597 bytes and matches workflow run 45159729670. Objects are stored in the same Neon provider/account; this is useful recovery evidence, not independent-provider disaster recovery.
+- The workflow source uses a dedicated `perspective_backup_reader` role and checks that it cannot create objects or modify application tables. The run's successful restore occurs in its disposable PostgreSQL service; it does not demonstrate production cutover, measured recovery time, or a completed live rollback drill.
+- No Neon plan upgrade or production branch setting was changed. Do not claim that manual snapshots are scheduled or that the expiring snapshot was extended.
+
+### First-owner bootstrap observation
+
+- The production environment-variable inventory lists `PERSPECTIVE_FIRST_OWNER_SETUP_SECRET` and `PERSPECTIVE_BOOTSTRAP_TARGET`; values were masked and never read.
+- The canonical production URL `/setup/first-owner` is publicly reachable (HTTP 200) and serves its noindex one-time setup form. Code inspection on current `main` shows POST requires same-origin, valid JSON, a timing-safe match to the configured setup key, explicit `production` target, `sessions` auth mode, the pinned production Neon hostname with `sslmode=verify-full`, and an empty authentication database before creating an invitation. Existing data causes a 409 without writes.
+- A synthetic invalid-request probe returned HTTP 400 because the request was rejected during input parsing; it did not verify secret mismatch behavior. No real setup key, owner identity, invitation, or production database response was used. Therefore production owner/MFA activation remains unaccepted, and the live bootstrap's enabled/disabled state is not established by this probe.
+- Complete the legitimate owner invitation/password/TOTP flow on a verified production target. Once the owner is activated, remove or rotate the one-time setup secret and verify the endpoint can no longer bootstrap an account.
