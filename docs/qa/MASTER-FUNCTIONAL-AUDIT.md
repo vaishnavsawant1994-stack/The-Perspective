@@ -1,8 +1,8 @@
 # The Perspective — Functional Audit Snapshot
 
-## Latest verification update — 2026-11-22
+## Latest verification update — 2026-11-23
 
-This section supersedes older **current-state** labels below where they conflict; the dated evidence that follows remains historical.
+The [2026-11-23 exact-head and infrastructure refresh](#exact-head-and-infrastructure-refresh-2026-11-23) supersedes older **current-state** labels below where they conflict; the dated evidence that follows remains historical.
 
 ### Exact V1.1 candidate
 
@@ -191,3 +191,39 @@ V1.0 remains uncertified. Production owner authentication/MFA, tenant-isolation 
 GitHub main is `bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`, which contains merged PRs #75 (public route repairs) and #74 (R7 timestamp repair). A fresh read-only probe of `www.thetimesofperspective.com` returned HTTP 307 from `/travel`, `/books`, `/strategy`, `/opinion`, and `/design` to their canonical sections; `/api/health/live` and `/api/health/ready` returned HTTP 200. This verifies those live route behaviors, not the serving application SHA or authenticated user flows.
 
 Read-only GitHub ruleset `Protect main` (ID `27392549`) is active and requires zero approving reviews, pull requests, current required checks (`R14 full qualification`, `R14 production smoke`, and `browser-qualify`), and resolved review conversations; it blocks branch deletion and non-fast-forward updates. The V1.0 governance waiver is reflected in this configuration. Production source identity, authenticated acceptance, operational recovery, and V1.1 staging acceptance remain open.
+
+## Exact-head and infrastructure refresh (2026-11-23)
+
+### GitHub and PR #73
+
+- `main` is `ce7c1513bb61e45cb0f9081bf672befa2a4e6804`.
+- PR #73 is open and draft at `dad3f21a371d92be0d6ed7e09eb578abfbfadab3`, based on that `main` commit. The exact head passed **17/17 GitHub Actions workflows** and the Vercel status check. This includes the R3 authenticated browser workflow, R4 browser and tenant-isolation workflows, R5 browser/implementation workflows, and R14 technical qualification. R3 now completes team sign-in and verifies the protected Settings page; the browser helper waits for page-specific semantic content instead of global `networkidle`.
+- The V1 UI control run passed on the exact head: **171 routes, 12,446 controls, 12,414 focusable controls, zero scanner failures**. This is a rendering/focus audit, not proof that every control persists its intended business effect.
+- The active `Protect main` repository ruleset (ID `27392549`) is confirmed active. It requires pull requests, zero approving reviews under the owner waiver, up-to-date required checks (`R14 full qualification`, `R14 production smoke`, `browser-qualify`), and resolved review conversations; force pushes and deletion are blocked.
+
+PR #73 is still a code candidate only. No merge, Hostinger deployment, DNS change, Neon migration, or production data write occurred during this refresh.
+
+### Hostinger deployment and live HTTP
+
+| Site | Current deployment | Observed HTTP |
+| --- | --- | --- |
+| `expansive-darkslategray-raccoon-18.hostingersite.com` (parked domain `thetimesofperspective.com`) | Build `01a204db-f5cc-7047-aacb-8a54054c122c`, completed, Node 24, `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804` | Production homepage, `/api/health/live`, and `/api/health/ready`: 200 |
+| `daily-limegreen-woodcock-36.hostingersite.com` (no custom domain) | Build `01a204db-f54e-727d-b217-adb0df38d5d8`, completed, Node 24, `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804` | Homepage and `/api/health/ready`: 200 |
+
+Hostinger confirms `DATABASE_URL` is configured on both sites, but masks its value. The staging site's actual Neon target and the production runtime role therefore remain unverified. The production environment also contains bootstrap-related keys; their values were not read. Runtime log review for the last day found 15 raw production lines and 5 raw staging lines, with no ERROR/WARN entries returned. HTTP readiness proves database connection/query health only, not migrations, account flows, or tenancy.
+
+### Neon catalogs and privilege boundaries
+
+All queries below were read-only catalog/role/schema/migration checks; no application table rows were read.
+
+- Neon production project `nameless-surf-82295602`, branch `production` (`br-icy-mountain-bak8ooxk`): `protected=false`, 24 completed Prisma migrations, and six-hour history retention. The only manual snapshot returned by the API is `production-safety-check-2026-11-17`, expiring **2026-11-24**. This is not evidence of an automatic snapshot schedule or a current restore drill.
+- The production candidate login `perspective_hostinger_runtime` is non-superuser, `NOCREATEDB`, `NOCREATEROLE`, and `NOBYPASSRLS`. It can `SET ROLE perspective_runtime` without inheriting that role's privileges. Catalog checks show effective write privileges on **30 tables without RLS**: 18 in `iam`, 11 in `platform`, and 1 in `audit`. RLS is enabled and forced on the inspected `commercial`, `comms`, `crm`, `distribution`, `growth`, `media`, `member`, `ops`, `portal`, and `production` tables. The deployed Hostinger connection has not been tied to this role, and authentication/admin direct database paths still need least-privilege review.
+- The specifically identified staging target is Neon project `hidden-haze-29775614`, branch `staging` (`br-cold-hat-ba18b0tj`), database `perspective_staging`. It is ready, `protected=false`, has 24 completed migrations and 146 application tables; the PR #73 worktree contains 28 migration directories. The Hostinger staging `DATABASE_URL` remains masked, so its mapping to this target is not verified.
+- Staging login `perspective_app` has `LOGIN`, `CREATEDB`, `CREATEROLE`, and `BYPASSRLS`; it is a member of `neon_superuser`, `perspective_runtime`, and `perspective_public`, and has effective DML on all 146 staging tables. It owns the staging database. This is a high-severity staging boundary failure. Do not run migrations, create fixtures, or use it for authenticated acceptance until a least-privilege application login and migration path are designed and verified. Blindly revoking grants is unsafe because authentication and administration still include direct Prisma database operations.
+
+### Release disposition
+
+- **V1.0: NOT CERTIFIED.** Open gates include verified production `DATABASE_URL`/role mapping; production owner sign-in and MFA; positive and negative tenant journeys against the deployed SHA; least-privilege remediation for the active code paths; monitoring alert delivery and human acknowledgement; backup restore/cutover and rollback rehearsal; and production branch protection/recovery evidence.
+- **V1.1: NOT RELEASED.** PR #73 is open and draft. It has exact-head code/CI and UI-control qualification, but no verified staging source/database mapping, no authenticated editorial workflow against an isolated least-privilege staging database, and no deployment acceptance. The 24-migration staging database is behind the branch's 28-migration schema.
+- Owner waiver `GOV-REVIEW-02` makes independent external review optional for V1.0; no independent review is claimed. The active ruleset no longer requires an approving review. Neither waiver nor green CI certifies a release.
+- No production rows, credentials, DNS records, branch protection settings, role grants, migrations, or deployments were changed during this refresh. No database connection strings or secret values were printed.

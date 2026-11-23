@@ -1,9 +1,11 @@
 # The Perspective — Project Completion Status
 
-**Evidence checked:** 2026-11-19 Asia/Kolkata (2026-11-18 UTC)
-**Decision:** V1.0 is **NOT CERTIFIED**. V1.1 is **NOT RELEASED**.
+> **Superseded current-status snapshot.** The authoritative status as of 2026-11-23 is [PROJECT-COMPLETION-STATUS-2026-11-23.md](./PROJECT-COMPLETION-STATUS-2026-11-23.md). This file is retained as historical evidence; its tables below reflect the 2026-11-19 checkpoint.
 
-This file is the current status pointer. Detailed route/control counts, live HTTP probes, limitations, and acceptance gates are in [the functional audit snapshot](../qa/MASTER-FUNCTIONAL-AUDIT.md). Historical release reports remain historical evidence.
+**Evidence checked:** 2026-11-19 Asia/Kolkata (2026-11-18 UTC)
+**Decision at that checkpoint:** V1.0 was **NOT CERTIFIED**. V1.1 was **NOT RELEASED**.
+
+At the 2026-11-19 checkpoint, detailed route/control counts, live HTTP probes, limitations, and acceptance gates were recorded in [the functional audit snapshot](../qa/MASTER-FUNCTIONAL-AUDIT.md). Historical release reports remain historical evidence.
 
 ## GitHub
 
