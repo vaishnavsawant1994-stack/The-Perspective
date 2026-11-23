@@ -1,0 +1,26 @@
+name: AWS RDS migration utility safety tests
+
+on:
+  pull_request:
+    paths:
+      - "scripts/database/aws_rds_migrate.py"
+      - "scripts/database/test_aws_rds_migrate.py"
+      - ".github/workflows/aws-rds-migration-unit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration-safety:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax check
+        run: python -m py_compile scripts/database/aws_rds_migrate.py
+      - name: Unit-only safety checks (no database access or production secrets)
+        run: python -m unittest discover -s scripts/database -p "test_aws_rds_migrate.py" -v
