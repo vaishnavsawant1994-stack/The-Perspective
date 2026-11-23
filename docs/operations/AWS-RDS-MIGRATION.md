@@ -77,3 +77,11 @@ Check actual schema objects, extension compatibility, sequences, indexes, data s
 | Neon retirement | NOT DONE — MUST KEEP SOURCE |
 
 A passed script unit test or this runbook is not evidence of a completed cloud migration. Record command outputs, cloud resource IDs, checks, deployed SHA, backup/restore evidence and a production release decision before marking a gate PASS.
+
+## Read-only AWS network refresh — 2026-11-23
+
+Owner-provided CloudShell output confirms that `perspective-staging` is `available` in `us-east-1`, listens on PostgreSQL port 5432, and remains `PubliclyAccessible=false`. It is in VPC `vpc-0e696ba1d7a211421`, with six RDS subnets and security group `sg-0e3937e5c957ebacc` (`default`). That security group currently has only a self-referencing all-protocol ingress rule; it does not permit an application, laptop, or CloudShell security group to connect.
+
+The VPC has no SSM-managed instances and no VPC endpoints. The listed VPC route table has an Internet Gateway default route and no explicit subnet associations; the route table and subnet association for each RDS subnet still need to be verified. This evidence does not establish a network path from Hostinger or from this workstation to RDS. The empty VPC-endpoint list alone is not an RDS defect.
+
+No AWS security-group, route, database, hosting, DNS, or production changes were made. No database connection was attempted and no migration was run. The CloudShell account session is not currently available to this workstation; continue with read-only subnet/route inspection after the owner signs in, then design a private, least-privilege path before any staging database access.
