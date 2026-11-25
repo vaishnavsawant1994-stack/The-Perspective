@@ -356,3 +356,11 @@ Verified on PR #73 candidate `266878e4d1f1711227acd179f1cff1cc9e19a5ae` using th
 - Playwright recorded **0 console errors**; the **28 warnings** were CSS preload notices. This qualifies valid-subject public intake and privacy projection locally, but does not verify Hostinger's trusted-proxy behavior, authenticated editorial moderation/decision flows, or production acceptance.
 
 The local server and disposable database were left running. PR #73 remains draft and unmerged; V1.0 remains uncertified and V1.1 remains unreleased.
+
+## Local R4 tenant browser acceptance (2026-11-25 UTC)
+
+Ran the guarded synthetic R4 browser verifier against the same loopback-only disposable PostgreSQL database and local application. The fixture generator's explicit local-database guard was enabled; no cloud database was contacted.
+
+- Chromium passed all six verifier scenarios: identity session without tenant context, protected route before context selection, denial of fabricated context, valid context selection, selected-portal access, and context switching. The run recorded **0 substantive console errors** and **0 unexpected network failures**.
+- The synthetic client account and foreign-membership rows remain in the disposable local database; fixture cleanup was not completed because those identities have many foreign-key relationships. Append-only audit records were preserved. This test database is isolated from all cloud and production databases.
+- This is local adversarial tenant-context evidence only. It does not establish separate real production client identities, Hostinger source/database mapping, production authorization, or full V1.0 certification.
