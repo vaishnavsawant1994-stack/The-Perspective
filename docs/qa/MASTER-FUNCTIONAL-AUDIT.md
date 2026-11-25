@@ -388,3 +388,7 @@ Ran the guarded synthetic R4 browser verifier against the same loopback-only dis
 ### Release decision
 
 V1.0 remains **NOT CERTIFIED** because production owner MFA, production tenant isolation, least-privilege runtime mapping, tested human alert acknowledgement, and recovery/rollback acceptance are not proven. V1.1 remains **NOT RELEASED**: PR #73 is still draft; its code and CI pass, but authenticated editorial review/publish/withdraw acceptance against the actual intended isolated staging deployment and database is still missing. No release merge or production deployment is authorized by these checks.
+
+### Local V1.1 database lifecycle recheck (2026-11-25 UTC)
+
+Ran the PR #73 PN-01/PN-02/PN-03 database tests (**10/10**) and PN-04 request database tests (**4/4**) against `perspective_r14` only after asserting `DATABASE_URL` resolves to `127.0.0.1:54332/perspective_r14`. No cloud connection was used. The suite covered source-backed profile projections and versioning, professional/editor publication boundaries, independent editorial submission/review/publish/withdraw, private claim/correction requests, expiry handling, per-IP/global rate limits, and concurrent submissions. Post-run readback found zero PN-03 submissions, zero PN-04 requests, and zero PN test company profiles. The separate synthetic R4 account remains in this disposable database as documented above; no production records were touched.
