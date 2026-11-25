@@ -364,3 +364,27 @@ Ran the guarded synthetic R4 browser verifier against the same loopback-only dis
 - Chromium passed all six verifier scenarios: identity session without tenant context, protected route before context selection, denial of fabricated context, valid context selection, selected-portal access, and context switching. The run recorded **0 substantive console errors** and **0 unexpected network failures**.
 - The synthetic client account and foreign-membership rows remain in the disposable local database; fixture cleanup was not completed because those identities have many foreign-key relationships. Append-only audit records were preserved. This test database is isolated from all cloud and production databases.
 - This is local adversarial tenant-context evidence only. It does not establish separate real production client identities, Hostinger source/database mapping, production authorization, or full V1.0 certification.
+
+## Exact-head qualification and live infrastructure refresh (2026-11-25 UTC)
+
+### PR #73 exact head
+
+- Repository: `vaishnavsawant1994-stack/The-Perspective`; PR #73 remains **open, draft, and unmerged** at `e355821e02b964054632500739a7fe69f22d6caf`, based on `main@4d3cd9e354028436b2b6bff5b3b469865b247d54`.
+- GitHub reported **24/24 check runs successful** on this exact head, including `R14 full qualification`, `R14 production smoke`, `R4 tenant isolation qualification`, and `browser-qualify`; the Vercel commit status was success. The R14 qualification job completed migration verification, unit and live PostgreSQL tests, backup/restore verification, secret scanning, lint, typecheck, production build, and dependency audit. This verifies automated qualification for this candidate, not production release eligibility.
+
+### Hostinger production
+
+- Read-only deployment lookup confirms build `01a208a9-c5df-71e0-ae04-de4a3c483e19`, Node.js 24, source `main@4d3cd9e354028436b2b6bff5b3b469865b247d54` from `vaishnavsawant1994-stack/The-Perspective`; build state is completed.
+- Public HTTP checks returned 200 for `/`, `/api/health/live`, `/api/health/ready`, `/login`, and `/client/login`. `/companies`, `/professionals`, and `/editors` returned 404 on V1.0 `main`, consistent with the still-unmerged V1.1 candidate.
+- This confirms deployed source and reachability. Production owner MFA, authenticated tenant journeys, runtime `DATABASE_URL`/role mapping, and human alert acknowledgement remain unverified.
+
+### AWS staging RDS read-only recheck
+
+- `perspective-staging` in `us-east-1` is encrypted PostgreSQL 17.11, private (`PubliclyAccessible=false`), single-AZ, `gp2`, and currently reported `backing-up`. Backup retention is **one day**; deletion protection is **off**. Parameter `rds.force_ssl=1` is enabled.
+- Its VPC security group is the default group with only a self-referencing all-protocol ingress rule; no laptop or Hostinger source is allowed. The database endpoint remains private. This explains why laptop probes time out and does not establish Hostinger connectivity.
+- The AWS CLI identity for this read-only inspection resolved to the account root principal. No AWS resources, security groups, backups, database rows, Hostinger settings, DNS, or production state were changed. Use a least-privilege IAM Identity Center/role session for future administration rather than root credentials.
+- AWS CLI readback is not database authentication. The actual staging migration count, runtime login role, and Hostinger-to-RDS mapping remain unverified in this refresh.
+
+### Release decision
+
+V1.0 remains **NOT CERTIFIED** because production owner MFA, production tenant isolation, least-privilege runtime mapping, tested human alert acknowledgement, and recovery/rollback acceptance are not proven. V1.1 remains **NOT RELEASED**: PR #73 is still draft; its code and CI pass, but authenticated editorial review/publish/withdraw acceptance against the actual intended isolated staging deployment and database is still missing. No release merge or production deployment is authorized by these checks.
