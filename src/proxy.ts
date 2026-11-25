@@ -18,6 +18,8 @@ import {
   publishedPaths,
   publishedShelf,
 } from "@/modules/r9/projection";
+import { publicCompanyExists } from "@/modules/profile-network/read";
+import { publicPersonExists } from "@/modules/profile-network/person-read";
 
 function routeSlug(pathname: string, prefix: string) {
   if (!pathname.startsWith(`${prefix}/`)) return null;
@@ -31,6 +33,21 @@ function routeSlug(pathname: string, prefix: string) {
 }
 
 async function publicResourceExists(pathname: string) {
+  const companySlug = routeSlug(pathname, "/companies");
+  if (companySlug !== null) {
+    return Boolean(companySlug && await publicCompanyExists(companySlug));
+  }
+
+  const professionalSlug = routeSlug(pathname, "/professionals");
+  if (professionalSlug !== null) {
+    return Boolean(professionalSlug && await publicPersonExists("PROFESSIONAL", professionalSlug));
+  }
+
+  const editorSlug = routeSlug(pathname, "/editors");
+  if (editorSlug !== null) {
+    return Boolean(editorSlug && await publicPersonExists("EDITOR", editorSlug));
+  }
+
   const articleSlug = routeSlug(pathname, "/article");
   if (articleSlug !== null) {
     if (!articleSlug) return false;
@@ -126,5 +143,8 @@ export const config = {
     "/author/:slug",
     "/personal-magazines/:slug",
     "/magazine/category/:slug",
+    "/companies/:slug",
+    "/professionals/:slug",
+    "/editors/:slug",
   ],
 };

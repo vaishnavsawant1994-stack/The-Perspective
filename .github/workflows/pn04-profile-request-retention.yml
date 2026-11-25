@@ -1,0 +1,33 @@
+name: PN-04 Profile Request Retention
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pn04-profile-request-retention
+  cancel-in-progress: false
+
+jobs:
+  purge-expired-requests:
+    if: vars.PN04_RETENTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Purge expired profile requests
+        env:
+          BASE_URL: ${{ vars.PERSPECTIVE_INTERNAL_BASE_URL }}
+          TOKEN: ${{ secrets.PERSPECTIVE_PN04_RETENTION_TOKEN }}
+        run: |
+          set -euo pipefail
+          [[ "${BASE_URL}" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ ]]
+          test -n "${TOKEN}"
+          curl --fail --silent --show-error --max-time 30 \
+            --request POST \
+            --header "Authorization: Bearer ${TOKEN}" \
+            --header "Content-Length: 0" \
+            "${BASE_URL}/api/v1/internal/pn/worker/purge-expired-requests"

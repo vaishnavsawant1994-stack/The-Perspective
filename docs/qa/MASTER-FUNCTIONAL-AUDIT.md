@@ -1,5 +1,72 @@
 # The Perspective — Functional Audit Snapshot
 
+## Latest verification update — 2026-11-23
+
+The [2026-11-23 exact-head and infrastructure refresh](#exact-head-and-infrastructure-refresh-2026-11-23) supersedes older **current-state** labels below where they conflict; the dated evidence that follows remains historical.
+
+### Exact V1.1 candidate
+
+- The product-code checkpoint tested in this refresh is `e7bcd7e37843bc5040013208f9784153b0d83e79`, based on `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804`. PR #73 remains open and draft. GitHub reports **17/17 workflow runs successful** and Vercel success on that code checkpoint; the [V1 UI Control Qualification](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45092178546) published artifact [14782093865](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45092178546/artifacts/14782093865), retained through 2026-12-07. The dated audit update below is documentation only; consult PR #73 for its live branch-head SHA and checks.
+- The control scanner checks configured routes and control accessibility/rendering; it does not activate every control or prove all business effects persisted. Fresh local exact-head evidence is recorded below.
+- No PR review submissions are recorded for PR #73. It remains draft; CI success is not a release or production-acceptance decision.
+
+The subsequent documentation-only PR head `a907f11dca206c6da9267f338cc9c443f1c83a56` also passed **17/17 GitHub workflow runs** and Vercel. Its V1 UI audit run [45097525973](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45097525973) published artifact [14784203956](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45097525973/artifacts/14784203956), retained through 2026-12-07. The latest documentation commit in this report must be requalified on its own exact head.
+
+### Local exact-head requalification — 2026-11-23
+
+On `e7bcd7e37843bc5040013208f9784153b0d83e79`, `npm test -- --reporter=dot` passed **679 tests across 92 files**; TypeScript passed; Prisma schema validation passed; ESLint completed with **0 errors and 3 warnings** (two unused fixture identifiers in `r6-communications.database.test.ts`, one unused type import in `r7/commands.ts`). The production build passed and generated **470 pages**. The build and local server used an intentionally invalid loopback-only PostgreSQL URL; no cloud database was contacted.
+
+A local production-server HTTP probe returned 200 for `/`, `/login`, `/client/login`, `/companies`, `/professionals`, `/editors`, `/personal-magazines/discover`, and `/api/health/live`; `/travel` and `/books` returned 307 redirects; an unknown article slug returned 404; anonymous `GET /api/v1/auth/session` returned 401; `GET /api/v1/profile-network/requests` returned 405. `/api/health/ready` returned 503 because the intentionally invalid local database URL cannot authenticate. An unknown company detail slug returned 500 for the same unavailable-database condition, so it is **not** a valid 404 acceptance result. The PostgreSQL 17 Windows service is running locally, but local database authentication requires credentials unavailable to this session; no schema, seed, or data changes were attempted.
+
+These local checks validate build and public route behavior under the stated isolated configuration. They do not establish database-backed page behavior, authenticated journeys, staging identity, production behavior, or release readiness.
+
+#### Follow-up with a disposable local PostgreSQL database
+
+A new PostgreSQL 17 cluster was initialized under the Windows temporary directory, bound to `127.0.0.1` on a dynamically selected port, and stopped after qualification. Its fresh `perspective_pr73_test` database received all **28** migrations. The explicit synthetic seed, seed assertions, database contract verifier, migration status, and Prisma drift check passed. `npm run test:db` passed **266 tests across 40 files**. This cluster was separate from the existing Windows PostgreSQL service and all cloud databases.
+
+The local production server then used that disposable database. Readiness returned 200; unknown Company, Professional, and Editor slugs returned 404; and anonymous session access returned 401. A Playwright check confirmed the Company profiles page title/H1, its labeled search box, search submission to `?q=Asteria`, the no-match state, and the Clear search link returning to `/companies`. Browser console reported zero errors and CSS preload warnings. This verifies selected local flows against synthetic data only; it does not verify real owner MFA, production tenant isolation, or a Hostinger deployment.
+
+### Live public endpoint recheck
+
+Read-only HTTP probes on 2026-11-22 against `https://www.thetimesofperspective.com` returned HTTP 200 for `/`, `/api/health/live`, `/api/health/ready`, `/travel`, `/books`, `/strategy`, `/opinion`, and `/design`. The five editorial paths resolve after canonical redirects where applicable. This establishes HTTP reachability only and does not identify the deployed source SHA or prove authenticated workflows.
+
+Homepage HTML on that check contained “Independent analysis, worldwide” and “Market data unavailable”; it did not contain the unsupported “150,000+ readers” count or the checked stale NIFTY, SENSEX, and USD/INR figures.
+
+The historical aliases `the-perspective-liart.vercel.app` and `the-perspective-vishnu26.vercel.app` returned Vercel `404 DEPLOYMENT_NOT_FOUND` on 2026-11-22. They are not valid current production endpoints. Vercel project listing in the connected accounts returned no matching project. At the time of that 2026-11-22 check, Hostinger requested reauthentication, so its source SHA and database mapping were not verified then; the later read-only Hostinger inspection is recorded in the following section.
+
+#### Hostinger and public routes — 2026-11-23
+
+Read-only Hostinger deployment inspection confirms production build `01a204db-f5cc-7047-aacb-8a54054c122c` and secondary build `01a204db-f54e-727d-b217-adb0df38d5d8` both run Node.js 24 from `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804`. Hostinger's Node vulnerability scan returned zero findings for both websites. Its environment-variable listing masks values; both have `DATABASE_URL`, and production also has the first-owner setup variable names. No values were read or changed, so neither website's actual database target is verified.
+
+Fresh HTTP probes on `https://www.thetimesofperspective.com` returned 200 for `/`, `/api/health/live`, `/api/health/ready`, `/login`, `/client/login`, and `/personal-magazines/discover`. `/companies`, `/professionals`, and `/editors` returned 404 on production `main`; these V1.1 routes exist only in unmerged PR #73, so the 404s show they have not been released. This is not an acceptance result for the V1.1 preview.
+
+### Production database security and recovery gates
+
+Read-only Neon checks on 2026-11-22 confirmed production project `nameless-surf-82295602`, branch `br-icy-mountain-bak8ooxk` (`production`), is ready and `protected=false`. Its automatic snapshot schedule is empty. The runtime login is `NOSUPERUSER`, `NOCREATEROLE`, `NOCREATEDB`, and `NOBYPASSRLS`, but it has direct `SELECT`, `INSERT`, `UPDATE`, and `DELETE` privileges on all 18 `iam` tables, all 12 `platform` tables, and the one `audit` table. RLS is enabled and forced on one of the 12 `platform` tables; the other listed tables have RLS disabled. This remains a high-severity least-privilege/containment gate. No grants, branch settings, snapshots, database rows, hosting settings, or DNS were changed.
+
+The GitHub [scheduled encrypted backup and restore-verification run #23](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45009451449) completed successfully on 2026-11-22 at `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`. The backup workflow and its `scripts/backup` and `scripts/database` helpers are unchanged between that SHA and current `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804`. This is evidence that the scheduled encrypted-backup and isolated restore-verification job succeeded on the unchanged backup code. It is not a production database cutover or rollback rehearsal, and it does not replace Neon point-in-time recovery: the production branch's automatic Neon snapshot schedule is still empty and its history retention remains six hours.
+
+These facts do not establish a breach or an exploitable injection path. Any privilege repair still requires a complete application privilege map and qualification against an isolated, verified nonproduction database before production use.
+
+### Application privilege map — initial source trace (2026-11-22)
+
+This is a source trace of the high-risk IAM access paths, not yet a complete all-module ACL matrix:
+
+- Authentication in [`service.ts`](../../src/modules/authentication/service.ts#L106) performs root-client reads and writes across `authentication_attempts`, `audit_events`, `organization_memberships`, `sessions`, `user_identities`, `password_credentials`, `mfa_challenges`, `authentication_secrets`, `invitations`, `user_accounts`, `mfa_methods`, `membership_roles`, `people`, and `recovery_challenges`. Its direct transactions do not issue `SET LOCAL ROLE`.
+- Role administration in [`admin.ts`](../../src/modules/authorization/admin.ts#L454) reads and mutates `roles`, `role_permissions`, and `membership_roles`, and checks `organization_memberships`; the root-client transactions in this module do not issue `SET LOCAL ROLE`.
+- [`resolver.ts`](../../src/modules/authorization/resolver.ts#L229) reads a selected membership and related membership roles, role permissions, and permissions through the root Prisma client. [`session/route.ts`](../../src/app/api/v1/auth/session/route.ts#L25) also reads `membership_roles` and `mfa_methods` directly.
+- The R6 outbox worker in [`worker.ts`](../../src/modules/r6/worker.ts#L416) uses the root Prisma client to read and update `platform.outbox_events`, create/update `platform.outbox_delivery_attempts`, and record success/failure state. This path does not switch to `perspective_runtime` before those operations. Its downstream campaign/dispatch handlers must be assessed separately; this observation covers the worker's outbox bookkeeping only.
+- The guarded first-owner path in [`first-owner-bootstrap.ts`](../../src/modules/authentication/first-owner-bootstrap.ts#L51) reads IAM/audit counts, then creates the platform organization, canonical permissions and role links, first-owner invitation, and audit event in a root-client transaction. It does not switch roles; its one-time empty-database and explicit-production-target guards are part of its privilege boundary.
+- Recovery handling in [`service.ts`](../../src/modules/authentication/service.ts#L1402) writes a `platform.outbox_events` row through a root-client transaction. The R6 tenant-scoped enqueue helper uses the restricted role, but this authentication recovery path does not.
+- Client proposal acceptance in [`resources.ts`](../../src/modules/r7/resources.ts#L111), called by the R7 accept route, uses root-client raw SQL to read `iam.organization_memberships` while resolving the client and creator memberships. It does not set a local role. R7 command/replay paths also invoke narrowly granted `platform.*` functions; those function calls are separate from direct table DML.
+- Authorization telemetry in [`audit.ts`](../../src/modules/authorization/audit.ts#L97) can write `audit.audit_events` through its default root Prisma client; some callers may pass a transaction client. The role-administration audit helper in [`admin.ts`](../../src/modules/authorization/admin.ts#L265) writes within the module's root-client transaction, which also does not set a local role.
+- [`authorization/resource-context.ts`](../../src/modules/authorization/resource-context.ts#L54) contains a direct `platform.resources` read helper, but this scan found no non-test call site for that helper. By contrast, the active [`tenancy/resource-context.ts`](../../src/modules/tenancy/resource-context.ts#L17) helper reads `platform.resources` inside a transaction after `SET LOCAL ROLE perspective_runtime`.
+- By comparison, tenant-scoped CRM and commercial work explicitly executes `SET LOCAL ROLE perspective_runtime` before its transaction callback in [`crm/persistence.ts`](../../src/modules/crm/persistence.ts#L25) and [`commercial/persistence.ts`](../../src/modules/commercial/persistence.ts#L39). That boundary is not applied uniformly to authentication and authorization administration.
+
+This trace explains why immediately revoking every direct IAM grant would likely break login, MFA, session, invitation, recovery, role-administration, or authorization-resolution flows. It does not justify the present breadth: the runtime login still has direct DML on tables outside these paths and on tables with RLS disabled. Before changing production grants, complete the full query-to-table/action matrix, introduce and exercise an explicit least-privilege boundary for the direct paths, and run positive and negative authentication, MFA, authorization, and tenant-isolation journeys using the candidate runtime role on an isolated database.
+
+**Release status:** V1.0 remains uncertified and V1.1 remains unreleased. Production owner login/MFA, production tenant-isolation journeys, alert delivery/acknowledgement, verified Hostinger source/database mapping, least-privilege remediation, backup recovery/cutover and rollback acceptance, and the V1.1 authenticated staging editorial workflow remain unverified or incomplete.
+
 **Evidence checked:** 2026-11-19 Asia/Kolkata (2026-11-18 UTC)
 
 **Production baseline:** `main@3fa80397963761d29d4e972fadf4f098e50e8c75`
@@ -93,7 +160,7 @@ Follow-up local qualification at PR #75 head `1c9ced0c11209bc1841abd6ef7df4bb8a7
 | Production tenant runtime role switching | Database prerequisite repaired | `perspective_hostinger_runtime` can now `SET ROLE perspective_runtime` without inheriting its privileges; a live transaction verified SELECT/INSERT boundaries. Verify this is the deployed Hostinger login and run authenticated R6–R13 workflows |
 | Production runtime database least privilege | **High-severity release gate** | On 2026-11-19, read-only catalog checks confirmed `perspective_hostinger_runtime` has full table DML on 30 tables with RLS disabled, including all 18 IAM tables. This is a capability/containment finding, not evidence of breach. Trace legitimate application and migration needs, document and approve an appropriate least-privilege boundary, add regression coverage, and retest authentication, MFA, tenancy and critical workflows before accepting the permission model. No table-level grants were changed; the restricted-role membership is documented above |
 | Hostinger source identity and runtime configuration | Partial / blocked | hPanel confirms two app entries auto-deploy `main@3fa8039…` on Node 24. The public custom domain is served by Hostinger, but its app entry and production `DATABASE_URL` mapping remain unresolved; runtime logs were not inspected |
-| Production routes repaired by PR #75 | Blocked | Eight current production URLs still return 404; merge requires a human review under the active branch protection, and the repair is not deployed |
+| Production routes repaired by PR #75 | Live route behavior verified; source SHA not verified | PR #75 is merged into `main`. On 2026-11-22, all five repaired shorthand routes returned HTTP 307 to their canonical pages and production health endpoints returned HTTP 200. Hostinger's deployment readback still does not identify the source SHA serving the custom domain |
 | Staging data provenance and role safety | Blocked | Staging contains 24 migrations, 146 tables, and estimated rows. `perspective_app` is a `BYPASSRLS` owner of 619 catalog relations (146 tables and 473 indexes) and member of `neon_superuser`; data provenance is unconfirmed. Establish a tested least-privilege application login and verify data provenance before using this database for fixtures |
 | Staging Profile Network acceptance | Blocked | Deploy an approved candidate to staging after verifying its target; then run authenticated editorial and public directory workflows, including unknown-slug behavior |
 | Production owner login and MFA | Not tested | Legitimate owner performs the real authentication/MFA flow against the verified production source |
@@ -101,10 +168,233 @@ Follow-up local qualification at PR #75 head `1c9ced0c11209bc1841abd6ef7df4bb8a7
 | Human alert delivery and acknowledgement | Not tested | Trigger a safe synthetic alert and observe an authorized human notification and acknowledgement |
 | Backup recovery and rollback | Partial | Daily encrypted dump workflow and retention tests passed on 2026-11-18 UTC; the remote object was verified and restored in an isolated PostgreSQL service (146 application tables). Neon PITR remains six hours with one manual snapshot expiring 2026-11-24. Backup storage is within the same Neon provider/account. Still rehearse manual restore/cutover and rollback in verified nonproduction, document recovery objectives, and add a second-provider copy if cross-provider disaster recovery is required |
 | Neon production branch protection | Blocked | A 2026-11-19 attempt to protect `production` returned HTTP 422: the plan has reached its protected-branch limit. No other branch was unprotected and no plan upgrade was made |
-| Independent external review | Optional under owner waiver | `GOV-REVIEW-02` (2026-11-17) waives mandatory independent review for R14/V1.0. No independent review is claimed. The separate GitHub ruleset still requires one PR approval, so PRs remain subject to that active merge rule until an administrator changes it under the waiver while retaining required checks |
+| Independent external review | Waived for V1.0 by owner decision | `GOV-REVIEW-02` (2026-11-17) waives mandatory independent review for R14/V1.0. No independent review is claimed. The active `Protect main` ruleset now requires zero approvals while retaining pull requests, three required status checks, up-to-date checks, and resolved conversations |
 | V1.1 final acceptance | Blocked | Complete exact Hostinger source/config verification, editorial end-to-end workflow, accessibility/responsive browser acceptance and approved content/source review |
 | Final release certification | Not eligible | Close required technical/operational gates, verify final deployed SHA, then make the release decision; V1.0 remains uncertified and V1.1 remains unreleased |
 
 ## Evidence limits
 
 The 168-route and 167-route CI scans are authenticated UI evidence, but neither is a manual click-through of every route in the repository. They do not exercise every state-changing control, test every successful and denied API mutation, inspect every public route or dynamic slug, verify production persistence, validate journalism, or prove Hostinger is running the tested source. A passing CI or HTTP health probe must not be presented as full product acceptance.
+
+## Exact-head and Hostinger follow-up (2026-11-22)
+
+### Repository and qualification
+
+- At the start of this follow-up, PR #73 was open, draft, and mergeable at `71ccd925c3e930d70f25e629ca78bd16cf26ec57`, based on `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`; that prior exact head passed 17/17 workflows and Vercel. No review submissions were recorded.
+- The tested TLS compatibility patch was pushed as `82fd4a0b6ced394ccda1fd9e6f002021106862dc`; that exact head passed 17/17 GitHub workflows and the Vercel status. The PR remained open and draft. Technical checks do not establish production acceptance.
+- Local qualification for the TLS patch passed 669/669 unit tests, 266/266 database tests on a fresh disposable PostgreSQL 17 database, TypeScript, changed-file lint, and a clean-install production build that generated 470 pages. Migration, seed, schema verification, drift, backup/restore, and dependency-audit checks passed; the clean install and `npm audit --audit-level=moderate` reported zero vulnerabilities.
+- A fresh disposable PostgreSQL 17 cluster on loopback received all 28 migrations. Migration status, database contract verification, schema drift, guarded synthetic seed and seed assertions passed. All 266 database tests across 40 files passed. The R14 backup/restore rehearsal reported the dump SHA-256 and restored 28 migration records into a separate database. The database server was stopped afterward. No Neon, AWS RDS, Hostinger or production database was used for these test writes.
+- Read-only local HTTP checks against the running PR worktree returned 200 for `/`, `/companies`, `/professionals`, `/editors`, `/api/health/live`, and `/api/health/ready`; unknown company, professional and editor slugs returned 404. The local server's database identity is unknown, so its readiness response is not used as evidence for any named staging or production database.
+
+### Current Hostinger mapping
+
+| Site | Verified mapping and runtime | Limit |
+| --- | --- | --- |
+| `expansive-darkslategray-raccoon-18.hostingersite.com` | `thetimesofperspective.com` is attached as a parked domain; the latest completed Node.js 24 deployment is build `01a200cc-c5fc-72ba-bc40-b558d09c09df` from `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`; root and readiness returned HTTP 200 | `DATABASE_URL` is configured but its value is masked, so the database target is unverified. Runtime logs still contain 3 `pg-connection-string` TLS-mode compatibility warnings |
+| `daily-limegreen-woodcock-36.hostingersite.com` | No custom domain is attached; the latest completed Node.js 24 deployment is build `01a200cc-c58c-724c-a048-3592e669753c` from `main@bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`; root and readiness returned HTTP 200 | `DATABASE_URL` is configured but its value is masked, so the database target and staging isolation are unverified. The readiness endpoint checks connectivity with `SELECT 1`; it does not verify migrations or schema |
+
+The refreshed Hostinger readback on 2026-11-22 UTC confirms both sites auto-deploy `main`; it does not show PR #73 running on staging. Environment-variable key lists contain `DATABASE_URL` on both sites, with values masked. Staging runtime logs contained five ordinary `LOG` entries and no warning or error entries in the inspected day. Do not apply migrations, change environment values, or use either database for fixtures until the staging database target and data provenance are verified.
+
+The TLS repair in `src/modules/persistence/database-environment.ts` normalizes legacy PostgreSQL `sslmode=prefer`, `require`, and `verify-ca` aliases to explicit `verify-full`, preserving the driver's current stricter behavior before a future dependency major changes it. The readiness route uses the same normalization. The repair is committed and pushed as `82fd4a0b6ced394ccda1fd9e6f002021106862dc`; that code head passed 17/17 GitHub workflows and the Vercel status. Hostinger is still running `main@bc190530…`; its three production runtime TLS warnings confirm the repair has not reached production. Later documentation-only updates to PR #73 trigger new workflow and Vercel checks; read qualification from the current exact PR head, separately from production acceptance.
+
+### Profile request rate-limit follow-up (2026-11-22)
+
+Source review found that the PN-04 request key combined the IP address and user-agent, allowing a client to rotate user-agent strings to bypass the nominal three-requests-per-IP daily bucket. The local repair now derives the HMAC bucket from the forwarded client IP alone and has focused tests for user-agent rotation, Hostinger's documented `X-Real-IP` / last-`X-Forwarded-For` selection, and invalid/missing address rejection. Hostinger's official guidance confirms this header selection for Node.js traffic through its CDN, while warning that direct-to-origin requests can bypass the CDN and supply arbitrary headers ([Hostinger CDN visitor IP guidance](https://www.hostinger.com/support/hostinger-cdn-visitor-ip-addresses-in-logs-and-analytics/)). The database's global 200-per-day ceiling remains. Local qualification on the working tree passed **672 unit tests across 90 files**, targeted ESLint, and TypeScript. Do not enable request intake on Hostinger until the actual staging DB target and origin-proxy behavior are verified; no staging database writes or deployments were made.
+
+### AWS staging connection and remaining release gates
+
+The owner-provided AWS CloudShell output for RDS `perspective-staging` reported `PubliclyAccessible=false`, security group `sg-0e3937e5c957ebacc` with only a self-referencing inbound rule, no SSM-managed instance, and no VPC endpoints. This does not provide a network path from Hostinger to the private RDS instance. The local AWS CLI is installed, but this session has no authenticated local AWS identity. No AWS, database, hosting, DNS or production configuration was changed.
+
+V1.0 remains uncertified. Production owner authentication/MFA, tenant-isolation journeys, monitoring and human alert acknowledgement, restore/cutover, and rollback remain open. Independent external review is waived for V1.0 under the recorded owner decision; none is claimed. V1.1 remains unreleased: authenticated staging editorial acceptance, target database/source verification, privacy and abuse-control acceptance, and the required review/release decision remain open. Keep PR #73 draft and do not describe the successful technical checks as production readiness.
+
+### Production route and branch-rule refresh (2026-11-22)
+
+GitHub main is `bc190530d6ab0a76ddeff4874c1ea5e0d5fb28e0`, which contains merged PRs #75 (public route repairs) and #74 (R7 timestamp repair). A fresh read-only probe of `www.thetimesofperspective.com` returned HTTP 307 from `/travel`, `/books`, `/strategy`, `/opinion`, and `/design` to their canonical sections; `/api/health/live` and `/api/health/ready` returned HTTP 200. This verifies those live route behaviors, not the serving application SHA or authenticated user flows.
+
+Read-only GitHub ruleset `Protect main` (ID `27392549`) is active and requires zero approving reviews, pull requests, current required checks (`R14 full qualification`, `R14 production smoke`, and `browser-qualify`), and resolved review conversations; it blocks branch deletion and non-fast-forward updates. The V1.0 governance waiver is reflected in this configuration. Production source identity, authenticated acceptance, operational recovery, and V1.1 staging acceptance remain open.
+
+## Exact-head and infrastructure refresh (2026-11-23)
+
+### GitHub and PR #73
+
+- `main` is `ce7c1513bb61e45cb0f9081bf672befa2a4e6804`.
+- PR #73 is open and draft at `dad3f21a371d92be0d6ed7e09eb578abfbfadab3`, based on that `main` commit. The exact head passed **17/17 GitHub Actions workflows** and the Vercel status check. This includes the R3 authenticated browser workflow, R4 browser and tenant-isolation workflows, R5 browser/implementation workflows, and R14 technical qualification. R3 now completes team sign-in and verifies the protected Settings page; the browser helper waits for page-specific semantic content instead of global `networkidle`.
+- The V1 UI control run passed on the exact head: **171 routes, 12,446 controls, 12,414 focusable controls, zero scanner failures**. This is a rendering/focus audit, not proof that every control persists its intended business effect.
+- The active `Protect main` repository ruleset (ID `27392549`) is confirmed active. It requires pull requests, zero approving reviews under the owner waiver, up-to-date required checks (`R14 full qualification`, `R14 production smoke`, `browser-qualify`), and resolved review conversations; force pushes and deletion are blocked.
+
+PR #73 is still a code candidate only. No merge, Hostinger deployment, DNS change, Neon migration, or production data write occurred during this refresh.
+
+### Hostinger deployment and live HTTP
+
+| Site | Current deployment | Observed HTTP |
+| --- | --- | --- |
+| `expansive-darkslategray-raccoon-18.hostingersite.com` (parked domain `thetimesofperspective.com`) | Build `01a204db-f5cc-7047-aacb-8a54054c122c`, completed, Node 24, `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804` | Production homepage, `/api/health/live`, and `/api/health/ready`: 200 |
+| `daily-limegreen-woodcock-36.hostingersite.com` (no custom domain) | Build `01a204db-f54e-727d-b217-adb0df38d5d8`, completed, Node 24, `main@ce7c1513bb61e45cb0f9081bf672befa2a4e6804` | Homepage and `/api/health/ready`: 200 |
+
+Hostinger confirms `DATABASE_URL` is configured on both sites, but masks its value. The staging site's actual Neon target and the production runtime role therefore remain unverified. The production environment also contains bootstrap-related keys; their values were not read. Runtime log review for the last day found 15 raw production lines and 5 raw staging lines, with no ERROR/WARN entries returned. HTTP readiness proves database connection/query health only, not migrations, account flows, or tenancy.
+
+### Neon catalogs and privilege boundaries
+
+All queries below were read-only catalog/role/schema/migration checks; no application table rows were read.
+
+- Neon production project `nameless-surf-82295602`, branch `production` (`br-icy-mountain-bak8ooxk`), database `perspective`: `protected=false`, 24 completed Prisma migrations, and six-hour history retention. The automatic snapshot schedule is empty. The only manual snapshot returned by the API is `production-safety-check-2026-11-17`, expiring **2026-11-24**. This is not evidence of an automatic snapshot schedule or a current restore drill.
+- The production candidate login `perspective_hostinger_runtime` is non-superuser, `NOCREATEDB`, `NOCREATEROLE`, and `NOBYPASSRLS`. It can `SET ROLE perspective_runtime` without inheriting that role's privileges. Catalog checks show effective write privileges on **30 tables without RLS**: 18 in `iam`, 11 in `platform`, and 1 in `audit`. RLS is enabled and forced on the inspected `commercial`, `comms`, `crm`, `distribution`, `growth`, `media`, `member`, `ops`, `portal`, and `production` tables. The deployed Hostinger connection has not been tied to this role, and authentication/admin direct database paths still need least-privilege review.
+- The specifically identified staging target is Neon project `hidden-haze-29775614`, branch `staging` (`br-cold-hat-ba18b0tj`), database `perspective_staging`. It is ready, `protected=false`, has 24 completed migrations and 146 application tables; the PR #73 worktree contains 28 migration directories. The Hostinger staging `DATABASE_URL` remains masked, so its mapping to this target is not verified.
+- Staging login `perspective_app` has `LOGIN`, `CREATEDB`, `CREATEROLE`, and `BYPASSRLS`; it is a member of `neon_superuser`, `perspective_runtime`, and `perspective_public`, and has effective DML on all 146 staging tables. It owns the staging database. This is a high-severity staging boundary failure. Do not run migrations, create fixtures, or use it for authenticated acceptance until a least-privilege application login and migration path are designed and verified. Blindly revoking grants is unsafe because authentication and administration still include direct Prisma database operations.
+
+### Release disposition
+
+- **V1.0: NOT CERTIFIED.** Open gates include verified production `DATABASE_URL`/role mapping; production owner sign-in and MFA; positive and negative tenant journeys against the deployed SHA; least-privilege remediation for the active code paths; monitoring alert delivery and human acknowledgement; backup restore/cutover and rollback rehearsal; and production branch protection/recovery evidence.
+- **V1.1: NOT RELEASED.** PR #73 is open and draft. It has exact-head code/CI and UI-control qualification, but no verified staging source/database mapping, no authenticated editorial workflow against an isolated least-privilege staging database, and no deployment acceptance. The 24-migration staging database is behind the branch's 28-migration schema.
+- Owner waiver `GOV-REVIEW-02` makes independent external review optional for V1.0; no independent review is claimed. The active ruleset no longer requires an approving review. Neither waiver nor green CI certifies a release.
+- No production rows, credentials, DNS records, branch protection settings, role grants, migrations, or deployments were changed during this refresh. No database connection strings or secret values were printed.
+
+## Current production and staging evidence refresh (2026-11-24 IST)
+
+This section supersedes earlier current-state statements where the inspected target or date differs. It records read-only observations from the canonical Hostinger deployment, both Hostinger Node.js sites, AWS staging RDS, and the connected GitHub account `vaishnavsawant1994-stack`. No production deployment, production database, DNS, production secret, or production database role was changed.
+
+### GitHub candidate
+
+- Repository: `vaishnavsawant1994-stack/The-Perspective`; default branch: `main`.
+- PR #73 remains open, draft, and unmerged at exact head `88d99c6ad5a2dc087c1f207844cc74c726e65890`, based on `main@4d3cd9e354028436b2b6b6ff5b3b469865b247d54`.
+- The connected GitHub account reports 17/17 workflow runs completed successfully on this head. The combined commit status reports the Vercel preview check as success. No review submissions are present.
+- These are candidate qualification results. They do not establish deployment or production acceptance.
+
+### Hostinger deployment identity and live behavior
+
+Read-only Hostinger deployment reads show both app entries are Next.js on Node.js 24, auto-deploying the same repository's `main` branch at `4d3cd9e354028436b2b6bff5b3b469865b247d54`:
+
+| Hostinger site | Build | Source | Environment keys |
+| --- | --- | --- | --- |
+| `expansive-darkslategray-raccoon-18.hostingersite.com` (parked domain `thetimesofperspective.com`) | `01a208a9-c5df-71e0-ae04-de4a3c483e19`, completed | `main@4d3cd9e354028436b2b6bff5b3b469865b247d54` | Includes `DATABASE_URL`, auth boundary and auth key variables, first-owner bootstrap variables |
+| `daily-limegreen-woodcock-36.hostingersite.com` (no custom domain) | `01a208a9-c583-7131-9330-6081f5ecd897`, completed | `main@4d3cd9e354028436b2b6bff5b3b469865b247d54` | Includes `DATABASE_URL` and auth boundary/key variables |
+
+The connector masks environment values. It does not reveal either database host, database name, username, or role, so the production and secondary site's database identities remain unverified. The secondary site is not a V1.1 preview: it runs `main`, not PR #73. One-day runtime log reads returned no ERROR or WARN entries, but logs contain only a small number of startup records and are not proof that authenticated workflows work.
+
+Read-only HTTP probes returned HTTP 200 for `/api/health/live` and `/api/health/ready` on both Hostinger hostnames and `www.thetimesofperspective.com`. The ready endpoint body was only `{"status":"ready"}`; it does not disclose target database identity or migration level. The canonical domain returned HTTP 404 for `/companies`, `/professionals`, and `/editors`. This is consistent with PR #73 remaining unreleased; it is not evidence of an unexpected regression on current `main`.
+
+### AWS staging RDS containment and migration
+
+- AWS CLI readback identifies account `595252767784`; the active CLI principal is the account root identity. Use a least-privilege non-root identity for future AWS operations.
+- RDS `perspective-staging` in `us-east-1` is `available`, encrypted, and not publicly accessible. Its security group `sg-0e3937e5c957ebacc` has only the prior self-referencing inbound rule; no public CIDR ingress exists.
+- An EC2 inventory of the RDS VPC returned no pending, running, stopping, or stopped instances. The temporary migration runner has been removed.
+- The encrypted manual snapshot `perspective-staging-pre-v11-20261124` is available.
+- The separately recorded 2026-11-24 migration acceptance applied the four pending PN-01 through PN-04 migrations from PR #73 head `88d99c6ad5a2dc087c1f207844cc74c726e65890`, bringing staging from 24 to 28 migrations. Post-verification found eight `profiles` tables and zero `profiles.profile_requests` rows; `db:verify` passed with `verified=true` and `pn04_verified=true` using TLS certificate and hostname verification. This is AWS staging evidence, not production migration evidence.
+- No Hostinger-to-private-RDS network path has been established. Hostinger sites are outside this RDS VPC and the RDS security group permits only its own group. Therefore the second Hostinger site cannot be accepted as an AWS-RDS-backed V1.1 staging app based on its `ready` response.
+
+### Remaining release gates
+
+| Gate | Current status | Required evidence |
+| --- | --- | --- |
+| Hostinger database target and runtime role | Unverified | Verify each masked `DATABASE_URL` target and least-privilege role without exposing credentials; prove production and staging are isolated |
+| Hostinger V1.1 preview | Not deployed | Establish an isolated staging network/database path, deploy the exact qualified PR #73 SHA to a verified staging target, and record the build SHA |
+| V1.0 owner login/MFA and tenant isolation | Not accepted | Complete positive owner/team/client authentication plus cross-tenant denial against a verified deployment and test identities |
+| Production database least privilege | Open | Map the deployed login role and verify required grants/RLS behavior against current auth/admin code before changing grants |
+| Alert delivery and acknowledgement | Not tested | Deliver a safe synthetic alert to an authorized human destination and record acknowledgement evidence |
+| Recovery and rollback | Partial | Retain existing encrypted dump/snapshot evidence; rehearse isolated restore/cutover and application rollback on verified nonproduction, record RPO/RTO |
+| PR #73 V1.1 workflow acceptance | Partial | Run authenticated editorial submission/review/publish/withdraw, public profile/correction request, abuse controls, privacy/retention, source-rights review, accessibility/mobile and browser acceptance against the verified candidate deployment |
+| Release decisions | Not eligible | Keep PR #73 draft and unmerged until required V1.0 and V1.1 gates are evidenced; do not call V1.0 certified or V1.1 released |
+
+The GitHub settings page still requires account re-authentication before the previously authorized collaborator/reviewer workflow can be resumed. No reviewer was added or requested during this verification. No AWS, Hostinger, production database, DNS, or release setting was changed.
+
+## Backup and first-owner production safety follow-up (2026-11-24 IST)
+
+### Production backup freshness
+
+- Read-only Neon metadata recheck confirms the production branch `br-icy-mountain-bak8ooxk` has no automatic snapshot schedule. Its only manual snapshot, `production-safety-check-2026-11-17`, remains listed with expiry `2026-11-24T00:00:00Z`; this timestamp is near-term, not a 30-day retention policy.
+- The active GitHub workflow `Neon encrypted database backup` completed successfully on 2026-11-23 at run [45159729670](https://github.com/vaishnavsawant1994-stack/The-Perspective/actions/runs/45159729670), using source SHA `ce7c1513bb61e45cb0f9081bf672befa2a4e6804`. GitHub reports success for both the 30-day retention-selection test and the step that creates an encrypted backup, verifies a remote copy, and restores it to an isolated PostgreSQL service.
+- Read-only object-storage listing confirms a private bucket `daily-encrypted-database-backups` in Neon project `the-perspective-backups` (`fragrant-math-28933654`), with daily encrypted `.dump.gpg` objects through 2026-11-23. The latest object is 138,597 bytes and matches workflow run 45159729670. Objects are stored in the same Neon provider/account; this is useful recovery evidence, not independent-provider disaster recovery.
+- The workflow source uses a dedicated `perspective_backup_reader` role and checks that it cannot create objects or modify application tables. The run's successful restore occurs in its disposable PostgreSQL service; it does not demonstrate production cutover, measured recovery time, or a completed live rollback drill.
+- No Neon plan upgrade or production branch setting was changed. Do not claim that manual snapshots are scheduled or that the expiring snapshot was extended.
+
+### First-owner bootstrap observation
+
+- The production environment-variable inventory lists `PERSPECTIVE_FIRST_OWNER_SETUP_SECRET` and `PERSPECTIVE_BOOTSTRAP_TARGET`; values were masked and never read.
+- The canonical production URL `/setup/first-owner` is publicly reachable (HTTP 200) and serves its noindex one-time setup form. Code inspection on current `main` shows POST requires same-origin, valid JSON, a timing-safe match to the configured setup key, explicit `production` target, `sessions` auth mode, the pinned production Neon hostname with `sslmode=verify-full`, and an empty authentication database before creating an invitation. Existing data causes a 409 without writes.
+- A synthetic invalid-request probe returned HTTP 400 because the request was rejected during input parsing; it did not verify secret mismatch behavior. No real setup key, owner identity, invitation, or production database response was used. Therefore production owner/MFA activation remains unaccepted, and the live bootstrap's enabled/disabled state is not established by this probe.
+- Complete the legitimate owner invitation/password/TOTP flow on a verified production target. Once the owner is activated, remove or rotate the one-time setup secret and verify the endpoint can no longer bootstrap an account.
+
+## Isolated local requalification (2026-11-24 IST)
+
+The current documentation candidate is PR #73 head `e0e18d605ddf73a5322e0f9fd8eeceaa5a438111`; its product-code parent is `88d99c6ad5a2dc087c1f207844cc74c726e65890`. The checks below were rerun in the isolated PR worktree. They do not use production credentials or databases.
+
+- Unit tests: **694/694 across 94 files passed**. TypeScript passed. Prisma schema validation passed.
+- Dependency audit: `npm audit --audit-level=moderate` reported **0 vulnerabilities**. ESLint completed with **0 errors and 3 existing unused-variable warnings**.
+- Production build passed on Next.js 16.4.5 and generated **471 static page entries**. The build received an unreachable loopback-only database URL on port 1, so it could not contact Neon or AWS.
+- A fresh PostgreSQL 17 container bound only to `127.0.0.1` received all **28 migrations**. The explicitly guarded R2 synthetic seed and seed assertions passed; `db:verify` returned `verified=true` and `pn04_verified=true`; migration status was current; Prisma migration drift reported **no difference**. All **268/268 database tests across 40 files passed** against that disposable database.
+- Local Next.js HTTP/browser checks against the isolated database: `/api/health/live` and `/api/health/ready` returned 200; `/companies`, `/professionals`, and `/editors` rendered the source-reviewed empty state with their search controls; company search for `Asteria` rendered the no-match message and Clear search link; `/companies/no-such-profile` returned 404. At a 390 px viewport, the editor page document width was 390 px. The inspected page reported zero console errors and seven warnings.
+- The disposable PostgreSQL container and local app server were stopped after acceptance. No production data, cloud database, host configuration, DNS, or deployment was changed.
+
+These results qualify the local code/database candidate. They do not verify a Hostinger V1.1 deployment, authenticated editorial actions, production owner/MFA, monitoring acknowledgement, production recovery/rollback, or independent review. PR #73 remains open and draft; V1.0 remains uncertified and V1.1 remains unreleased.
+
+## Protect main ruleset recheck (2026-11-24 IST)
+
+The repository owner's active `Protect main` ruleset (ID `27392549`) now requires the exact `R4 tenant isolation qualification` check in addition to `R14 full qualification`, `R14 production smoke`, and `browser-qualify`. This check context is emitted by the R4 workflow on pull requests targeting `main`. The ruleset still requires pull requests, up-to-date status checks, and resolved review conversations; branch deletion and non-fast-forward updates remain blocked; no bypass actors are configured.
+
+The existing owner waiver is preserved: the ruleset still requires **zero approving reviews**. Only the missing R4 status-check requirement was added. This records stronger automated tenant-isolation qualification without claiming independent human review or release certification.
+
+## Local candidate acceptance continuation (2026-11-25 UTC)
+
+Verified against PR #73 head `9fb1065357d24b1ec94a356b6527be25f3d09d06` in the isolated local worktree. The local app's `DATABASE_URL` host was confirmed as loopback (`127.0.0.1`); no cloud database was used for these browser checks.
+
+- Real-browser navigation: homepage rendered with the expected title and **0 console errors** (18 CSS preload warnings); `/companies` rendered its reviewed empty state with search and disclosure copy and **0 console errors**; `/profile-requests` rendered the correction/removal/claim form and privacy/retention notice with **0 console errors**.
+- `/api/health/ready` returned `{"status":"ready"}`. `/app/projects` redirected an unauthenticated browser to `/login?next=%2Fapp%2Fprojects`. An unknown company slug rendered the branded 404 response with HTTP 404; its corresponding browser console network error is expected for that negative route check.
+- The focused `src/modules/tenancy/r4-tenancy.database.test.ts` suite passed **5/5** on the same loopback-only PostgreSQL database. It verified the restricted `perspective_runtime` role, fail-closed behavior without transaction-local tenant claims, separation of seeded Asteria/Northstar client resource envelopes, and forced RLS. This is local database evidence, not real production-identity tenant acceptance.
+- The guarded R3 synthetic fixture and `scripts/authentication/verify-r3-browser.mjs` were then run against the same loopback-only disposable database: **13 Chromium screenshots passed**, covering Team login/settings, Client login/projects, TEAM-session denial at the Client surface, valid invitation acceptance, generic recovery response, anonymous redirect, and desktop/mobile layouts; **0 substantive console errors and 0 unexpected network failures**. These are synthetic identities only. No valid published-subject profile request was submitted. Production owner login/MFA, cross-tenant data denial between separate client identities, and editorial publish/withdraw remain unverified locally.
+- A further real-browser PN-04 negative-path check submitted a synthetic correction request for a nonexistent company slug. The form displayed the intentionally opaque acknowledgment, the browser reported **0 console errors**, and the disposable `profiles.profile_requests` row count remained **0 before and after**. This verifies non-disclosure for nonexistent subjects, not a valid published-subject intake or moderation workflow.
+- AWS staging connectivity probe: the temporary SSM port-forward opened local port `15432`, but both TLS-verified and plain PostgreSQL probes timed out before authentication. Treat the laptop-to-staging-RDS route as **not verified**. The temporary RDS ingress rule, bridge EC2, security group, IAM role, and instance profile were removed afterward; the instance is terminated and the RDS security group retains only its self-referencing rule. No staging migration or database write was run.
+- Synthetic production alert test: notification delivery to the authorized Gmail inbox was observed; GitHub issue [#82](https://github.com/vaishnavsawant1994-stack/The-Perspective/issues/82) was closed by the next healthy scheduled run. This verifies notification delivery and automated recovery of the test incident, **not human acknowledgement**.
+- GitHub still reports PR #73 open, draft, and unmerged; the current PR discussion contains no review-submission records. The audit-note commits do not change the application code exercised above. V1.0 remains uncertified and V1.1 remains unreleased. No production settings, records, deployments, or DNS were changed.
+
+## Valid-subject PN-04 browser acceptance (2026-11-25 UTC)
+
+Verified on PR #73 candidate `266878e4d1f1711227acd179f1cff1cc9e19a5ae` using the already-running local Next.js server at `127.0.0.1:3100` and disposable PostgreSQL database `perspective_r14` at `127.0.0.1:54332`. The database URL was checked to be loopback-only before any fixture write.
+
+- Added a temporary source-backed synthetic company profile marked published, then used Playwright to fill and submit the actual `/profile-requests` correction form with synthetic `example.org` contact/source data. The UI showed the opaque 202 acknowledgment and stated that no profile change or identity verification happens automatically.
+- During verification, exactly one correction row was present in the private queue and its synthetic reply address was stored. The `perspective_public` role could read the allowlisted company projection without that address and received PostgreSQL permission-denied when attempting direct `profile_requests.contact_email` access. The HTTP acknowledgment also contained no subject slug or contact address.
+- Removed the synthetic request, profile, and immutable version from the disposable database. The immutable-version trigger was re-enabled and verified enabled afterward; all three fixture row counts were zero. No cloud database or production data was used.
+- Playwright recorded **0 console errors**; the **28 warnings** were CSS preload notices. This qualifies valid-subject public intake and privacy projection locally, but does not verify Hostinger's trusted-proxy behavior, authenticated editorial moderation/decision flows, or production acceptance.
+
+The local server and disposable database were left running. PR #73 remains draft and unmerged; V1.0 remains uncertified and V1.1 remains unreleased.
+
+## Local R4 tenant browser acceptance (2026-11-25 UTC)
+
+Ran the guarded synthetic R4 browser verifier against the same loopback-only disposable PostgreSQL database and local application. The fixture generator's explicit local-database guard was enabled; no cloud database was contacted.
+
+- Chromium passed all six verifier scenarios: identity session without tenant context, protected route before context selection, denial of fabricated context, valid context selection, selected-portal access, and context switching. The run recorded **0 substantive console errors** and **0 unexpected network failures**.
+- The synthetic client account and foreign-membership rows remain in the disposable local database; fixture cleanup was not completed because those identities have many foreign-key relationships. Append-only audit records were preserved. This test database is isolated from all cloud and production databases.
+- This is local adversarial tenant-context evidence only. It does not establish separate real production client identities, Hostinger source/database mapping, production authorization, or full V1.0 certification.
+
+## Exact-head qualification and live infrastructure refresh (2026-11-25 UTC)
+
+### PR #73 exact head
+
+- Repository: `vaishnavsawant1994-stack/The-Perspective`; PR #73 remains **open, draft, and unmerged** at `e355821e02b964054632500739a7fe69f22d6caf`, based on `main@4d3cd9e354028436b2b6bff5b3b469865b247d54`.
+- GitHub reported **24/24 check runs successful** on this exact head, including `R14 full qualification`, `R14 production smoke`, `R4 tenant isolation qualification`, and `browser-qualify`; the Vercel commit status was success. The R14 qualification job completed migration verification, unit and live PostgreSQL tests, backup/restore verification, secret scanning, lint, typecheck, production build, and dependency audit. This verifies automated qualification for this candidate, not production release eligibility.
+
+### Hostinger production
+
+- Read-only deployment lookup confirms build `01a208a9-c5df-71e0-ae04-de4a3c483e19`, Node.js 24, source `main@4d3cd9e354028436b2b6bff5b3b469865b247d54` from `vaishnavsawant1994-stack/The-Perspective`; build state is completed.
+- Public HTTP checks returned 200 for `/`, `/api/health/live`, `/api/health/ready`, `/login`, and `/client/login`. `/companies`, `/professionals`, and `/editors` returned 404 on V1.0 `main`, consistent with the still-unmerged V1.1 candidate.
+- This confirms deployed source and reachability. Production owner MFA, authenticated tenant journeys, runtime `DATABASE_URL`/role mapping, and human alert acknowledgement remain unverified.
+
+### AWS staging RDS read-only recheck
+
+- `perspective-staging` in `us-east-1` is encrypted PostgreSQL 17.11, private (`PubliclyAccessible=false`), single-AZ, `gp2`, and currently reported `backing-up`. Backup retention is **one day**; deletion protection is **off**. Parameter `rds.force_ssl=1` is enabled.
+- Its VPC security group is the default group with only a self-referencing all-protocol ingress rule; no laptop or Hostinger source is allowed. The database endpoint remains private. This explains why laptop probes time out and does not establish Hostinger connectivity.
+- The AWS CLI identity for this read-only inspection resolved to the account root principal. No AWS resources, security groups, backups, database rows, Hostinger settings, DNS, or production state were changed. Use a least-privilege IAM Identity Center/role session for future administration rather than root credentials.
+- AWS CLI readback is not database authentication. The actual staging migration count, runtime login role, and Hostinger-to-RDS mapping remain unverified in this refresh.
+
+### Release decision
+
+V1.0 remains **NOT CERTIFIED** because production owner MFA, production tenant isolation, least-privilege runtime mapping, tested human alert acknowledgement, and recovery/rollback acceptance are not proven. V1.1 remains **NOT RELEASED**: PR #73 is still draft; its code and CI pass, but authenticated editorial review/publish/withdraw acceptance against the actual intended isolated staging deployment and database is still missing. No release merge or production deployment is authorized by these checks.
+
+### Local V1.1 database lifecycle recheck (2026-11-25 UTC)
+
+Ran the PR #73 PN-01/PN-02/PN-03 database tests (**10/10**) and PN-04 request database tests (**4/4**) against `perspective_r14` only after asserting `DATABASE_URL` resolves to `127.0.0.1:54332/perspective_r14`. No cloud connection was used. The suite covered source-backed profile projections and versioning, professional/editor publication boundaries, independent editorial submission/review/publish/withdraw, private claim/correction requests, expiry handling, per-IP/global rate limits, and concurrent submissions. Post-run readback found zero PN-03 submissions, zero PN-04 requests, and zero PN test company profiles. The separate synthetic R4 account remains in this disposable database as documented above; no production records were touched.
+
+### Latest Hostinger PR preview runtime acceptance (2026-11-25 UTC)
+
+The Hostinger PR bot reported `https://merciful-green-duck-93.hostingersite.com` serving commit `72aa5de`. Read-only requests to `/api/health/live`, `/api/health/ready`, `/companies`, `/professionals`, `/editors`, and `/profile-requests` returned HTTP 200. The editorial studio redirected an anonymous browser to Team login as expected. **HTTP 200 was not sufficient for acceptance:** a real Chromium browser rendered the three directory routes with the generic `500 / Something Went Wrong` boundary and emitted React error `#441` (Server Components render error); the request form rendered normally. This shows a server-render failure, while its production message is intentionally omitted by React.
+
+The same candidate code in the isolated local app rendered all three directory headings and search surfaces with no browser console errors. A read-only Neon catalog query against the known staging target `hidden-haze-29775614 / br-cold-hat-ba18b0tj / perspective_staging` found no `profiles` schema, no PN-01 company table or function, and zero V1.1 migration records. **The Hostinger preview's actual `DATABASE_URL` target is masked and unverified**, so the missing objects on this known Neon branch are a plausible cause, not proven to be the preview's cause. Do not mark V1.1 preview acceptance complete or apply migrations until the preview's isolated target and runtime role are verified. No database, hosting, or production state was changed.

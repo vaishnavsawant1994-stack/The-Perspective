@@ -28,7 +28,10 @@ function absolute(path) {
 }
 
 async function visualCheck(page, name, expectedText) {
-  await page.waitForLoadState("networkidle");
+  await page.getByText(expectedText).first().waitFor({
+    state: "visible",
+    timeout: 15_000,
+  });
   const body = (await page.locator("body").innerText()).trim();
   assert.ok(body.length > 50, `${name}: page rendered too little content`);
   assert.match(body, expectedText, `${name}: expected semantic content missing`);

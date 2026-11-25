@@ -1,3 +1,5 @@
+> **Current status pointer — 2026-11-18:** This file preserves historical release checkpoints and contains superseded references to Vercel, PR #49, older production commits, and earlier staging findings. For the current GitHub, Hostinger, Neon, DNS, backup and acceptance evidence, use [PROJECT-COMPLETION-STATUS.md](./PROJECT-COMPLETION-STATUS.md). **V1.0 NOT CERTIFIED.**
+
 > **RELEASE-GATE POLICY UPDATE — 2026-11-17:** The owner removed compulsory independent human security review as an R14/V1.0 requirement in [GOV-REVIEW-02](./OWNER-REVIEW-WAIVER-2026-11-17.md). The historical status and table below predate this amendment. All technical security, production acceptance, alert, staging and rollback gates are still required. The active GitHub ruleset requires an approval until an authorized administrator changes it. **V1.0 NOT CERTIFIED.**
 
 # V1 production readiness

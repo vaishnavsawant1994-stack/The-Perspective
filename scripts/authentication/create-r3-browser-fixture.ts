@@ -35,6 +35,11 @@ async function main() {
   for (const name of required) {
     if (!process.env[name]) throw new Error(`${name} is required.`);
   }
+  const editorialEmail = process.env.PERSPECTIVE_BROWSER_EDITORIAL_EMAIL;
+  const editorialPassword = process.env.PERSPECTIVE_BROWSER_EDITORIAL_PASSWORD;
+  if (Boolean(editorialEmail) !== Boolean(editorialPassword)) {
+    throw new Error("Editorial browser fixture email and password must be provided together.");
+  }
 
   const database = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -63,6 +68,8 @@ async function main() {
     email: string,
     password: string,
     displayName: string,
+    teamPermissions?: readonly string[],
+    teamRoleName = "R3 Browser Read Only",
   ) {
     const organizationId = randomUUID();
     const personId = randomUUID();
@@ -137,12 +144,13 @@ async function main() {
             id: roleId,
             organizationId,
             key: `r3-browser-readonly-${randomUUID()}`,
-            name: "R3 Browser Read Only",
+            name: teamRoleName,
             defaultScope: RoleScope.ORG,
             status: RecordStatus.ACTIVE,
           },
         });
         const dashboardPermissions = [
+          "project.view",
           "magazine.dashboard.view",
           "podcast.dashboard.view",
           "video.dashboard.view",
@@ -150,7 +158,7 @@ async function main() {
           "distribution.dashboard.view",
           "report.view",
         ];
-        for (const key of dashboardPermissions) {
+        for (const key of teamPermissions ?? dashboardPermissions) {
           const [domain, ...parts] = key.split(".");
           const permission = await transaction.permission.upsert({
             where: { key },
@@ -193,6 +201,16 @@ async function main() {
       process.env.PERSPECTIVE_BROWSER_TEAM_PASSWORD!,
       "R3 Browser Team User",
     );
+    if (editorialEmail && editorialPassword) {
+      await createPasswordUser(
+        "TEAM",
+        editorialEmail,
+        editorialPassword,
+        "R3 Browser Editorial User",
+        ["editorial.view", "editorial.review"],
+        "R3 Browser Editorial Editor",
+      );
+    }
     await createPasswordUser(
       "CLIENT",
       process.env.PERSPECTIVE_BROWSER_CLIENT_EMAIL!,

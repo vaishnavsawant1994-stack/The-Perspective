@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["iam", "platform", "audit", "crm", "comms", "commercial"]
+  schemas  = ["iam", "platform", "audit", "crm", "comms", "commercial", "profiles"]
 }
 
 enum OrganizationType {
@@ -1839,3 +1839,176 @@ model CommercialClientRelationship {
   @@schema("commercial")
 }
 
+
+/**
+ * V1.1 PN-01: public editorial identity, entirely separate from CRM companies.
+ * There are no write routes for these models in PN-01.
+ */
+model PublicCompanyProfile {
+  id                 String                       @id @db.Uuid
+  slug               String                       @unique
+  state              String                       @default("DRAFT")
+  publishedVersionId String?                      @map("published_version_id") @db.Uuid
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  versions           PublicCompanyProfileVersion[] @relation("ProfileVersions")
+  professionals      PublicProfileRelationship[]
+  publishedVersion   PublicCompanyProfileVersion?  @relation("PublishedCompanyVersion", fields: [publishedVersionId], references: [id], onDelete: Restrict)
+
+  @@index([state, slug])
+  @@map("company_profiles")
+  @@schema("profiles")
+}
+
+model PublicCompanyProfileVersion {
+  id               String                @id @db.Uuid
+  companyProfileId String                @map("company_profile_id") @db.Uuid
+  version          Int
+  name             String
+  summary          String
+  industry         String?
+  headquarters     String?
+  websiteUrl       String?               @map("website_url")
+  overview         String?
+  disclosureKind   String                @default("NONE") @map("disclosure_kind")
+  disclosureText   String?               @map("disclosure_text")
+  sources          Json                  @default("[]")
+  approvedAt       DateTime?             @map("approved_at") @db.Timestamptz(6)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile          PublicCompanyProfile  @relation("ProfileVersions", fields: [companyProfileId], references: [id], onDelete: Restrict)
+  featuredOn       PublicCompanyProfile[] @relation("PublishedCompanyVersion")
+
+  @@unique([companyProfileId, version])
+  @@index([companyProfileId, approvedAt])
+  @@map("company_versions")
+  @@schema("profiles")
+}
+
+/**
+ * V1.1 PN-02: public editorial profiles of people, not IAM account identities.
+ * Professional subject and editor/byline roles remain explicitly separate.
+ */
+model PublicPersonProfile {
+  id                 String                       @id @db.Uuid
+  slug               String                       @unique
+  kind               String
+  state              String                       @default("DRAFT")
+  publishedVersionId String?                      @map("published_version_id") @db.Uuid
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  versions           PublicPersonProfileVersion[] @relation("PersonProfileVersions")
+  publishedVersion   PublicPersonProfileVersion?  @relation("PublishedPersonVersion", fields: [publishedVersionId], references: [id], onDelete: Restrict)
+  companies          PublicProfileRelationship[]
+
+  @@index([kind, state, slug])
+  @@map("person_profiles")
+  @@schema("profiles")
+}
+
+model PublicPersonProfileVersion {
+  id               String                 @id @db.Uuid
+  personProfileId  String                 @map("person_profile_id") @db.Uuid
+  version          Int
+  name             String
+  headline         String?
+  summary          String
+  biography        String?
+  organizationName String?                @map("organization_name")
+  websiteUrl       String?                @map("website_url")
+  disclosureKind   String                 @default("NONE") @map("disclosure_kind")
+  disclosureText   String?                @map("disclosure_text")
+  sources          Json                   @default("[]")
+  coverage         Json                   @default("[]")
+  approvedAt       DateTime?              @map("approved_at") @db.Timestamptz(6)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile          PublicPersonProfile    @relation("PersonProfileVersions", fields: [personProfileId], references: [id], onDelete: Restrict)
+  featuredOn       PublicPersonProfile[]  @relation("PublishedPersonVersion")
+
+  @@unique([personProfileId, version])
+  @@index([personProfileId, approvedAt])
+  @@map("person_versions")
+  @@schema("profiles")
+}
+
+model PublicProfileRelationship {
+  id              String               @id @db.Uuid
+  personProfileId String               @map("person_profile_id") @db.Uuid
+  companyProfileId String              @map("company_profile_id") @db.Uuid
+  role            String
+  sourceUrl       String               @map("source_url")
+  reviewedAt      DateTime             @map("reviewed_at") @db.Timestamptz(6)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  person          PublicPersonProfile  @relation(fields: [personProfileId], references: [id], onDelete: Restrict)
+  company         PublicCompanyProfile @relation(fields: [companyProfileId], references: [id], onDelete: Restrict)
+
+  @@unique([personProfileId, companyProfileId, role])
+  @@map("public_relationships")
+  @@schema("profiles")
+}
+
+/**
+ * V1.1 PN-03: private platform-editor submission and audit lifecycle.
+ * CRM/client actors are never delegated publication authority.
+ */
+model PublicProfileSubmission {
+  id                    String   @id @db.Uuid
+  ownerOrganizationId   String   @map("owner_organization_id") @db.Uuid
+  kind                  String
+  slug                  String
+  payload               Json
+  state                 String   @default("SUBMITTED")
+  submittedByMembershipId String @map("submitted_by_membership_id") @db.Uuid
+  reviewedByMembershipId String? @map("reviewed_by_membership_id") @db.Uuid
+  reviewReason          String?  @map("review_reason")
+  approvedVersionId     String?  @map("approved_version_id") @db.Uuid
+  submittedAt           DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  reviewedAt            DateTime? @map("reviewed_at") @db.Timestamptz(6)
+
+  @@index([ownerOrganizationId, state, submittedAt])
+  @@map("profile_submissions")
+  @@schema("profiles")
+}
+
+model PublicProfileAuditEvent {
+  id                    String   @id @db.Uuid
+  ownerOrganizationId   String   @map("owner_organization_id") @db.Uuid
+  profileSubmissionId   String?  @map("profile_submission_id") @db.Uuid
+  actorMembershipId     String   @map("actor_membership_id") @db.Uuid
+  action                String
+  reason                String
+  idempotencyKey        String   @map("idempotency_key")
+  requestHash           String   @map("request_hash")
+  result                Json
+  occurredAt            DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@unique([ownerOrganizationId, actorMembershipId, idempotencyKey])
+  @@index([ownerOrganizationId, profileSubmissionId, occurredAt])
+  @@map("profile_audit_events")
+  @@schema("profiles")
+}
+
+/**
+ * V1.1 PN-04: private correction, removal, and claim intake.
+ * Claims do not create a verification badge, linked account, or publish rights.
+ */
+model PublicProfileRequest {
+  id                        String    @id @db.Uuid
+  requestKind               String    @map("request_kind")
+  subjectKind               String    @map("subject_kind")
+  subjectSlug               String    @map("subject_slug")
+  description               String
+  sourceUrl                 String?   @map("source_url")
+  contactEmail              String?   @map("contact_email")
+  rateKey                   String    @map("rate_key")
+  state                     String    @default("PENDING")
+  reviewedByMembershipId    String?   @map("reviewed_by_membership_id") @db.Uuid
+  decisionNote              String?   @map("decision_note")
+  submittedAt               DateTime  @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  reviewedAt                DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  expiresAt                 DateTime  @map("expires_at") @db.Timestamptz(6)
+
+  @@index([state, submittedAt])
+  @@index([rateKey, submittedAt])
+  @@map("profile_requests")
+  @@schema("profiles")
+}

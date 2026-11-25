@@ -1,13 +1,29 @@
 import { NextRequest } from "next/server";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/modules/profile-network/read", () => ({
+  publicCompanyExists: vi.fn(),
+}));
+vi.mock("@/modules/profile-network/person-read", () => ({
+  publicPersonExists: vi.fn(),
+}));
 
 import { proxy } from "./proxy";
+import { publicCompanyExists } from "@/modules/profile-network/read";
+import { publicPersonExists } from "@/modules/profile-network/person-read";
 
 function request(path: string, cookie?: string) {
   return new NextRequest(`https://perspective.example${path}`, {
     headers: cookie ? { cookie } : undefined,
   });
 }
+
+beforeEach(() => {
+  vi.mocked(publicCompanyExists).mockReset();
+  vi.mocked(publicPersonExists).mockReset();
+  vi.mocked(publicCompanyExists).mockResolvedValue(false);
+  vi.mocked(publicPersonExists).mockResolvedValue(false);
+});
 
 describe("R1 proxy security boundary", () => {
   it.each([
@@ -58,6 +74,20 @@ describe("R1 proxy security boundary", () => {
     expect(response.headers.get("x-middleware-rewrite")).toBe(
       "https://perspective.example/_not-found",
     );
+  });
+
+  it.each([
+    ["/companies/unpublished-company", publicCompanyExists],
+    ["/professionals/unpublished-person", publicPersonExists],
+    ["/editors/unpublished-editor", publicPersonExists],
+  ])("returns a real 404 before streaming for unpublished profiles at %s", async (path, exists) => {
+    const response = await proxy(request(path));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      `https://perspective.example/_not-found`,
+    );
+    expect(exists).toHaveBeenCalled();
   });
 
   it.each([
