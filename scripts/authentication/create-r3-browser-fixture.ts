@@ -150,6 +150,7 @@ async function main() {
           },
         });
         const dashboardPermissions = [
+          "project.view",
           "magazine.dashboard.view",
           "podcast.dashboard.view",
           "video.dashboard.view",
